@@ -52,7 +52,7 @@ class FakeVision:
 @pytest.fixture
 def vision(analysis,clear): return FakeVision(analysis,clear)
 @pytest.fixture
-def settings(): return Settings(provider_base='https://vision.example/v1',provider_model='test-model',provider_key='fake-secret-not-a-credential',access_code=ACCESS,max_calls_hour=100)
+def settings(): return Settings(provider_base='https://vision.example/v1',provider_model='test-model',provider_key='fake-secret-not-a-credential',access_code=ACCESS,ticket_secret='t'*48,max_calls_hour=100)
 @pytest.fixture
 def client(settings,vision):
     with TestClient(create_app(settings,provider=vision)) as c: yield c
