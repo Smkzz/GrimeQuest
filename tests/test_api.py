@@ -77,7 +77,7 @@ def test_label_scan_never_grants_recommendation(client,vision,before,after):
 def test_matching_api_and_health_do_not_leak_key(client,attestations):
     r=client.post('/api/match',headers=HEADERS,json={'surface':'glazed_ceramic','soil':'grease','product_id':PRODUCT,'attestations':attestations.model_dump(),'hazards':['none']})
     assert r.json()['status']=='eligible'
-    h=client.get('/api/health');assert h.json()['live_ready'] is True
+    h=client.get('/api/health');assert h.json()['live_ready'] is True;assert h.json()['workflow_receipts_persistent'] is True
     assert 'fake-secret' not in h.text and 'test-only-access' not in h.text
 
 def test_concurrent_verification_is_single_flight(settings,analysis,clear,before,after,attestations):
@@ -100,3 +100,17 @@ def test_concurrent_verification_is_single_flight(settings,analysis,clear,before
             release.set();assert (await first).json()['status']=='clear'
             assert vision.calls==['analyze','compare'] and app.state.budget.active==0
     asyncio.run(run())
+
+
+def test_workflow_ticket_survives_restart_with_configured_secret(settings,analysis,clear,before,attestations):
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    from conftest import FakeVision
+    first_vision=FakeVision(analysis,clear)
+    with TestClient(create_app(settings,first_vision)) as first:
+        target=first.post('/api/analyze-target',headers=HEADERS,json={'image':before,'consent':True}).json()['target_ticket']
+    second_vision=FakeVision(analysis,clear)
+    with TestClient(create_app(settings,second_vision)) as second:
+        r=second.post('/api/start',headers=HEADERS,json={'target_ticket':target,'surface':'glazed_ceramic','soil':'grease','product_id':PRODUCT,'attestations':attestations.model_dump()})
+        assert r.status_code==200,r.text
+        assert r.json()['encounter_ticket']
