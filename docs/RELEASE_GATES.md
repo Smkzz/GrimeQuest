@@ -4,6 +4,12 @@
 
 The source-folder application, self-contained practice preview, deterministic matching policy, client/server integration, tests and documentation can be reviewed and run locally. The practice UI is explicitly labeled and does not pretend to be the hackathon's real chore-completion demonstration.
 
+## Hosted practice checkpoint
+
+A practice-only Railway Function is live over HTTPS at `grimequest-practice-production.up.railway.app`. Railway's own `/api/health` healthcheck passes, one replica is running, and the service is configured for Amsterdam. This proves the hosted illustrated walkthrough can run behind Railway's HTTPS edge; it does **not** qualify the Python backend, phone camera/PWA install path, any vision model, product advice, or a real cleaning result.
+
+The intended repo-backed Railway service is currently blocked because Railway's GitHub installation cannot read the private `Smkz-Entertainment/GrimeQuest` repository. Grant that installation repository access (or make the repo public, which the hackathon will require anyway) before treating the Docker deployment path as exercised.
+
 ## Before the first physical live demo
 
 1. Confirm the organizer's exact build-week dates and rules for AI-generated code/assets. The supplied weekday window does not identify dates.
