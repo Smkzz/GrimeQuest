@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Build generated PWA assets inside the deployment image instead of assuming checked-in bundles.
+- Honor the platform-provided `PORT` at runtime.
+- Add `railway.json` with healthcheck, bounded restart policy and Amsterdam deployment region.
+- Publish an explicitly practice-only HTTPS walkthrough on Railway while the private-repository GitHub authorization remains blocked.
+
 ## 0.1.0 — 2026-10-06
 
 Initial local prototype: mobile-first quest PWA, original practice scenarios, real-inventory workflow, bounded vision adapter, source-linked conditional product policy, explicit consent, signed workflow receipts, visual-comparison game states, local journal, interrupted-task recovery, source tests and release documentation.
