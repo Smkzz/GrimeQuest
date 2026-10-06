@@ -4,11 +4,13 @@
 
 The source-folder application, self-contained practice preview, deterministic matching policy, client/server integration, tests and documentation can be reviewed and run locally. The practice UI is explicitly labeled and does not pretend to be the hackathon's real chore-completion demonstration.
 
-## Hosted practice checkpoint
+## Hosted repo-backed checkpoint
 
-A practice-only Railway Function is live over HTTPS at `grimequest-practice-production.up.railway.app`. Railway's own `/api/health` healthcheck passes, one replica is running, and the service is configured for Amsterdam. This proves the hosted illustrated walkthrough can run behind Railway's HTTPS edge; it does **not** qualify the Python backend, phone camera/PWA install path, any vision model, product advice, or a real cleaning result.
+The full repo-backed Railway service is live over HTTPS at `grimequest-web-production.up.railway.app`. Deployment `5554ddd7-c9ff-4c35-aaeb-4cee4681cc43` runs exact source commit `a7acac65c79db80e5e86516d2b196bd25503c21b`, one replica in Amsterdam, with `/api/health` passing. Generated frontend assets are built inside the Docker image.
 
-The intended repo-backed Railway service is currently blocked because Railway's GitHub installation cannot read the private `Smkz-Entertainment/GrimeQuest` repository. Grant that installation repository access (or make the repo public, which the hackathon will require anyway) before treating the Docker deployment path as exercised.
+The first deployment exposed a platform-integration defect: Railway's internal health probe used a Host value outside the public allowlist. The fix exempts only `GET /api/health` from Host filtering; protected API and static routes remain strict. The change passed the complete local suite before redeployment (235 Python/API/browser tests plus 34 client tests).
+
+The temporary practice-only Railway Function was removed once this service was healthy. Live vision remains disabled because no provider/model/key or private live-mode access code is configured. The GitHub repository also remains private, which is incompatible with a hackathon rule requiring open source.
 
 ## Before the first physical live demo
 
