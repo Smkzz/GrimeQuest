@@ -13,7 +13,7 @@ A public **practice-only** mirror is currently deployed at:
 
 `https://grimequest-practice-production.up.railway.app/`
 
-It serves the self-contained illustrated walkthrough only. It does **not** enable live AI analysis, does not claim physical cleaning validation, and is not the final repo-backed Python deployment. Railway's own `/api/health` probe currently passes for that service.
+It serves the self-contained illustrated walkthrough only and now exposes a web-app manifest, service worker and offline shell routes. It does **not** enable live AI analysis, does not claim physical cleaning validation, and is not the final repo-backed Python deployment. Railway's own `/api/health` probe currently passes for that service; real-device installation remains unvalidated.
 
 For the source application, build the deterministic frontend and run it locally. Practice mode is a self-contained walkthrough with original illustrated scenes, product selection, care checks, simulated comparisons, XP, inventory and a journal. No account or API key is required. The illustration results are **not AI analyses or physical cleaning evidence**.
 
@@ -127,6 +127,7 @@ python scripts/verify_build.py
 - [Release checklist and validation plan](docs/RELEASE_GATES.md)
 - [Build plan and completed iterations](docs/BUILD_PLAN.md)
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
+- [Hosted deployment status](docs/HOSTED_STATUS.md)
 
 CI is provided as a **manual-only GitHub Actions workflow**. The source is hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
 
