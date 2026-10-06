@@ -17,6 +17,7 @@ if __name__ == "__main__":
         workers=1,
         proxy_headers=False,
         access_log=False,
+        server_header=False,
         timeout_keep_alive=5,
         limit_concurrency=24,
     )
