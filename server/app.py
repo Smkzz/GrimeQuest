@@ -64,7 +64,8 @@ class Boundary:
             hostname = urlsplit("http://" + host).hostname
         except ValueError:
             hostname = None
-        if hostname not in self.allowed_hosts and not (hostname == "::1" and "[::1]" in self.allowed_hosts):
+        health_probe = scope["method"] == "GET" and scope["path"] == "/api/health"
+        if not health_probe and hostname not in self.allowed_hosts and not (hostname == "::1" and "[::1]" in self.allowed_hosts):
             return await reject(400, "HOST", "Host is not allowed.")
         if scope["path"].startswith("/api/") and scope["method"] == "POST":
             allowed_origins = {"http://" + host, "https://" + host}
