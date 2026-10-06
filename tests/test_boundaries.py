@@ -60,6 +60,12 @@ def test_config_loopback_explicit_only():
     assert Settings(provider_base='http://127.0.0.1:1234/v1',allow_local_provider=True).validate()
     assert not Settings(provider_base='https://example.com',provider_model='a',access_code='short').ready
 
+def test_ticket_secret_configuration():
+    for value in ['short', 'x'*257]:
+        with pytest.raises(ValueError):
+            Settings(ticket_secret=value).validate()
+    assert Settings(ticket_secret='x'*32).validate().ticket_secret == 'x'*32
+
 @pytest.mark.parametrize('origin',['http://example.com','https://example.com/path','https://user@example.com','https://example.com?x=1'])
 def test_origin_configuration(origin):
     with pytest.raises(ValueError):Settings(app_origin=origin).validate()
@@ -70,9 +76,12 @@ def test_bad_call_limit(limit):
 
 def test_default_is_off_and_private_headers():
     with TestClient(create_app(Settings())) as c:
-        health=c.get('/api/health');assert not health.json()['live_ready']
+        health=c.get('/api/health');assert not health.json()['live_ready'];assert health.json()['workflow_receipts_persistent'] is False
         assert health.headers['cache-control']=='no-store'
         assert 'frame-ancestors' in health.headers['content-security-policy']
+        assert health.headers['cross-origin-opener-policy']=='same-origin'
+        assert health.headers['origin-agent-cluster']=='?1'
+        assert health.headers['x-permitted-cross-domain-policies']=='none'
         assert c.get('/').status_code==200
         assert c.get('/sw.js').headers['cache-control']=='no-cache'
         assert c.post('/api/analyze-target',headers=HEADERS,json={}).status_code==503
