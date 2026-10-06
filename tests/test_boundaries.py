@@ -77,7 +77,10 @@ def test_default_is_off_and_private_headers():
         assert c.get('/sw.js').headers['cache-control']=='no-cache'
         assert c.post('/api/analyze-target',headers=HEADERS,json={}).status_code==503
         assert c.get('/api/catalog').json()['products']
-        assert c.get('/api/health',headers={'host':'attacker.example'}).status_code==400
+        # Health probes may arrive on Railway/private runtime hostnames; the endpoint is
+        # intentionally host-agnostic and contains no credentials. Other routes remain strict.
+        assert c.get('/api/health',headers={'host':'railway-internal'}).status_code==200
+        assert c.get('/',headers={'host':'attacker.example'}).status_code==400
         assert c.get('/.env').status_code==404
         assert c.get('/server/catalog.json').status_code==404
 
