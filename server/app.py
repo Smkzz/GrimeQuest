@@ -30,6 +30,9 @@ HEADERS = {
     "permissions-policy": "camera=(self), microphone=(), geolocation=(), payment=()",
     "x-frame-options": "DENY",
     "cross-origin-resource-policy": "same-origin",
+    "cross-origin-opener-policy": "same-origin",
+    "origin-agent-cluster": "?1",
+    "x-permitted-cross-domain-policies": "none",
 }
 
 class Boundary:
@@ -136,7 +139,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     settings = (settings or Settings.from_env()).validate()
     app = FastAPI(title="GrimeQuest", version=VERSION, docs_url=None, redoc_url=None, openapi_url="/api/openapi.json")
     app.add_middleware(Boundary, settings=settings)
-    signer = tickets or Tickets()
+    signer = tickets or Tickets(settings.ticket_secret.encode("utf-8") if settings.ticket_secret else None)
     vision = provider or VisionProvider(settings.provider_base, settings.provider_model, settings.provider_key)
     budget = Budget(settings.max_calls_hour)
     # Only bounded receipts/results are cached, never images or product label text.
@@ -175,7 +178,8 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
         return {"status": "ok", "version": VERSION, "live_ready": settings.ready, "policy_version": POLICY_VERSION,
                 "catalog_version": CATALOG["version"], "provider_host": urlsplit(settings.provider_base).hostname if settings.ready else None,
                 "provider_model": settings.provider_model if settings.ready else None,
-                "max_calls_hour": settings.max_calls_hour, "real_world_validation": "not_performed"}
+                "max_calls_hour": settings.max_calls_hour, "workflow_receipts_persistent": bool(settings.ticket_secret),
+                "real_world_validation": "not_performed"}
 
     @app.get("/api/catalog")
     async def catalog():
