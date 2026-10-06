@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS frontend-build
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS frontend-build
 WORKDIR /src
 
 # scripts/build.py creates the generated PWA shell and PNG icons.
@@ -19,7 +19,7 @@ RUN python3 scripts/build.py \
     && test -s web/manifest.webmanifest \
     && test -s web/sw.js
 
-FROM python:3.13-slim AS runtime
+FROM python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c AS runtime
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
@@ -27,6 +27,7 @@ WORKDIR /app
 
 COPY requirements.lock ./
 RUN python -m pip install --no-cache-dir -r requirements.lock \
+    && python -c "import fastapi, starlette, anyio, pydantic, PIL, uvicorn" \
     && useradd --system --uid 10001 --no-create-home appuser
 
 COPY server ./server
