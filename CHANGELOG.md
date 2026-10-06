@@ -1,5 +1,9 @@
 # Changelog
 
+## Deployment hardening — 2026-10-06
+
+Repo-backed Railway deployment qualified on exact source commit `a7acac65c79db80e5e86516d2b196bd25503c21b`. Added deployment-time PWA compilation, Railway `PORT` support, Amsterdam deployment configuration, platform health checking, and a narrow health-probe Host exception. The full local regression suite remained green (269 tests). The temporary practice-only Railway Function was removed after the production service became healthy. Live AI and physical cleaning validation remain outstanding.
+
 ## Unreleased
 
 - Build generated PWA assets inside the deployment image instead of assuming checked-in bundles.
