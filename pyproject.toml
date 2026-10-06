@@ -9,9 +9,9 @@ description = "A privacy-conscious, camera-first cleaning quest PWA"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-  "fastapi==0.128.2",
-  "uvicorn==0.48.0",
-  "pydantic==2.13.4",
+  "fastapi==0.142.2",
+  "uvicorn==0.53.0",
+  "pydantic==2.13.5",
   "httpx==0.28.1",
   "Pillow==12.3.0",
 ]
