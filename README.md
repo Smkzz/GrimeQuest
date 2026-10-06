@@ -9,7 +9,13 @@ Identify one visible mess, confirm its material, choose a product from your own 
 
 ## Try it immediately
 
-Build the deterministic frontend, then open the app locally. Practice mode is a self-contained walkthrough with original illustrated scenes, product selection, care checks, simulated comparisons, XP, inventory and a journal. No account or API key is required. The illustration results are **not AI analyses or physical cleaning evidence**.
+A public **practice-only** mirror is currently deployed at:
+
+`https://grimequest-practice-production.up.railway.app/`
+
+It serves the self-contained illustrated walkthrough only. It does **not** enable live AI analysis, does not claim physical cleaning validation, and is not the final repo-backed Python deployment. Railway's own `/api/health` probe currently passes for that service.
+
+For the source application, build the deterministic frontend and run it locally. Practice mode is a self-contained walkthrough with original illustrated scenes, product selection, care checks, simulated comparisons, XP, inventory and a journal. No account or API key is required. The illustration results are **not AI analyses or physical cleaning evidence**.
 
 Generated frontend bundles are intentionally not committed. `python scripts/build.py` compiles the TypeScript, generates the PWA assets/service worker and writes `preview.html` for an optional double-click walkthrough.
 
@@ -122,7 +128,9 @@ python scripts/verify_build.py
 - [Build plan and completed iterations](docs/BUILD_PLAN.md)
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
 
-CI is provided as a **manual-only GitHub Actions workflow**. The source is hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; publishing the initial source commit does not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive. No Actions run or external deployment has been performed for this release, and no cloud infrastructure or paid service was activated by the build.
+CI is provided as a **manual-only GitHub Actions workflow**. The source is hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
+
+A separate Railway Function currently hosts the practice-only walkthrough over HTTPS. The intended repo-backed Python service is not yet deployed because Railway's GitHub installation does not currently have access to this private repository. No live vision provider is configured, no paid model call was made as part of this deployment, and physical phone/cleaning validation remains outstanding. `railway.json` records the intended Dockerfile, healthcheck, restart policy and Amsterdam region for the repo-backed service once repository access is granted.
 
 ## License
 
