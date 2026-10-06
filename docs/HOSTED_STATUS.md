@@ -20,7 +20,9 @@ The hosted practice build includes a web-app manifest, service worker and offlin
 
 ## Intended repo-backed service
 
-The `grimequest-web` Railway service exists but is offline. Railway's GitHub installation currently cannot read the private `Smkz-Entertainment/GrimeQuest` repository, so the Dockerfile has not been built by Railway.
+The `grimequest-web` Railway service exists but is offline. Its reserved HTTPS origin is `https://grimequest-web-production.up.railway.app/`. Railway's GitHub installation currently cannot read the private `Smkz-Entertainment/GrimeQuest` repository, so the Dockerfile has not been built by Railway.
+
+The pending service is already configured for Amsterdam, `/api/health`, bounded restart-on-failure behavior, Dockerfile path `Dockerfile`, `GQ_APP_ORIGIN=https://grimequest-web-production.up.railway.app`, and `GQ_MAX_CALLS_HOUR=40`. Provider credentials and the private app access code are intentionally unset.
 
 The repository now contains:
 
