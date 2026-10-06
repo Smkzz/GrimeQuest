@@ -8,6 +8,7 @@ class Settings:
     provider_model: str = ""
     provider_key: str = ""
     access_code: str = ""
+    ticket_secret: str = ""
     app_origin: str = ""
     max_calls_hour: int = 40
     allow_local_provider: bool = False
@@ -19,6 +20,8 @@ class Settings:
     def validate(self):
         if not 1 <= self.max_calls_hour <= 1000:
             raise ValueError("GQ_MAX_CALLS_HOUR must be 1..1000")
+        if self.ticket_secret and not 32 <= len(self.ticket_secret) <= 256:
+            raise ValueError("GQ_TICKET_SECRET must be 32..256 characters when set")
         if self.provider_base:
             u = urlsplit(self.provider_base)
             local = u.hostname in {"localhost", "127.0.0.1", "::1"}
@@ -36,6 +39,6 @@ class Settings:
     def from_env(cls):
         return cls(provider_base=os.getenv("GQ_PROVIDER_BASE", ""), provider_model=os.getenv("GQ_PROVIDER_MODEL", ""),
                    provider_key=os.getenv("GQ_PROVIDER_KEY", ""), access_code=os.getenv("GQ_ACCESS_CODE", ""),
-                   app_origin=os.getenv("GQ_APP_ORIGIN", "").rstrip("/"),
+                   ticket_secret=os.getenv("GQ_TICKET_SECRET", ""), app_origin=os.getenv("GQ_APP_ORIGIN", "").rstrip("/"),
                    max_calls_hour=int(os.getenv("GQ_MAX_CALLS_HOUR", "40")),
                    allow_local_provider=os.getenv("GQ_ALLOW_LOCAL_PROVIDER", "0") == "1").validate()
