@@ -1,54 +1,49 @@
 # Hosted status — 2026-10-06
 
-## Practice PWA
+## Repo-backed production service
 
-A practice-only GrimeQuest build is deployed on Railway:
+The full GrimeQuest application is deployed on Railway:
 
-- URL: `https://grimequest-practice-production.up.railway.app/`
+- URL: `https://grimequest-web-production.up.railway.app/`
 - Railway project: `grimequest`
 - Environment: `production`
-- Service: `grimequest-practice`
-- Deployment: `0910514c-8111-4efe-ad15-1e2ca2789bc5`
+- Service: `grimequest-web`
+- Deployment: `5554ddd7-c9ff-4c35-aaeb-4cee4681cc43`
+- Deployed source commit: `a7acac65c79db80e5e86516d2b196bd25503c21b`
 - Region: Amsterdam / `europe-west4-drams3a`
 - Replicas: 1
+- Builder: Dockerfile
 - Platform healthcheck: `/api/health`
-- Health status at qualification: SUCCESS
+- Deployment status at qualification: SUCCESS
 - Live AI: disabled
 - Real-world cleaning validation: not performed
 
-The hosted practice build includes a web-app manifest, service worker and offline shell routes. This checkpoint confirms Railway can host the illustrative walkthrough over HTTPS and that Railway's HTTP healthcheck reaches the process. It does **not** establish physical-device installability, phone camera behavior, real product matching, vision-model accuracy, or cleaning-result accuracy.
+Railway builds the generated PWA assets inside the multi-stage Docker image, then serves the FastAPI backend and static PWA from one runtime container. The deployment uses Railway's injected `PORT`, bounded restart-on-failure behavior and the configured public app origin.
 
-## Intended repo-backed service
-
-The `grimequest-web` Railway service exists but is offline. Its reserved HTTPS origin is `https://grimequest-web-production.up.railway.app/`. Railway's GitHub installation currently cannot read the private `Smkz-Entertainment/GrimeQuest` repository, so the Dockerfile has not been built by Railway.
-
-The pending service is already configured for Amsterdam, `/api/health`, bounded restart-on-failure behavior, Dockerfile path `Dockerfile`, `GQ_APP_ORIGIN=https://grimequest-web-production.up.railway.app`, and `GQ_MAX_CALLS_HOUR=40`. Provider credentials and the private app access code are intentionally unset.
-
-The repository now contains:
-
-- a multi-stage Dockerfile that builds generated PWA assets before the Python runtime stage;
-- runtime support for Railway's injected `PORT`;
-- `railway.json` with the Dockerfile builder, `/api/health` healthcheck, bounded restart policy, and Amsterdam region.
-
-The exact patched source was requalified locally after these deployment changes:
+The first repo-backed deployment reached application startup but failed Railway's health gate because the strict Host allowlist rejected the platform's internal health-probe hostname. The boundary was changed narrowly so only `GET /api/health` is host-agnostic; all other routes keep the Host restriction. That change was requalified locally before redeployment:
 
 - TypeScript/client tests: 34 passed;
 - Python/API/browser tests: 235 passed;
-- total: 269 passed;
-- no failures or skips.
+- total automated tests: 269 passed;
+- no failures or skips;
+- deterministic PWA rebuild remained byte-identical.
 
-An actual Docker build was not run in the qualification environment because a Docker daemon was unavailable.
+The corrected deployment passed Railway's health gate. The temporary `grimequest-practice` Railway Function used during bring-up was removed after the full service became healthy.
 
-## External blockers
+## Current configuration
 
-Before the full live application can be qualified:
+The service currently has `GQ_APP_ORIGIN` and `GQ_MAX_CALLS_HOUR` configured. Provider configuration and the private live-mode access code are intentionally absent, so `live_ready` remains false and the default hosted experience is practice mode.
 
-1. Grant Railway's GitHub installation access to `Smkz-Entertainment/GrimeQuest`, or make the repository public.
-2. For the hackathon submission, make the repository public because the rules require open source.
-3. Configure a tested vision provider and server-side credentials. Do not expose the provider key to the browser.
-4. Set `GQ_APP_ORIGIN` to the final HTTPS app origin and generate a private `GQ_ACCESS_CODE`.
-5. Run the repo-backed Docker deployment and verify the exact deployed source/configuration.
-6. Test PWA installation and camera permission/capture on a real phone.
-7. Perform controlled real-cleaning trials, including clear, partial, unchanged and unverifiable outcomes.
+The public Railway domain exists and the platform healthcheck succeeds. This execution environment could not independently resolve the Railway public hostname through its own DNS, so an external-browser fetch from this environment is not claimed. Railway's deployment state, replica state and healthcheck are the current hosting evidence.
 
-The current public practice URL should not be presented as a qualified cleaning-advice product.
+## Remaining external gates
+
+Before a real live-AI cleaning demo is qualified:
+
+1. Make `Smkz-Entertainment/GrimeQuest` public if the hackathon requires open source. The repository is still private at this checkpoint.
+2. Configure and qualify a vision-capable provider, server-side credential and private `GQ_ACCESS_CODE`; establish image/JSON protocol, cost controls, privacy terms, timeout/refusal behavior and provider-side spend limits.
+3. Test PWA installation and camera permission/capture on an actual target phone/browser over the deployed HTTPS origin.
+4. Perform controlled real-cleaning trials covering clear, partial, unchanged and unverifiable outcomes with supported products/surfaces.
+5. Run a current dependency/container vulnerability review before presenting this as a public production cleaning-advice service.
+
+The deployed practice behavior must not be presented as real AI or physical-cleaning validation.
