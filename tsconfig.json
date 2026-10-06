@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", "module": "none", "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true, "noImplicitReturns": true, "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true, "forceConsistentCasingInFileNames": true,
+    "outFile": "web/app.js", "removeComments": false
+  },
+  "files": ["client/types.ts", "client/catalog.ts", "client/domain.ts", "client/storage.ts", "client/camera.ts", "client/app.ts"]
+}

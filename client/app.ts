@@ -1,0 +1,286 @@
+namespace GQ {
+  type Screen='home'|'inventory'|'journal'|'settings'|'capture'|'confirm'|'loadout'|'clean'|'result'|'product-scan';
+  let screen: Screen='home';
+  let mode: Mode='practice';
+  let store=emptyStore();
+  let quest: Quest | null=null;
+  let health: Health | null=null;
+  let busy=false;
+  let camera: Camera;
+  let capturePurpose: 'target'|'after'='target';
+  let captureImage='';
+  let uploadGeneration=0;
+  let productFront='';
+  let productBack='';
+  let observation: {name:string;label_text:string;label_readable:boolean}|null=null;
+  let root: HTMLElement;
+  const e=escapeHTML;
+  const icons: Record<string,string> = {
+    sparkle:'M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2Z',
+    camera:'M4 7h4l2-3h4l2 3h4v13H4V7Zm8 3a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z',
+    home:'m3 11 9-8 9 8v10h-7v-7h-4v7H3V11Z',
+    bottle:'M9 3h6v4l3 5v9H6v-9l3-5V3Zm-3 11h12M9 7h6',
+    book:'M4 3h13a3 3 0 0 1 3 3v15H6a2 2 0 0 1-2-2V3Zm0 14h16M8 7h8M8 11h6',
+    gear:'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3Zm3 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',
+    arrow:'M4 12h16m-6-6 6 6-6 6',
+    shield:'m12 3 8 3v7c0 5-8 8-8 8s-8-3-8-8V6l8-3Zm-4 9 3 3 5-6',
+    check:'m5 12 4 4L19 6',
+    close:'m6 6 12 12M6 18 18 6',
+    leaf:'M20 3C10 2 3 7 4 15c1 8 13 8 16-12ZM5 19 16 8',
+    trophy:'M8 3h8v8a4 4 0 0 1-8 0V3Zm0 2H3v4c0 3 3 4 5 4m8-8h5v4c0 3-3 4-5 4m-4 2v5m-5 1h10',
+    upload:'M12 16V3m-5 5 5-5 5 5M4 14v7h16v-7',
+    info:'M12 11v7M12 7v1M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z'
+  };
+  function icon(name:string):string {return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons[name]||icons.sparkle}"/></svg>`;}
+  function mascot(kind='mint',small=false):string {return `<div class="mascot ${kind} ${small?'small':''}" aria-hidden="true"><i class="eye left"></i><i class="eye right"></i><i class="cheek left"></i><i class="cheek right"></i><i class="mouth"></i><i class="shine"></i></div>`;}
+  function button(label:string,action:string,cls='primary',extra=''):string {return `<button class="btn ${cls}" data-action="${action}" ${extra}>${label}</button>`;}
+  function back(action='home',label='Back'):string {return `<button class="back" data-action="${action}">← ${label}</button>`;}
+  function tag(label:string,cls=''):string {return `<span class="tag ${cls}">${label}</span>`;}
+  function check(name:string,label:string):string {return `<label class="check-row"><input type="checkbox" name="${name}"><span>${label}</span></label>`;}
+  function picture(src:string,alt:string,cls=''):string {return `<img class="${cls}" src="${e(src)}" alt="${e(alt)}">`;}
+  function heading(kicker:string,title:string,description:string):string {return `<div class="page-heading"><p class="eyebrow">${kicker}</p><h1 tabindex="-1">${title}</h1><p class="subtitle">${description}</p></div>`;}
+  function steps(active:number):string {return `<ol class="steps" aria-label="Quest progress">${['Identify','Choose','Clean','Compare'].map((s,i)=>`<li class="${i===active?'current':i<active?'complete':''}" ${i===active?'aria-current="step"':''}><span>${i<active?'✓':i+1}</span>${s}</li>`).join('')}</ol>`;}
+  function productArt(p:Product):string {return `<div class="bottle-art ${e(p.color)}" aria-hidden="true"><span class="bottle-trigger"></span><span class="bottle-body"><span>method</span><i>${p.category==='glass'?'gls':'kit'}</i></span></div>`;}
+  function topStats():string {
+    const s=stats(store,mode);
+    return `<div class="top-meta"><span class="level-avatar">${icon('leaf')}</span><div><b>Level ${s.level} · ${s.level>1?'Grime hunter':'Fresh start'}</b><span>${s.xp} ${mode==='practice'?'practice ':''}XP</span></div></div>`;
+  }
+  function shell(content:string):string {
+    const nav:[string,string,Screen][]=[['home','Quests','home'],['bottle','Arsenal','inventory'],['book','Journal','journal'],['gear','Settings','settings']];
+    return `<a class="skip" href="#main">Skip to content</a><aside class="sidebar"><a class="brand" href="#" data-action="home"><span class="brand-mark">${icon('sparkle')}</span>grimequest<span class="brand-dot">.</span></a><p class="brand-caption">Small chores. Real wins.</p><nav aria-label="Main navigation">${nav.map(([ic,l,s])=>`<button data-action="${s}" class="nav-item ${screen===s?'selected':''}" ${screen===s?'aria-current="page"':''}>${icon(ic)}<span>${l}</span>${s==='inventory'?`<small>${store.inventory.length}</small>`:''}</button>`).join('')}</nav><div class="sidebar-bottom">${icon('shield')}<b>Real care comes first.</b><p>No mixing. No rushing.<br>No made-up cleanliness scores.</p><span>PROTOTYPE · v0.1.0</span></div></aside><div class="workspace"><header class="topbar"><div class="mobile-brand"><span class="brand-mark">${icon('sparkle')}</span>grimequest.</div><div class="location-label">${icon('home')} YOUR HOME, YOUR ADVENTURE</div>${topStats()}</header><div class="mode-banner ${mode==='live'?'live':''}">${icon(mode==='practice'?'info':'camera')}<span><b>${mode==='practice'?'Practice mode':'Live mode'}</b> · ${mode==='practice'?'Illustrated scenes and simulated results. No real-world verification.':'Photos leave your device only after you explicitly approve analysis.'}</span><button data-action="settings">${mode==='practice'?'Set up live mode':'Settings'} ${icon('arrow')}</button></div>${storageWarning?`<div class="notice warning">${e(storageWarning)}</div>`:''}${store.active?`<div class="notice warning persistent">${icon('shield')}<span><b>One product may still be in use:</b> ${e(store.active.product)}. Do not add another cleaner.</span><button data-action="resolve-active">Review</button></div>`:''}<main id="main" aria-busy="${busy}">${content}</main><footer>Real-world care. Game-world delight. <button data-action="settings">Privacy &amp; safety</button></footer></div><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>`;
+  }
+  function homeView():string {
+    const s=stats(store,mode);
+    return `<section class="home-intro"><div><p class="eyebrow">A FRESH START IS ONE QUEST AWAY</p><h1 tabindex="-1">A little mess.<br>A real-life <span>quest.</span></h1><p class="hero-copy">Find the grime. Pick the right tool.<br>Make a real difference, one small clean at a time.</p><div class="hero-actions">${button(`${icon(mode==='practice'?'sparkle':'camera')}${mode==='practice'?'Try a practice quest':'Find grime'}`,mode==='practice'?'practice-first':'find')} ${button('How it works','how','text')}</div><p class="micro">${icon('shield')} ${mode==='practice'?'No account. No API key. Just a walkthrough.':'Your camera is off until you choose to open it.'}</p></div><div class="hero-illustration" aria-label="Illustration of a cheerful grime character on a tile cleaning quest"><div class="tile-board"><span class="tile-stain s1"></span><span class="tile-stain s2"></span><span class="tile-stain s3"></span></div><span class="floating-badge top">${icon('sparkle')} ENCOUNTER FOUND</span>${mascot('mint')}<span class="spark star1">✧</span><span class="spark star2">✧</span><span class="floating-badge bottom">${icon('check')} Real action. Real progress.</span></div></section><section class="metrics" aria-label="Your progress"><div>${icon('trophy')}<span><b>${s.clears}</b><small>${mode==='practice'?'Practice clears':'Visually cleared quests'}</small></span></div><div>${icon('sparkle')}<span><b>${s.xp}</b><small>${mode==='practice'?'Practice XP':'Live quest XP'}</small></span></div><div>${icon('bottle')}<span><b>${store.inventory.length}</b><small>Products in your arsenal</small></span></div></section>${quest && quest.phase!=='result'?`<div class="notice">Your current quest is still here. ${button('Resume quest','resume','secondary')}</div>`:''}<section class="section"><div class="section-heading"><div><p class="eyebrow">${mode==='practice'?'EXPLORE THE GAME LOOP':'ONE TARGET AT A TIME'}</p><h2>${mode==='practice'?'Three small adventures.':'Ready for a fresh start?'}</h2></div>${tag(mode==='practice'?'SIMULATED SCENES':'PRIVATE PREVIEW')}</div>${mode==='practice'?`<div class="quest-grid">${scenarios.map((c,i)=>`<button class="quest-card ${c.color}" data-action="scenario" data-id="${c.id}"><div class="quest-thumb">${picture(c.before,`Illustrated ${c.room.toLowerCase()} cleaning target`)}<span class="quest-number">0${i+1}</span>${tag(i===2?'KNOW WHEN TO STOP':'PRACTICE QUEST')}</div><div class="quest-description"><span>${e(c.room)}</span><h3>${e(c.name)}</h3><p>${e(c.subtitle)}</p><span class="quest-link">${i===2?'Test the safety gate':'Play this example'} ${icon('arrow')}</span></div></button>`).join('')}</div>`:`<div class="panel live-empty">${icon('camera')}<div><h3>Start with one clearly visible spot.</h3><p>Supported scope: ordinary uncoated glass or sound glazed ceramic, and two exact reference products. Unknown products stay unreviewed.</p></div>${button('Open camera','find')}</div>`}</section><section class="bottom-note">${icon('leaf')}<p><b>Use what you already own.</b> No shopping list, no pressure to buy. Only a match when the evidence is there.</p></section>`;
+  }
+  function confirmView():string {
+    if(!quest) return homeView();
+    return `${back()}${steps(0)}${heading('ENCOUNTER FOUND',`Meet ${e(quest.name.toLowerCase())}.`,'A photograph suggests a target. You confirm what the surface actually is.')}<div class="split"><div class="scene-card">${picture(quest.before,'Before view of the cleaning target')}<div class="scene-caption">${tag(quest.mode==='practice'?'ILLUSTRATED EXAMPLE':'BEFORE PHOTO')}<span>Visible target, not a hygiene assessment</span></div></div><section class="panel"><h2>Know your battlefield.</h2><div class="field"><label for="surface">What is the surface?</label><select id="surface">${Object.entries(surfaceNames).map(([k,v])=>`<option value="${k}" ${quest?.surface===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="field"><label for="soil">What is the visible problem?</label><select id="soil">${Object.entries(soilNames).map(([k,v])=>`<option value="${k}" ${quest?.soil===k?'selected':''}>${v}</option>`).join('')}</select></div><p class="hint">A camera cannot establish coatings, heat, residues or material compatibility. Choose “I'm not sure” rather than guessing.</p>${check('surface-confirm',quest.mode==='practice'?'Use this example surface and soil.':'I know this material from its care information, not just its appearance.')}<div class="notice soft">${icon('shield')} Unknown surfaces and unsupported jobs will not unlock a cleaner.</div>${button('Confirm target '+icon('arrow'),'confirm-target','primary wide')}</section></div>`;
+  }
+  function loadoutView():string {
+    if(!quest) return homeView();
+    const q=quest;
+    const available=mode==='practice'?products:products.filter(p=>store.inventory.some(i=>i.catalogId===p.id));
+    const selected=products.find(p=>p.id===q.productId);
+    const gated=matchProduct(q.surface,q.soil,products[0]?.id||'',allConfirmed(),q.analysis.hazards);
+    const unknowns=mode==='practice'?[{id:'unreviewed-demo',name:'An unfamiliar descaler',note:'No reviewed label. Not a playable chemical.'}]:store.inventory.filter(i=>!i.catalogId).map(i=>({id:i.id,name:i.name,note:'Scanned or recorded, but not reviewed for recommendations.'}));
+    return `${back('confirm-back','Target')}${steps(1)}${heading('YOUR REAL INVENTORY IS YOUR LOADOUT','Choose your tool.','A good match is supported by the exact product instructions, not by bottle color.')}<div class="target-strip">${picture(q.before,'Current target')}<span><b>${e(q.name)}</b><small>${e(surfaceNames[q.surface])} · ${e(soilNames[q.soil])}</small></span>${tag(q.mode==='practice'?'PRACTICE':'LIVE')}</div>${['SURFACE_UNSUPPORTED','SOIL_UNSUPPORTED','HAZARD','CATALOG_STALE'].includes(gated.code)?`<div class="notice warning"><span>${icon('shield')}</span><div><b>No supported match.</b><p>${e(gated.reason)}</p></div></div>`:''}<div class="product-grid">${available.map(p=>`<button class="product-card ${q.productId===p.id?'chosen':''}" data-action="choose-product" data-id="${p.id}" aria-pressed="${q.productId===p.id}"><span class="product-index">${q.productId===p.id?'✓ SELECTED':matchProduct(q.surface,q.soil,p.id,allConfirmed(),q.analysis.hazards).status==='eligible'?'REFERENCE PRODUCT':'NOT IN SUPPORTED SCOPE'}</span>${productArt(p)}<h2>${e(p.name)}</h2><p>${e(p.variant)}</p><span class="product-pick">${q.productId===p.id?'View directions below':'Check this match'} ${icon('arrow')}</span></button>`).join('')}${unknowns.map(i=>`<button class="product-card unknown" data-action="choose-product" data-id="${e(i.id)}"><span class="product-index">UNREVIEWED</span><div class="unknown-bottle">${icon('bottle')}<span>?</span></div><h2>${e(i.name)}</h2><p>${e(i.note)}</p><span class="product-pick">Why this stays locked ${icon('shield')}</span></button>`).join('')}</div>${!available.length && mode==='live'?`<div class="notice">No reviewed products in your arsenal yet. ${button('Add a product','inventory','secondary')}</div>`:''}${selected?`<section class="panel evidence-panel"><div><p class="eyebrow">CONDITIONAL LABEL MATCH</p><h2>${e(selected.name)}</h2><p>${e(selected.evidence_summary)}</p><p class="hint">This is not a safety certification. Exact variant, current label and surface-care confirmation are still required.</p><a href="${e(selected.source)}" target="_blank" rel="noopener noreferrer">Read manufacturer guidance ↗</a></div>${button('Prepare to clean '+icon('arrow'),'prepare')}</section>`:`<div class="bottom-note">${icon('shield')}<p>Unsupported does not always mean incompatible. It means this app does not have enough evidence to recommend it.</p></div>`}`;
+  }
+  function cleanView():string {
+    if(!quest) return homeView();
+    const q=quest,p=products.find(p=>p.id===q.productId);
+    if(!p) return loadoutView();
+    const active=q.phase==='cleaning';
+    return `${back('loadout-back','Loadout')}${steps(2)}${heading(active?'ONE PRODUCT. NO RUSH.':'A LITTLE CARE BEFORE THE QUEST',active?'The real action is yours.':'Ready, carefully.',q.mode==='practice'?'This walkthrough simulates a cleaning session. It does not claim a real chore was completed.':'Set the phone somewhere dry and away from the cleaning area. Follow the actual label, not a game timer.')}<div class="split"><section class="panel"><div class="selected-product">${productArt(p)}<div>${tag('SELECTED TOOL')}<h2>${e(p.name)}</h2><p>${e(p.variant)}</p></div></div><ol class="instructions">${p.steps.map((s,i)=>`<li><span>${i+1}</span><p>${e(s)}</p></li>`).join('')}</ol><details><summary>Scope and restrictions</summary>${p.restrictions.map(r=>`<p>${e(r)}</p>`).join('')}<a href="${e(p.source)}" target="_blank" rel="noopener noreferrer">Manufacturer guidance ↗</a></details><div class="notice warning">${icon('shield')} Never mix or layer cleaners. A dry appearance does not prove that chemical residues are absent.</div></section><section class="panel">${active?`<h2>${q.mode==='practice'?'Explore the comparison.':'When the label-directed task is done…'}</h2><p>${q.mode==='practice'?'Choose an explicitly simulated outcome to see how the game responds. Only “clear” earns practice XP.':'Photograph the same target, from the same angle and with similar lighting, after it is dry. No reward for speed or extra product.'}</p>${q.mode==='practice'?`<div class="field"><label for="practice-outcome">Example outcome</label><select id="practice-outcome"><option value="clear">Clear · visible target removed</option><option value="partial">Partial · visible residue remains</option><option value="unverifiable">Unverifiable · glare / framing changed</option></select></div>${button('Run practice comparison '+icon('arrow'),'practice-compare','primary wide')}`:`${button(icon('camera')+'Capture after photo','capture-after','primary wide')}<p class="hint">You will approve sending both before and after photos for visual comparison.</p>`}`:`<h2>The five-point care check.</h2><p>${q.mode==='practice'?'In practice, these stand in for checks you must actually make with the real bottle.':'Confirm each point using the actual bottle and the surface-care instructions.'}</p>${check('exact_product','This is the exact product and variant in its original labeled container.')}${check('label_allows_target','The current label permits this target and I have read all directions and warnings.')}${check('surface_care_allows','The surface-care instructions permit this product; no special coating or damage.')}${check('no_other_product','No other cleaner is present or being used. I will not mix or layer products.')}${check('cool_and_safe','The target is cool and away from electrical, food-contact or other unsupported hazards.')}${button('Start '+(q.mode==='practice'?'practice clean':'cleaning'),'start-cleaning','primary wide')}`}</section></div>`;
+  }
+  function resultView():string {
+    const q=quest;
+    if(!q?.result) return homeView();
+    const r=q.result,clear=r.status==='clear';
+    return `${steps(3)}<div class="result-intro">${tag(q.mode==='practice'?'SIMULATED RESULT':'MODEL-ASSESSED VISIBLE CHANGE',q.mode==='practice'?'':'green')}<div class="result-mascot">${mascot(clear?'mint':'peach',true)}<span>${icon(clear?'sparkle':'shield')}</span></div><h1 tabindex="-1">${clear?'Small chore. Big little win.':r.status==='partial'?'A little grime remains.':'Let’s not guess.'}</h1><p>${clear?`${e(q.name)} ${q.mode==='practice'?'cleared in practice.':'visibly improved in this comparison.'}`:e(r.reason)}</p>${clear?`<div class="xp-reward">+300 <span>${q.mode==='practice'?'practice ':''}XP</span></div>`:`<p class="no-reward">No XP awarded. No pressure to keep cleaning.</p>`}</div><div class="comparison"><figure>${picture(q.before,'Before comparison')}<figcaption>BEFORE ${q.mode==='practice'?'· ILLUSTRATION':''}</figcaption></figure><figure>${picture(q.after||q.before,'After comparison')}<figcaption>AFTER ${q.mode==='practice'?'· SIMULATED':''}</figcaption></figure></div><div class="result-footnote">${icon('info')}<p>${e(r.reason)} ${q.mode==='practice'?'Practice XP is kept separate from real tasks.':''}</p></div><div class="result-actions">${clear?button('Back to quests '+icon('arrow'),'finish'):button('Try another comparison','retry')}${button('View journal','journal','secondary')}${!clear?button('End this quest','abandon','text'):''}</div>`;
+  }
+  function inventoryView():string {
+    return `${heading('USE WHAT YOU ALREADY OWN','Your cleaning arsenal.','Products are remembered on this device. Scanned text never automatically becomes a safety rule.')}<div class="toolbar">${button(icon('camera')+'Scan a product','scan-product')}${button('Add an unreviewed product','manual-product','secondary')}</div>${store.inventory.length?`<section class="inventory-list">${store.inventory.map(i=>`<article class="inventory-item"><span class="inventory-symbol">${icon('bottle')}</span><div><h2>${e(i.name)}</h2><p>${i.catalogId?'Linked reference entry. Exact label must still be confirmed at each use.':'Unreviewed. Cannot unlock a cleaning recommendation.'}</p>${i.note?`<details><summary>Saved note / label text</summary><p class="label-text">${e(i.note)}</p></details>`:''}</div><button class="icon-button" data-action="remove-product" data-id="${e(i.id)}" aria-label="Remove ${e(i.name)}">${icon('close')}</button></article>`).join('')}</section>`:`<div class="empty-state">${icon('bottle')}<h2>A good loadout starts under your sink.</h2><p>Add a product you already own. No one needs a new bottle just to play.</p></div>`}<section class="section"><div class="section-heading"><div><p class="eyebrow">SMALL, SOURCE-LINKED REFERENCE CATALOG</p><h2>Do you own this exact variant?</h2></div>${tag('2 PRODUCTS · UK ONLY')}</div><p class="hint">These are illustrative integration choices, not a shopping recommendation or a Finnish product database. Do not substitute a similarly named local variant.</p><div class="catalog-list">${products.map(p=>`<article class="catalog-item">${productArt(p)}<div><h3>${e(p.name)}</h3><p>${e(p.variant)}</p><a href="${e(p.source)}" target="_blank" rel="noopener noreferrer">Manufacturer guidance ↗</a></div>${button(store.inventory.some(i=>i.catalogId===p.id)?'Added':'I own this exact variant','add-catalog','secondary',`data-id="${p.id}" ${store.inventory.some(i=>i.catalogId===p.id)?'disabled':''}`)}</article>`).join('')}</div><p class="micro">Reference review: ${catalog.reviewed_on}. Suggestions expire ${catalog.valid_until} unless the catalog is reviewed.</p></section>`;
+  }
+  function journalView():string {
+    const histories=store.history.filter(h=>h.mode===mode);
+    return `${heading('LITTLE WINS, REMEMBERED','Your quest journal.','This is a history of assessed quests, not a measurement of how clean your home is.')}<div class="toolbar">${tag(mode==='practice'?'PRACTICE HISTORY':'LIVE HISTORY')}${button(icon('upload')+'Export local history','export','secondary',histories.length?'':'disabled')}</div>${histories.length?`<div class="history-list">${histories.map(h=>`<article class="history-item"><span class="history-icon ${h.status==='clear'?'success':''}">${icon(h.status==='clear'?'check':'info')}</span><div><h2>${e(h.name)}</h2><p>${e(h.room)} · ${e(h.date.slice(0,10))} · ${e(h.status)}</p></div><span class="history-xp">${h.xp?`+${h.xp} XP`:'No XP'}<small>${h.mode==='practice'?'SIMULATED':'MODEL-ASSESSED'}</small></span></article>`).join('')}</div>`:`<div class="empty-state">${icon('book')}<h2>Your first little win is waiting.</h2><p>Completed comparisons appear here. Practice results never become live evidence.</p>${button('Find a quest','home','secondary')}</div>`}<div class="bottom-note">${icon('shield')}<p>No before/after photos are stored in this journal. The latest 200 comparisons are retained; displayed XP is derived from that history. Local records can be edited or lost; this is not a tamper-proof leaderboard.</p></div>`;
+  }
+  function settingsView():string {
+    return `${heading('MAKE IT YOURS','A little setup. A lot of clarity.','No account, no analytics, and no paid calls in practice mode.')}<div class="settings-grid"><section class="panel"><h2>Choose your mode</h2><p>Practice is a deterministic walkthrough. Live mode needs a configured vision server and a private access code.</p><div class="segmented" role="group" aria-label="Application mode">${button('Practice','mode-practice',mode==='practice'?'primary':'secondary')}${button('Live camera','mode-live',mode==='live'?'primary':'secondary')}</div><div class="server-status"><span class="status-dot ${health?.live_ready?'ready':''}"></span>${health?.live_ready?'Vision adapter configured':'Live vision not configured'}</div><p class="hint">${health?.live_ready?`Destination: ${e(health.provider_host)}<br>Model: ${e(health.provider_model)}<br>Limit: ${health.max_calls_hour} model attempts/hour per server. Provider fees may apply.`:'The app never silently substitutes a practice result for a live analysis. Start the Python server and configure a compatible vision model to enable live mode.'}</p><label class="field"><span>Private access code</span><input id="access-code" type="password" autocomplete="off" placeholder="Server-configured code, 24+ characters" maxlength="160" value="${e(getAccessCode())}"></label>${button('Save access code','save-code','secondary')}<p class="micro">Held in this browser tab’s session storage, not exported. API-provider keys belong only on the server.</p></section><section class="panel"><h2>Privacy by default</h2><div class="settings-fact">${icon('camera')}<p><b>Photos are temporary.</b> Kept in memory for the current quest. Closing or reloading the page discards them.</p></div><div class="settings-fact">${icon('shield')}<p><b>You decide when to send.</b> Live analysis sends re-encoded photos through your server to its configured provider. Its retention policy still applies.</p></div><div class="settings-fact">${icon('book')}<p><b>Your device remembers.</b> Inventory notes, quest history and an interrupted-task warning are stored locally. Do not put personal information in label notes.</p></div><p class="hint">Avoid photographing people, addresses, documents or other private information. EXIF is stripped; visible personal information is not automatically removed.</p></section><section class="panel"><h2>Care is a hard rule.</h2><p>Only confirmed ordinary glass and sound glazed ceramic are supported. No strong acids, bleach, drain cleaners, solvents, mould, body fluids, hot appliances or chemical mixtures.</p><p>No camera claim of disinfection. No “percent clean.” No speed bonuses. An app cannot physically prevent someone from using the wrong product.</p><p>When in doubt, stop and consult the surface/product manufacturer. If an exposure occurs, stop using the app and contact local poison/emergency services.</p><a href="https://www.cdc.gov/hygiene/about/when-and-how-to-clean-and-disinfect-your-home.html" target="_blank" rel="noopener noreferrer">CDC: label-directed household cleaning ↗</a></section><section class="panel"><h2>This device</h2><p>To install, use your browser’s install option or Add to Home Screen. Installation availability depends on the browser.</p><p>Offline support covers the app shell, arsenal, journal and practice examples. Live AI analysis requires a network connection.</p>${store.active?`${check('resolve-check','I have stopped the previous task and checked the actual label before doing anything else.')}${button('Clear interrupted-task warning','clear-active','secondary')}`:''}<details><summary>Delete my local data</summary><p>This removes this app’s inventory, history, access code and interrupted-task warning. It does not remove physical cleaner residues.</p>${check('delete-confirm','I understand this permanently deletes local GrimeQuest data.')}${button('Delete local data','delete-data','danger')}</details></section></div>`;
+  }
+  function captureView():string {
+    const after=capturePurpose==='after';
+    return `${back(after?'resume':'home')}${heading(after?'SAME TARGET. SAME LIGHT.':'ONE TARGET, ONE PHOTO.',after?'Show what changed.':'Find a little grime.',after?'Let the target dry and match the original framing. A changed angle is not a cleaning result.':'Keep people, documents and private details out of the frame.')}<div class="split"><section class="capture-panel"><div class="camera-window" id="camera-host">${captureImage?picture(captureImage,'Selected image preview'):`<div class="camera-placeholder">${icon('camera')}<h2>Your camera is off.</h2><p>Open it below, or choose an existing photo.</p></div>`}</div>${after&&quest?`<details class="reference-photo" open><summary>Original view to match</summary>${picture(quest.before,'Before reference for manual alignment')}</details>`:''}<div class="camera-controls">${button(icon('camera')+'Open camera','open-camera','secondary')}${button('Take photo','take-photo','secondary')}<label class="btn secondary file-button">${icon('upload')}Choose photo<input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label></div></section><section class="panel"><h2>${after?'Compare, don’t assume.':'A deliberate photo check.'}</h2><p>${after?'Both images will be sent to the configured vision provider. The result may be clear, partial or unverifiable.':'A vision model will propose a visible target and material. You will still need to confirm the surface.'}</p><p class="hint">Destination: ${e(health?.provider_host||'Not configured')}. Provider retention terms apply.</p>${check('photo-consent',`I approve sending ${after?'both photos':'this photo'} to the configured AI provider for this analysis.`)}${after?check('procedure-done','I completed the actual product-label procedure; this photo shows the dry target.'):''}${button(after?'Analyze before / after':'Analyze target','analyze-photo','primary wide',captureImage?'':'disabled')}<p class="micro">JPEG, PNG or WebP. Maximum 8 MB / 12 megapixels before on-device resizing. No silent uploads or automatic retries.</p></section></div>`;
+  }
+  function productScanView():string {
+    return `${back('inventory','Arsenal')}${heading('READ THE BOTTLE. DON’T GUESS.','Scan your product.','Front plus directions label. The extracted text stays unreviewed until you check it.')}<div class="split"><section class="panel"><div class="label-captures">${[['front','Front label',productFront],['back','Directions & warnings',productBack]].map(([id,label,src])=>`<label class="label-capture"><span>${label}</span>${src?picture(src,'Product '+label):icon('camera')}<span class="btn secondary">Choose / photograph</span><input id="product-${id}" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>`).join('')}</div>${check('product-consent','I approve sending these two product photos to the configured vision provider.')}${button('Read both labels','analyze-product','primary wide',productFront&&productBack&&health?.live_ready?'':'disabled')}<p class="hint">Live label analysis requires server configuration. You can also add a product manually without sending any photos.</p></section><section class="panel"><h2>${observation?'Review the transcription.':'Or record it yourself.'}</h2><p>${observation?'AI text extraction may omit or misread warnings. Read the original bottle.':'Manual notes are stored only on this device and do not grant recommendation permission.'}</p><div class="field"><label for="product-name">Product name</label><input id="product-name" maxlength="240" value="${e(observation?.name||'')}" placeholder="Exact name on your bottle"></div><div class="field"><label for="product-note">Label text / note (optional, unreviewed)</label><textarea id="product-note" maxlength="6000" rows="5" placeholder="Do not include personal information">${e(observation?.label_text||'')}</textarea></div>${observation&&!observation.label_readable?'<div class="notice warning">Label was not readable. No missing text has been treated as verified.</div>':''}${button('Save as unreviewed product','save-product','secondary wide')}<p class="micro">To use a reviewed entry, return to Arsenal and manually select the exact catalog variant. Scanning never expands compatibility rules.</p></section></div>`;
+  }
+  function render(focus=true):void {
+    camera?.stop();
+    const content=screen==='home'?homeView():screen==='confirm'?confirmView():screen==='loadout'?loadoutView():screen==='clean'?cleanView():screen==='result'?resultView():screen==='inventory'?inventoryView():screen==='journal'?journalView():screen==='settings'?settingsView():screen==='capture'?captureView():productScanView();
+    root.innerHTML=shell(content);
+    if(focus) requestAnimationFrame(()=>{root.querySelector<HTMLElement>('h1')?.focus({preventScroll:true}); window.scrollTo({top:0,behavior:'instant'});});
+  }
+  function go(s:Screen):void {screen=s;render();}
+  let toastTimer:number|undefined;
+  function toast(message:string,error=false):void {
+    const host=document.getElementById('toast');
+    if(!host) return;
+    window.clearTimeout(toastTimer);host.textContent=message;host.className=`toast visible ${error?'error':''}`;
+    toastTimer=window.setTimeout(()=>host.classList.remove('visible'),9000);
+  }
+  function checked(name:string):boolean {return !!root.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.checked;}
+  function val(id:string):string {return root.querySelector<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>(`#${id}`)?.value.trim()||'';}
+  function persist():void {saveStore(store);}
+  async function api<T>(path:string,payload:unknown):Promise<T> {
+    if(location.protocol==='file:') throw new Error('This standalone preview has no backend. Use the source package to run live mode.');
+    const response=await fetch(`/api/${path}`,{method:'POST',headers:{'Content-Type':'application/json','X-GQ-Access':getAccessCode()},body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(35000)});
+    let body:unknown;
+    try {body=await response.json();} catch {throw new Error('Server returned an invalid response. No result was awarded.');}
+    if(!response.ok) {
+      const b=body as {error?:{message?:string};match?:{reason?:string}};
+      throw new Error(b.error?.message||b.match?.reason||'The request could not be completed.');
+    }
+    return body as T;
+  }
+  async function work(fn:()=>Promise<void>):Promise<void> {
+    if(busy) return;busy=true;
+    root.querySelector('main')?.setAttribute('aria-busy','true');
+    root.querySelectorAll<HTMLButtonElement>('button').forEach(b=>{b.dataset.wasDisabled=String(b.disabled);b.disabled=true;});
+    toast('Working on this request. No result is assumed while it runs.');
+    try {await fn();} catch(err) {toast(err instanceof Error?err.message:'Something went wrong. No result was assumed.',true);}
+    finally {busy=false;root.querySelector('main')?.setAttribute('aria-busy','false');root.querySelectorAll<HTMLButtonElement>('button[data-was-disabled]').forEach(b=>{b.disabled=b.dataset.wasDisabled==='true';delete b.dataset.wasDisabled;});}
+  }
+  function newPractice(id:string):void {
+    if(store.active) throw new Error('Review the interrupted live cleaning task before starting another.');
+    const c=scenarios.find(c=>c.id===id);if(!c) return;
+    mode='practice';quest={id:crypto.randomUUID(),mode,phase:'identified',name:c.name,room:c.room,before:c.before,surface:c.surface,soil:c.soil,scenario:c.id,analysis:{object_name:c.room+' target',surface:c.surface,soil:c.soil,visible_soil:true,image_quality:'usable',material_certainty:c.surface==='unknown'?'unknown':'tentative',hazards:['none'],target_box:{x:0.1,y:0.1,width:0.8,height:0.8}}};go('confirm');
+  }
+  function resume():void {
+    if(!quest) {go('home');return;}
+    const map:Record<Phase,Screen>={identified:'confirm',confirmed:'loadout',equipped:'clean',cleaning:'clean',result:'result'};
+    go(map[quest.phase]);
+  }
+  function requireLive():void {
+    if(!health?.live_ready) throw new Error('Configure a vision provider on the server first. Practice remains available without it.');
+    if(getAccessCode().length<24) throw new Error('Save your private access code in Settings first.');
+  }
+  function exportHistory():void {
+    const data={format:'grimequest-journal-v1',exportedAt:new Date().toISOString(),mode,notice:'No photos or API keys. Local records are not tamper-proof proof of cleaning.',history:store.history.filter(h=>h.mode===mode)};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='grimequest-journal.json';a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  async function action(name:string,id?:string):Promise<void> {
+    if(busy) return;
+    try {
+      if(['home','inventory','journal','settings'].includes(name)) {go(name as Screen);return;}
+      switch(name) {
+        case 'how': toast('Identify one target → confirm its material → choose an evidence-backed product → do the real task → compare photos. Practice simulates those steps.');break;
+        case 'practice-first':newPractice('kitchen');break;
+        case 'scenario':newPractice(id||'');break;
+        case 'resume':resume();break;
+        case 'confirm-back': if(quest){quest={...quest,phase:'identified',productId:undefined};go('confirm');}break;
+        case 'loadout-back':if(quest?.phase==='cleaning'){toast('The selected product is locked while cleaning. Do not switch products mid-task.',true);}else go('loadout');break;
+        case 'confirm-target': {
+          if(!quest) break;
+          const surface=val('surface'),soil=val('soil');
+          if(!checked('surface-confirm')) throw new Error('Confirm the material check, or choose “I’m not sure.”');
+          if(!isSurface(surface)||!isSoil(soil)) throw new Error('Unsupported target selection.');
+          quest=transition(quest,{type:'confirm',surface,soil});go('loadout');break;
+        }
+        case 'choose-product': if(quest){quest=transition(quest,{type:'equip',productId:id||''});render(false);toast('Conditional match found. Check the current bottle and surface instructions before use.');}break;
+        case 'prepare':go('clean');break;
+        case 'start-cleaning': {
+          if(!quest?.productId) break;
+          const a:Attestations={exact_product:checked('exact_product'),label_allows_target:checked('label_allows_target'),surface_care_allows:checked('surface_care_allows'),no_other_product:checked('no_other_product'),cool_and_safe:checked('cool_and_safe')};
+          if(!Object.values(a).every(Boolean)) throw new Error('Complete all five care checks before continuing.');
+          const current=matchProduct(quest.surface,quest.soil,quest.productId,a,quest.analysis.hazards);
+          if(current.status!=='eligible') throw new Error(current.reason);
+          if(quest.mode==='practice'){quest=transition(quest,{type:'start'});go('clean');break;}
+          const q=quest;
+          await work(async()=>{
+            const r=await api<{encounter_id:string;encounter_ticket:string;match:Match}>('start',{target_ticket:q.targetTicket,surface:q.surface,soil:q.soil,product_id:q.productId,attestations:a});
+            if(!r.encounter_ticket||r.match?.status!=='eligible') throw new Error('Invalid start response.');
+            quest=transition({...q,id:r.encounter_id,encounterTicket:r.encounter_ticket},{type:'start'});
+            store={...store,active:{product:products.find(p=>p.id===q.productId)?.name||'Selected product',startedAt:new Date().toISOString()}};persist();go('clean');
+          });break;
+        }
+        case 'practice-compare': {
+          if(!quest||quest.mode!=='practice') break;
+          const outcome=val('practice-outcome') as ResultStatus;
+          if(!['clear','partial','unverifiable'].includes(outcome)) break;
+          const c=scenarios.find(c=>c.id===quest?.scenario);if(!c) break;
+          const r:Result={encounter_id:quest.id,status:outcome,xp:outcome==='clear'?300:0,provenance:'practice_fixture',reason:outcome==='clear'?'This illustrated after-scene is a predetermined clear example, not a model analysis or real cleaning evidence.':outcome==='partial'?'The example still has visible residue. Adding another cleaner is not a game mechanic.':'The example cannot be reliably compared. No success is inferred.'};
+          quest=transition(quest,{type:'result',result:r,after:outcome==='clear'?c.after:c.partial});store=recordResult(store,quest);persist();go('result');break;
+        }
+        case 'retry':if(quest){quest=transition(quest,{type:'retry'});go('clean');}break;
+        case 'finish':quest=null;captureImage='';productFront='';productBack='';observation=null;go('home');break;
+        case 'abandon':quest=null;captureImage='';productFront='';productBack='';observation=null;go(store.active?'settings':'home');break;
+        case 'mode-practice': if(store.active) throw new Error('Review the unfinished live task first.');mode='practice';quest=null;render();break;
+        case 'mode-live':requireLive();if(store.active) throw new Error('Review or resume the unfinished live task before changing mode.');mode='live';quest=null;render();break;
+        case 'save-code': if(!setAccessCode(val('access-code'))) throw new Error('Session storage is unavailable.');toast('Private access code saved for this tab.');break;
+        case 'find':requireLive();if(store.active) throw new Error('Review the unfinished task before selecting another product.');mode='live';capturePurpose='target';captureImage='';go('capture');break;
+        case 'capture-after':if(quest?.phase==='cleaning'){capturePurpose='after';captureImage='';go('capture');}break;
+        case 'open-camera': {
+          const host=document.getElementById('camera-host');if(!host) break;
+          camera.start(host).catch(err=>toast(err instanceof Error?err.message:'Camera unavailable. Choose a photo instead.',true));break;
+        }
+        case 'take-photo':captureImage=camera.capture();go('capture');break;
+        case 'analyze-photo': {
+          if(!captureImage||!checked('photo-consent')) throw new Error('Select a photo and explicitly approve this analysis first.');
+          const image=captureImage;
+          if(capturePurpose==='target') {
+            await work(async()=>{
+              const r=await api<{analysis:unknown;target_ticket:string}>('analyze-target',{image,consent:true});
+              if(!validateAnalysis(r.analysis)||typeof r.target_ticket!=='string') throw new Error('Invalid target response. No cleaning recommendation was made.');
+              const a=r.analysis;
+              quest={id:crypto.randomUUID(),mode:'live',phase:'identified',name:a.soil==='grease'?'The grease gremlin':a.soil==='fingerprints'?'The smudge sprite':'A little cleaning quest',room:a.object_name,before:image,surface:a.surface,soil:a.soil,analysis:a,targetTicket:r.target_ticket};
+              captureImage='';go('confirm');
+            });
+          } else {
+            if(!checked('procedure-done')) throw new Error('Confirm that the actual label-directed procedure is complete and the target is dry.');
+            if(!quest||quest.phase!=='cleaning') throw new Error('The active quest was lost. No result can be issued.');
+            const q=quest;
+            await work(async()=>{
+              const r=await api<unknown>('verify',{encounter_ticket:q.encounterTicket,before_image:q.before,after_image:image,consent:true,procedure_completed:true,surface_dry:true});
+              if(!validateResult(r)) throw new Error('Invalid comparison response. No XP awarded.');
+              quest=transition(q,{type:'result',result:r,after:image});store=recordResult(store,quest);persist();captureImage='';go('result');
+            });
+          }break;
+        }
+        case 'add-catalog': {
+          const p=products.find(p=>p.id===id);if(!p) break;
+          if(store.inventory.length>=40) throw new Error('This prototype supports up to 40 inventory entries.');
+          if(!store.inventory.some(i=>i.catalogId===p.id))store={...store,inventory:[...store.inventory,{id:crypto.randomUUID(),name:p.name+' · '+p.variant,catalogId:p.id,note:'Owner-selected reference entry. Confirm exact label and surface-care instructions at every use.',addedAt:new Date().toISOString()}]};
+          persist();render(false);toast('Added to your arsenal. This does not certify the product or its use.');break;
+        }
+        case 'remove-product':store={...store,inventory:store.inventory.filter(i=>i.id!==id)};persist();render(false);break;
+        case 'scan-product':case 'manual-product':productFront='';productBack='';observation=null;go('product-scan');break;
+        case 'analyze-product': {
+          requireLive();if(!productFront||!productBack||!checked('product-consent')) throw new Error('Choose both labels and approve sending them first.');
+          await work(async()=>{const r=await api<{observation:{name:string;label_text:string;label_readable:boolean}}>('analyze-product',{front_image:productFront,back_image:productBack,consent:true});const o=r.observation;if(!o||typeof o.name!=='string'||o.name.length>240||typeof o.label_text!=='string'||o.label_text.length>6000||typeof o.label_readable!=='boolean') throw new Error('Label response was invalid.');observation=o;render();});break;
+        }
+        case 'save-product': {
+          const name=val('product-name'),note=val('product-note');if(!name||name.length>240||note.length>6000) throw new Error('Enter a product name, with an optional short note.');
+          if(store.inventory.length>=40) throw new Error('Inventory limit reached.');
+          store={...store,inventory:[...store.inventory,{id:crypto.randomUUID(),name,catalogId:null,note,addedAt:new Date().toISOString()}]};persist();productFront='';productBack='';observation=null;go('inventory');toast('Saved as unreviewed. It cannot unlock a cleaning recommendation.');break;
+        }
+        case 'resolve-active':go('settings');break;
+        case 'clear-active':if(!checked('resolve-check')) throw new Error('Read and confirm the interrupted-task check first.');store={...store,active:null};quest=null;persist();render();toast('Warning cleared. This is not a guarantee that the surface is free of product residues.');break;
+        case 'delete-data':if(!checked('delete-confirm')) throw new Error('Confirm local data deletion first.');resetStore();setAccessCode('');store=emptyStore();quest=null;captureImage='';productFront='';productBack='';observation=null;mode='practice';render();toast('Local inventory, history and access code deleted.');break;
+        case 'export':exportHistory();break;
+      }
+    }catch(err){toast(err instanceof Error?err.message:'Something went wrong.',true);}
+  }
+  async function onFile(input:HTMLInputElement):Promise<void> {
+    const file=input.files?.[0];if(!file) return;
+    try {
+      const generation=++uploadGeneration;
+      const img=await normalizePhoto(file);
+      if(generation!==uploadGeneration || !input.isConnected) return;
+      if(input.id==='photo-file') captureImage=img;
+      else if(input.id==='product-front') productFront=img;
+      else if(input.id==='product-back') productBack=img;
+      render(false);
+    } catch(err){toast(err instanceof Error?err.message:'Could not open that photo.',true);}
+  }
+  export function boot():void {
+    root=document.getElementById('app')!;if(!root) return;
+    store=readStore();camera=new Camera();render(false);
+    root.addEventListener('click',ev=>{const target=(ev.target as Element).closest<HTMLElement>('[data-action]');if(target){ev.preventDefault();void action(target.dataset.action||'',target.dataset.id);}});
+    root.addEventListener('change',ev=>{const target=ev.target as HTMLInputElement;if(target.type==='file')void onFile(target);});
+    window.addEventListener('pagehide',()=>camera.stop());
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)camera.stop();});
+    window.addEventListener('offline',()=>toast('You are offline. Practice, saved arsenal and journal remain available. Live analysis does not.'));
+    if(location.protocol!=='file:') {
+      fetch('/api/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(4000)}).then(async r=>{
+        if(!r.ok)return;const h=await r.json();if(typeof h.live_ready==='boolean'&&typeof h.version==='string'){health=h;if(screen==='settings' && !(document.activeElement instanceof HTMLInputElement))render(false);}
+      }).catch(()=>{/* Static/offline preview deliberately has no backend. */});
+      if('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(()=>{/* App still works without installation/offline caching. */});
+    }
+  }
+  if(typeof document!=='undefined') {
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  }
+}

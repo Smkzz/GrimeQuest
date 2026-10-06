@@ -1,0 +1,17 @@
+{
+  "name": "grimequest-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-runtime-dependency TypeScript PWA",
+  "scripts": {
+    "build": "python scripts/build.py",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/client.test.cjs"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

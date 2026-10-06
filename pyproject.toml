@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grimequest"
+version = "0.1.0"
+description = "A privacy-conscious, camera-first cleaning quest PWA"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+  "fastapi==0.128.2",
+  "uvicorn==0.48.0",
+  "pydantic==2.13.4",
+  "httpx==0.28.1",
+  "Pillow==12.3.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.0.2", "pytest-cov==7.0.0", "playwright==1.57.0"]
+
+[tool.setuptools]
+packages = ["server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["server"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.setuptools.package-data]
+server = ["catalog.json"]

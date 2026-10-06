@@ -9,19 +9,21 @@ Identify one visible mess, confirm its material, choose a product from your own 
 
 ## Try it immediately
 
-Open **`preview.html`** in a desktop browser. It is a self-contained, interactive walkthrough with original illustrated scenes, product selection, care checks, simulated comparisons, XP, inventory and a journal. No installation, account, network or API key is required. The illustration results are **not AI analyses or physical cleaning evidence**. Browser file-storage restrictions may make progress temporary; the UI warns rather than silently discarding existing data.
+Build the deterministic frontend, then open the app locally. Practice mode is a self-contained walkthrough with original illustrated scenes, product selection, care checks, simulated comparisons, XP, inventory and a journal. No account or API key is required. The illustration results are **not AI analyses or physical cleaning evidence**.
 
-For the full app and API, use the source-folder instructions below. The precompiled frontend is included; Node is only needed to change and rebuild TypeScript.
+Generated frontend bundles are intentionally not committed. `python scripts/build.py` compiles the TypeScript, generates the PWA assets/service worker and writes `preview.html` for an optional double-click walkthrough.
 
 ## Run from this source folder
 
-Requirements: Python 3.11+ (tested with 3.13.5). Keep `run.py`, `server/` and `web/` together. This is distributed as a source application, not a standalone Python wheel.
+Requirements: Python 3.11+ (tested with 3.13.5) and Node 22+. Keep `run.py`, `server/`, `client/`, `scripts/` and `web/` together. This is distributed as a source application, not a standalone Python wheel.
 
 **Windows PowerShell**
 
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.lock
+npm ci --ignore-scripts
+.\.venv\Scripts\python.exe scripts/build.py
 .\.venv\Scripts\python.exe run.py
 ```
 
@@ -30,6 +32,8 @@ py -3.13 -m venv .venv
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
+npm ci --ignore-scripts
+.venv/bin/python scripts/build.py
 .venv/bin/python run.py
 ```
 
@@ -118,7 +122,7 @@ python scripts/verify_build.py
 - [Build plan and completed iterations](docs/BUILD_PLAN.md)
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
 
-CI is provided as a **manual-only GitHub Actions workflow**. The source is hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; publishing the initial source commit does not trigger CI. Generated qualification evidence is ignored by Git and can be regenerated locally; `scripts/package_release.py` includes available evidence in a release archive. No Actions run or external deployment has been performed for this release, and no cloud infrastructure or paid service was activated by the build.
+CI is provided as a **manual-only GitHub Actions workflow**. The source is hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; publishing the initial source commit does not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive. No Actions run or external deployment has been performed for this release, and no cloud infrastructure or paid service was activated by the build.
 
 ## License
 

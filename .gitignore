@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage*
+htmlcov/
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+test-results/
+playwright-report/
+
+# Generated qualification/release artifacts
+evidence/*
+!evidence/README.md
+BUILD_MANIFEST.json

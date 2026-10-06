@@ -1,0 +1,40 @@
+{
+  "version": "2026-10-06.1",
+  "reviewed_on": "2026-10-06",
+  "valid_until": "2027-01-04",
+  "scope": "Prototype reference catalog, UK variants only. Sources are manufacturer-published guidance, not independent safety certification. Confirm the exact package and surface-care instructions at every use. No extrapolation to similar bottles or regional variants.",
+  "products": [
+    {
+      "id": "method-glass-mint-uk-828",
+      "name": "method glass + surface",
+      "variant": "Mint · 828 ml · UK",
+      "category": "glass",
+      "color": "mint",
+      "surfaces": ["uncoated_glass", "glazed_ceramic"],
+      "soils": ["fingerprints", "light_grime"],
+      "excluded": ["natural_stone", "wood", "unknown", "glass_ceramic_hob", "stainless_steel"],
+      "source": "https://shop.methodproducts.co.uk/products/glass-surface-cleaner-mint/mglass.aspx?productid=mglass",
+      "source_title": "method official shop: glass + surface cleaner, mint",
+      "evidence_summary": "Manufacturer lists glass and tiles among intended sealed surfaces and describes dirt, dust and handprints. Patch testing is advised. App scope is narrower than the source.",
+      "steps": ["Read the current bottle directions and surface-care instructions, including all warnings.", "Use only this product, exactly as the label directs. Test an inconspicuous area first if permitted.", "Complete the label's wiping or removal directions. Let the area dry before comparing photos."],
+      "restrictions": ["Only ordinary uncoated glass or sound glazed ceramic confirmed by the user.", "No special coatings, damaged surfaces, electronics, food-contact items or glass-ceramic hobs.", "Not a disinfection procedure. No claim of sanitization or germ removal."],
+      "enabled": true
+    },
+    {
+      "id": "method-kitchen-clementine-uk-828",
+      "name": "method daily kitchen",
+      "variant": "Clementine · 828 ml · UK",
+      "category": "general",
+      "color": "peach",
+      "surfaces": ["glazed_ceramic"],
+      "soils": ["grease", "light_grime"],
+      "excluded": ["natural_stone", "wood", "unknown", "glass_ceramic_hob", "stainless_steel", "uncoated_glass"],
+      "source": "https://shop.methodproducts.co.uk/products/daily-kitchen-cleaner-clementine/mkitchen.aspx?productid=mkitchen",
+      "source_title": "method official shop: daily kitchen cleaner, clementine",
+      "evidence_summary": "Manufacturer describes grease and food spills on most non-porous surfaces, with an inconspicuous-area test. This prototype restricts use to user-confirmed glazed ceramic and requires explicit current label and surface-care permission.",
+      "steps": ["Read the current bottle directions and surface-care instructions, including all warnings.", "Use only this product, exactly as the label directs. Test an inconspicuous area first if permitted.", "Complete the label's wiping or removal directions. Let the area dry before comparing photos."],
+      "restrictions": ["Only sound glazed ceramic, such as a tile splashback; not grout or an entire mixed-material assembly.", "No food-contact items, powered appliances, hot surfaces or baked-on deposits.", "The app does not invent dilution, contact time, protective equipment or chemical mixtures."],
+      "enabled": true
+    }
+  ]
+}
