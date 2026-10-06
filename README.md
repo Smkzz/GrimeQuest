@@ -9,13 +9,11 @@ Identify one visible mess, confirm its material, choose a product from your own 
 
 ## Try it immediately
 
-A public **practice-only** mirror is currently deployed at:
+The full repo-backed application is deployed over HTTPS at:
 
-`https://grimequest-practice-production.up.railway.app/`
+`https://grimequest-web-production.up.railway.app/`
 
-It serves the self-contained illustrated walkthrough only and now exposes a web-app manifest, service worker and offline shell routes. It does **not** enable live AI analysis, does not claim physical cleaning validation, and is not the final repo-backed Python deployment. Railway's own `/api/health` probe currently passes for that service; real-device installation remains unvalidated.
-
-For the source application, build the deterministic frontend and run it locally. Practice mode is a self-contained walkthrough with original illustrated scenes, product selection, care checks, simulated comparisons, XP, inventory and a journal. No account or API key is required. The illustration results are **not AI analyses or physical cleaning evidence**.
+Railway builds the PWA from source in the multi-stage Docker image, runs the FastAPI service with one replica in Amsterdam, and checks `/api/health`. The deployed source is pinned to commit `a7acac65c79db80e5e86516d2b196bd25503c21b`; deployment `5554ddd7-c9ff-4c35-aaeb-4cee4681cc43` is healthy. Live AI remains intentionally disabled until a tested vision provider, server-side credential and private access code are configured. Practice mode is available without an account or API key, and its illustrated outcomes are **not AI analyses or physical cleaning evidence**.
 
 Generated frontend bundles are intentionally not committed. `python scripts/build.py` compiles the TypeScript, generates the PWA assets/service worker and writes `preview.html` for an optional double-click walkthrough.
 
@@ -129,9 +127,9 @@ python scripts/verify_build.py
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
 - [Hosted deployment status](docs/HOSTED_STATUS.md)
 
-CI is provided as a **manual-only GitHub Actions workflow**. The source is hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
+CI is provided as a **manual-only GitHub Actions workflow**. The source is still hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
 
-A separate Railway Function currently hosts the practice-only walkthrough over HTTPS. The intended repo-backed Python service is not yet deployed because Railway's GitHub installation does not currently have access to this private repository. No live vision provider is configured, no paid model call was made as part of this deployment, and physical phone/cleaning validation remains outstanding. `railway.json` records the intended Dockerfile, healthcheck, restart policy and Amsterdam region for the repo-backed service once repository access is granted.
+The repo-backed Python service is deployed successfully on Railway using the Dockerfile and `railway.json` configuration. The temporary practice-only Railway Function used during deployment bring-up has been removed. No live vision provider is configured, no paid model call was made as part of deployment, and physical phone/cleaning validation remains outstanding. The repository must still be made public before a hackathon submission that requires open source.
 
 ## License
 
