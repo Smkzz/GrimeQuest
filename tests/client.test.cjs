@@ -160,7 +160,7 @@ test('uncompressible image reduces canvas edge instead of rejecting full-resolut
 test('8+ MB source does not bypass supported file-type or minimum dimension checks',async()=>{
  class TinyImage {constructor(){this.width=60;this.height=60;}set src(v){}async decode(){}}
  let allocated=0,revoked=0;
- const g=harness({URL:{createObjectURL:()=>{allocated++;return 'blob:tiny';},revokeObjectURL:()=>revoked++;},
+ const g=harness({URL:{createObjectURL:()=>{allocated++;return 'blob:tiny';},revokeObjectURL:()=>{revoked++;}},
    Image:TinyImage});
  await assert.rejects(()=>g.normalizePhoto({type:'image/jpeg',name:'tiny.jpg',size:35000000}),/at least 64/);
  await assert.rejects(()=>g.normalizePhoto({type:'image/svg+xml',name:'vector.svg',size:35000000}),/SVG is not supported/);
