@@ -7,9 +7,9 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser/evaluation tests | **369 passed, 0 failed, 0 skipped** |
+| Python/API/policy/image/provider/browser/evaluation tests | **405 passed, 0 failed, 0 skipped** |
 | TypeScript-domain / storage / camera / service-worker Node tests | **34 passed, 0 failed** |
-| Total automated test cases | **403 / 403 passed** |
+| Total automated test cases | **439 / 439 passed** |
 | Client/server policy parity | **1,680 combinations agree** |
 | Strict TypeScript | **5.8.3 — pass** |
 | Clean-room Python | **3.13.16** |
@@ -26,12 +26,12 @@
 
 ## Clean-room qualification
 
-A disposable Railway service builds `Dockerfile.qualify` from the repository source. It uses the same digest-pinned Python 3.13 base family as production, adds pinned Node 22 plus system Chromium, performs a clean Python/npm install, runs `pip check`, compiles the PWA, runs strict TypeScript, all 34 Node/client tests, all 369 Python/API/browser/evaluation tests with coverage, and `scripts/verify_build.py`.
+A disposable Railway service builds `Dockerfile.qualify` from the repository source. It uses the same digest-pinned Python 3.13 base family as production, adds pinned Node 22 plus system Chromium, performs a clean Python/npm install, runs `pip check`, compiles the PWA, runs strict TypeScript, all 34 Node/client tests, all 405 Python/API/browser/evaluation tests with coverage, and `scripts/verify_build.py`.
 
 The accepted clean-room build emitted:
 
 ```text
-369 passed
+405 passed
 TOTAL Python coverage: 97.55%
 generated_files_byte_identical_after_rebuild: true
 GQ_CLEAN_ROOM_QUALIFIED
@@ -70,6 +70,12 @@ Default release minimums are 12 supported targets, 12 unsupported/hazard targets
 - at least 80% product readability/name accuracy.
 
 Those are minimum release gates, not a claim that the minimum dataset proves general safety.
+
+## Exact-pair model-release qualification
+
+An adversarial review found that the previous visual candidate classifier accepted the cartesian product of separately supported surfaces and dirt types, including **grease on ordinary glass** even though no enabled reviewed product matches that exact pair. The evaluator now derives allowed surface–soil pairs from the reviewed catalog, retaining the policy's explicit excluded materials and soils. A new regression covers the glass/grease counterexample and a 35-case matrix checks all surface–soil combinations against actual deterministic `match_product` eligibility.
+
+This release-candidate code change was independently requalified in Railway with `Dockerfile.qualify` from Git commit `684c5e4fb2804a8eaee879b39149e882be47f838`: 405 Python tests, 34 Node tests, 97.55% coverage, and a byte-identical build. This narrows the visual evaluation candidate space; it does not certify any actual cleaning product or model.
 
 ## Catalog and mobile qualification
 
