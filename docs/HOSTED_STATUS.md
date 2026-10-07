@@ -35,7 +35,7 @@ A temporary deterministic vision provider and external qualification runner then
 The deterministic catalog now contains five exact consumer variants: two UK Method products and three Finland-market Kiilto fragrance-free 600 ml sprays. The policy surface remains unchanged—ordinary uncoated glass and sound glazed ceramic only—and exhaustive client/server parity now covers 1,680 combinations.
 
 
-Railway edge request tracing is enabled for status/latency visibility; Python auto-instrumentation remains disabled so this does not add application request-body/photo logging. Production is bounded to 0.5 vCPU and 0.5 GB RAM per replica.
+Railway edge request tracing is enabled for status/latency visibility. Python auto-instrumentation is disabled, and FastAPI native tracing/metrics/logs plus automatic OTLP configuration are explicitly disabled, so Railway's exporter environment does not create duplicate app telemetry or application exception/body logging. Production is bounded to 0.5 vCPU and 0.5 GB RAM per replica.
 
 
 The production service retains the app origin, model-attempt limit and persistent ticket-signing secret. Provider base/model/key and live access code were cleared after qualification, so the hosted app is again fail-closed in practice mode. `GQ_PUBLIC_LIVE` is explicitly disabled; the optional code-free public demo path is qualified but will not be enabled until a real provider has passed the accuracy/privacy gates.
