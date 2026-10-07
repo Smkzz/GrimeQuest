@@ -37,6 +37,8 @@ def test_oversized_provider_cap_prevents_all_inference(monkeypatch,tmp_path):
         raise ProviderFailure("Oversized provider-side limit")
 
     monkeypatch.setattr(cli,"verify_openrouter_key_limit",reject_budget)
+    monkeypatch.setattr(cli,"verify_openrouter_zdr_model",
+                        lambda *a,**kw: pytest.fail("ZDR checked before spending cap"))
     monkeypatch.setattr(cli,"VisionProvider",lambda *a,**kw: pytest.fail("model initialized before cap verification"))
     with pytest.raises(SystemExit,match="No paid request was made"):
         asyncio.run(cli.main_async(args(m,tmp_path/"result.json")))
@@ -70,6 +72,11 @@ def test_cap_verification_precedes_first_model_observation(monkeypatch,tmp_path)
         events.append("verified_cap")
         return {"verified":True,"limit_usd":0.50,"remaining_usd":0.50,"reset":None}
 
+    async def accept_zdr(key,model):
+        assert model=="google/gemini-2.5-flash-lite"
+        events.append("verified_zdr")
+        return {"verified":True,"model":model,"zdr_endpoint_count":1}
+
     class FakeProvider:
         def __init__(self,*a,**kw):
             events.append("model_initialized")
@@ -83,12 +90,39 @@ def test_cap_verification_precedes_first_model_observation(monkeypatch,tmp_path)
             )
 
     monkeypatch.setattr(cli,"verify_openrouter_key_limit",accept_budget)
+    monkeypatch.setattr(cli,"verify_openrouter_zdr_model",accept_zdr)
     monkeypatch.setattr(cli,"VisionProvider",FakeProvider)
     outfile=tmp_path/"out"/"eval.json"
     status=asyncio.run(cli.main_async(args(m,outfile)))
     assert status==2  # Dataset minimums were not met; no release qualification.
-    assert events==["verified_cap","model_initialized","model_called"]
+    assert events==["verified_cap","verified_zdr","model_initialized","model_called"]
     payload=json.loads(outfile.read_text(encoding="utf-8"))
     assert payload["provider_key_limit_verified"]["limit_usd"]==0.50
+    assert payload["zdr_endpoint_preflight"]["zdr_endpoint_count"]==1
     assert payload["routing_policy"]=={"zdr":True,"data_collection":"deny","require_parameters":True}
     assert payload["summary"]["qualified"] is False
+
+
+def test_missing_fixed_model_zdr_route_blocks_before_inference(monkeypatch,tmp_path):
+    m=manifest(tmp_path)
+    monkeypatch.setenv("GQ_PROVIDER_BASE","https://openrouter.ai/api/v1")
+    monkeypatch.setenv("GQ_PROVIDER_MODEL","google/gemini-2.5-flash-lite")
+    monkeypatch.setenv("GQ_PROVIDER_KEY","synthetic-key-no-network")
+    events=[]
+
+    async def accepted_budget(key,maximum_usd):
+        events.append("verified_budget")
+        return {"verified":True,"limit_usd":0.50,"remaining_usd":0.50,"reset":None}
+
+    async def denied_zdr(key,model):
+        events.append("zdr_unavailable")
+        raise ProviderFailure("No ZDR endpoint with structured output")
+
+    monkeypatch.setattr(cli,"verify_openrouter_key_limit",accepted_budget)
+    monkeypatch.setattr(cli,"verify_openrouter_zdr_model",denied_zdr)
+    monkeypatch.setattr(cli,"VisionProvider",
+                        lambda *a,**kw: pytest.fail("No inference is permitted without ZDR"))
+    with pytest.raises(SystemExit,match="No paid request was made"):
+        asyncio.run(cli.main_async(args(m,tmp_path/"result.json")))
+    assert events==["verified_budget","zdr_unavailable"]
+    assert not (tmp_path/"result.json").exists()
