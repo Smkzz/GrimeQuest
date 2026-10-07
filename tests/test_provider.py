@@ -2,7 +2,7 @@ import asyncio
 import json
 import httpx
 import pytest
-from server.provider import VisionProvider,ProviderFailure
+from server.provider import VisionProvider,ProviderFailure,validate_openrouter_key_limit,verify_openrouter_key_limit
 from server.models import TargetAnalysis,ProductObservation
 
 
@@ -70,7 +70,52 @@ def test_compare_and_label_adapter(before,after,clear):
 def test_openrouter_requires_supported_parameters(analysis,before):
     def handle(r):
         body=json.loads(r.content)
-        assert body['provider']=={'require_parameters':True}
+        assert body['provider']=={'require_parameters':True,'zdr':True,'data_collection':'deny'}
         return httpx.Response(200,json=envelope(analysis.model_dump_json()))
     p=VisionProvider('https://openrouter.ai/api/v1','qwen/qwen3.8-27b:free','synthetic',transport=httpx.MockTransport(handle))
     assert asyncio.run(p.analyze(before))==analysis
+
+
+def test_key_budget_requires_a_small_nonresetting_provider_limit():
+    accepted={'limit':0.50,'limit_remaining':0.49,'limit_reset':None,'is_management_key':False}
+    assert validate_openrouter_key_limit(accepted)['verified'] is True
+    assert validate_openrouter_key_limit({**accepted,'limit':0.25,'limit_remaining':0.1})['limit_usd']==0.25
+    for patch in [
+        {'limit':10.0,'limit_remaining':6.0},
+        {'limit':None},
+        {'limit':'0.50'},
+        {'limit':0.0,'limit_remaining':0.0},
+        {'limit':0.50,'limit_remaining':0.51},
+        {'limit':0.50,'limit_remaining':-0.01},
+        {'limit':0.50,'limit_reset':'daily'},
+        {'limit':0.50,'limit_reset':'monthly'},
+        {'limit':0.50,'is_management_key':True},
+    ]:
+        with pytest.raises(ProviderFailure):
+            validate_openrouter_key_limit({**accepted,**patch})
+    with pytest.raises(ProviderFailure):
+        validate_openrouter_key_limit({k:v for k,v in accepted.items() if k!='limit_reset'})
+    with pytest.raises(ProviderFailure):
+        validate_openrouter_key_limit(None)
+
+
+def test_openrouter_budget_preflight_is_read_only_and_fails_closed():
+    calls=[]
+    def handle(request):
+        calls.append((request.method, str(request.url)))
+        assert request.method=='GET' and str(request.url)=='https://openrouter.ai/api/v1/key'
+        assert request.headers['authorization']=='Bearer only-in-memory-test-key'
+        return httpx.Response(200,json={'data':{'limit':0.50,'limit_remaining':0.49,'limit_reset':None,'is_management_key':False}})
+    verified=asyncio.run(verify_openrouter_key_limit(
+        'only-in-memory-test-key',transport=httpx.MockTransport(handle)))
+    assert verified['limit_usd']==0.50 and len(calls)==1
+
+    for response in [httpx.Response(403,json={'error':'denied'}),
+                     httpx.Response(200,json={'data':{'limit':10,'limit_remaining':9,'limit_reset':None}}),
+                     httpx.Response(200,text='not json')]:
+        with pytest.raises(ProviderFailure):
+            asyncio.run(verify_openrouter_key_limit(
+                'only-in-memory-test-key',
+                transport=httpx.MockTransport(lambda request:r if (r:=response) else response)))
+    with pytest.raises(ProviderFailure):
+        asyncio.run(verify_openrouter_key_limit('only-in-memory-test-key',maximum_usd=1))
