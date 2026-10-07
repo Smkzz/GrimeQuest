@@ -1,5 +1,18 @@
 # Changelog
 
+## Release hardening wave — 2026-10-07
+
+- Added persistent workflow signing across restarts.
+- Added stricter cross-origin/browser headers and suppressed the server fingerprint.
+- Added standalone privacy/safety pages to the PWA offline shell.
+- Improved contrast, reduced-motion and forced-colors accessibility behavior.
+- Refreshed runtime dependencies; pinned Docker bases by digest; added `pip check`; aligned project metadata.
+- Added real-origin PWA qualification tests.
+- Upgraded vision transport to strict JSON-schema structured output and OpenRouter parameter-support enforcement.
+- Qualified the complete public-HTTPS live protocol with temporary deterministic mock infrastructure, then deleted the infrastructure and restored AI-off-by-default.
+- Added 0.5 vCPU / 0.5 GB Railway resource ceilings.
+- Current-source automated result: 273 passes, one environment-policy skip.
+
 ## Deployment hardening — 2026-10-06
 
 Repo-backed Railway deployment qualified on exact source commit `a7acac65c79db80e5e86516d2b196bd25503c21b`. Added deployment-time PWA compilation, Railway `PORT` support, Amsterdam deployment configuration, platform health checking, and a narrow health-probe Host exception. The full local regression suite remained green (269 tests). The temporary practice-only Railway Function was removed after the production service became healthy. Live AI and physical cleaning validation remain outstanding.
