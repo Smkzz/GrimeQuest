@@ -22,7 +22,7 @@ The first repo-backed deployment reached application startup but failed Railway'
 
 - TypeScript/client tests: 34 passed;
 - Python/API/browser tests: 235 passed;
-- current automated qualification: 386 passed, one environment-policy skip;
+- current automated qualification: 388 passed, one environment-policy skip;
 - no failures or skips;
 - deterministic PWA rebuild remained byte-identical.
 
