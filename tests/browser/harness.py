@@ -24,7 +24,7 @@ def mount(page,client=None,initial=None):
     page.on('pageerror',lambda err:errors.append(str(err)))
     def fetch_bridge(path,options):
         if client is None:
-            return {'status':200,'headers':{'content-type':'application/json'},'body':json.dumps({'live_ready':False,'version':'0.1.0','provider_host':None,'provider_model':None,'max_calls_hour':40})}
+            return {'status':200,'headers':{'content-type':'application/json'},'body':json.dumps({'live_ready':False,'version':'0.1.0','provider_host':None,'provider_model':None,'max_calls_hour':40,'max_calls_day':200,'access_mode':'private_code'})}
         headers={**options.get('headers',{}),'origin':'http://testserver'}
         response=client.request(options.get('method','GET'),path,headers=headers,content=options.get('body'))
         return {'status':response.status_code,'headers':dict(response.headers),'body':response.text}
