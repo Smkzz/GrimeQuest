@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
-function harness(extra={}) {const NativeDate=Date;class FixtureDate extends NativeDate{constructor(...a){super(...(a.length?a:['2026-10-06T12:00:00Z']));}static now(){return new NativeDate('2026-10-06T12:00:00Z').getTime();}}const c={console,Date:FixtureDate,...extra};vm.createContext(c);vm.runInContext(fs.readFileSync('web/app.js','utf8'),c);return c.GQ;}
+function harness(extra={}) {const NativeDate=Date;class FixtureDate extends NativeDate{constructor(...a){super(...(a.length?a:['2026-10-06T12:00:00Z']));}static now(){return new NativeDate('2026-10-06T12:00:00Z').getTime();}}const c={console,Date:FixtureDate,...extra};if(c.document && !c.document.getElementById)c.document.getElementById=()=>null;vm.createContext(c);vm.runInContext(fs.readFileSync('web/app.js','utf8'),c);return c.GQ;}
 const G=harness();
 const product='method-kitchen-clementine-uk-828';
 const analysis={object_name:'Tiled splashback',surface:'glazed_ceramic',soil:'grease',visible_soil:true,image_quality:'usable',material_certainty:'tentative',hazards:['none'],target_box:{x:0.1,y:0.1,width:0.8,height:0.8}};
