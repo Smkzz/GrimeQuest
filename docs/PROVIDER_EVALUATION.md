@@ -2,7 +2,9 @@
 
 GrimeQuest needs **image input + strict structured text output**. The model is an observation component only; it never receives authority to grant chemical compatibility.
 
-## Current recommendation order
+> **Real-API update (2026-10-08):** OpenRouter key authentication passed, but **no free route has qualified** for unattended household-photo analysis. Exact `qwen/qwen3.8-27b:free` returned HTTP 404 (free endpoint unavailable); `openrouter/free` returned one schema-shaped real image result in ~23.2 s but another request failed HTTP 404; fixed Gemma 4 31B with required ZDR routing returned HTTP 404. Do not configure public live-image access from this list. See [real provider smoke evidence](REAL_PROVIDER_SMOKE_20261008.md).
+
+## Earlier candidates — unqualified for production
 
 ### 1. Qualification / zero-cost candidate: Qwen3.8 27B (free) through OpenRouter
 
