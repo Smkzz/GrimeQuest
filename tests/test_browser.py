@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import sync_playwright, expect
 from browser.harness import mount, click,confirm,care_checks,practice_to_clean,ROOT
-from conftest import ACCESS
+from conftest import ACCESS,make_image
 
 @pytest.fixture(scope='module')
 def browser():
@@ -117,6 +117,24 @@ def setup_live(page,client):
     page.locator('#access-code').fill(ACCESS);click(page,'save-code');click(page,'mode-live')
     click(page,'inventory');click(page,'add-catalog','method-kitchen-clementine-uk-828')
     click(page,'home');click(page,'find');return errors
+
+
+def test_large_phone_camera_product_photo_is_downsampled_locally_without_upload(page,client):
+    # Regresses the formerly rejected >12 MP camera import; no live AI call.
+    mount(page,client)
+    click(page,'inventory')
+    click(page,'scan-product')
+    data=make_image('white',size=(4032,3024))
+    assert 4032*3024>12_000_000
+    page.locator('#product-front').set_input_files({
+        'name':'high-resolution-product.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(data.split(',')[1]),
+    })
+    thumb=page.locator('img[alt="Product Front label"]')
+    expect(thumb).to_be_visible()
+    assert thumb.evaluate('(img)=>img.naturalWidth===1600 && img.naturalHeight===1200')
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+
 
 def test_photo_pickers_offer_native_heic_and_heif(page,client):
     setup_live(page,client)

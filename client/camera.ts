@@ -30,17 +30,36 @@ namespace GQ {
       this.video=null;
     }
   }
+  // A phone can supply a 12/24/48/50+ MP photograph. These limits apply only
+  // to the *re-encoded upload*, never to the source camera's pixel count.
+  const MAX_SOURCE_FILE_BYTES=100_000_000; // Prevent enormous/RAW-like files exhausting memory.
+  const MAX_UPLOAD_DATA_URL_LENGTH=2_600_000; // <2 MB decoded, below server/schema limits.
+  const MAX_UPLOAD_EDGE=1600; // Server already normalizes to 1600 pixels.
+
   function fromPixels(image: CanvasImageSource,width:number,height:number):string {
-    if(width*height>12_000_000) throw new Error('Choose a photo smaller than 12 megapixels.');
-    const scale=Math.min(1,1280/Math.max(width,height));
-    const canvas=document.createElement('canvas');
-    canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);
-    const ctx=canvas.getContext('2d');
-    if(!ctx) throw new Error('Image processing is not supported in this browser.');
-    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
-    const data=canvas.toDataURL('image/jpeg',0.85);
-    if(data.length>2_700_000) throw new Error('Photo is too detailed. Move closer to a single target and try again.');
-    return data;
+    if(!Number.isFinite(width)||!Number.isFinite(height)||width<64||height<64)
+      throw new Error('Photo must be at least 64 × 64 pixels.');
+    // Keep as much label text detail as permitted by the existing API.
+    // If highly textured photos exceed the transport budget, progressively
+    // lower JPEG quality and then output dimensions, not the input limit.
+    for(const edge of [MAX_UPLOAD_EDGE,1280,960,720,512]){
+      const scale=Math.min(1,edge/Math.max(width,height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(width*scale));
+      canvas.height=Math.max(1,Math.round(height*scale));
+      const ctx=canvas.getContext('2d');
+      if(!ctx) throw new Error('Image processing is not supported in this browser.');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(image,0,0,canvas.width,canvas.height);
+      for(const quality of [0.85,0.72,0.58]){
+        const data=canvas.toDataURL('image/jpeg',quality);
+        if(!data.startsWith('data:image/jpeg;base64,'))
+          throw new Error('This browser could not encode the photo as JPEG.');
+        if(data.length<=MAX_UPLOAD_DATA_URL_LENGTH)return data;
+      }
+    }
+    throw new Error('This photo could not be resized for upload. Try a clearly framed photo of one target.');
   }
   export async function normalizePhoto(file:File):Promise<string> {
     const mime=file.type.toLowerCase();
@@ -51,7 +70,21 @@ namespace GQ {
       (mime==='' && /\.(heic|heif)$/i.test(file.name));
     if(!['image/jpeg','image/png','image/webp'].includes(mime) && !heic)
       throw new Error('Choose a JPEG, PNG, WebP or supported HEIC/HEIF photo. SVG is not supported.');
-    if(file.size>8_000_000) throw new Error('Choose a photo smaller than 8 MB.');
+    if(file.size>MAX_SOURCE_FILE_BYTES)
+      throw new Error('This image file is over 100 MB. Use a normal JPEG or HEIC photo instead of a RAW export.');
+    // Prefer the browser's size-bounded decoder for full-resolution images.
+    // It can avoid allocating the entire 48+ MP decoded bitmap in JS/canvas.
+    // Safari's HEIC support can differ between bitmap and <img> decoders,
+    // so a decode failure falls back to the native image-element path.
+    if(file.size>=4_000_000 && typeof createImageBitmap==='function'){
+      let bitmap:ImageBitmap|null=null;
+      try {bitmap=await createImageBitmap(file,{resizeWidth:MAX_UPLOAD_EDGE,resizeQuality:'high'});}
+      catch {/* Use the native image-element decoder as a fallback. */}
+      if(bitmap){
+        try {return fromPixels(bitmap,bitmap.width,bitmap.height);}
+        finally {bitmap.close();}
+      }
+    }
     const url=URL.createObjectURL(file);
     try {
       const image=new Image();image.src=url;
@@ -61,8 +94,9 @@ namespace GQ {
           ? 'This browser cannot open this HEIC/HEIF photo. Use Safari 17+ or export the photo as JPEG.'
           : 'This photo could not be decoded. Choose another JPEG, PNG or WebP image.');
       }
-      if(image.width<64||image.height<64) throw new Error('Photo must be at least 64 × 64 pixels.');
-      return fromPixels(image,image.width,image.height);
+      const width=image.naturalWidth||image.width;
+      const height=image.naturalHeight||image.height;
+      return fromPixels(image,width,height);
     } finally {URL.revokeObjectURL(url);}
   }
 }

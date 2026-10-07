@@ -81,7 +81,7 @@ test('unsupported HEIC decoder returns JPEG fallback advice and releases blob',a
  await assert.rejects(()=>g.normalizePhoto({type:'image/heic',name:'photo.heic',size:12345}),/Use Safari 17\+ or export the photo as JPEG/);
  assert.deepEqual(revoked,['blob:unsupported']);
  await assert.rejects(()=>g.normalizePhoto({type:'image/svg+xml',name:'malicious.svg',size:123}),/SVG is not supported/);
- await assert.rejects(()=>g.normalizePhoto({type:'image/heic',name:'huge.heic',size:9000000}),/smaller than 8 MB/);
+ await assert.rejects(()=>g.normalizePhoto({type:'image/heic',name:'raw-like.heic',size:101000000}),/over 100 MB/);
 });
 test('camera rejects insecure context',async()=>{const g=harness({window:{isSecureContext:false},navigator:{}});await assert.rejects(new g.Camera().start({isConnected:true}),/HTTPS/);});
 test('camera stops tracks after late permission resolution',async()=>{
@@ -99,3 +99,97 @@ test('service worker only handles allowlisted app shell requests',async()=>{
  for(const [url,method] of [['https://app.example/api/health','GET'],['https://app.example/api/verify','POST'],['https://evil.example/app.js','GET'],['https://app.example/app.js?private=1','GET'],['https://app.example/user-photo.jpg','GET']])listeners.fetch({request:{url,method},respondWith:()=>assert.fail('Private request cached')});
  listeners.fetch({request:{url:'https://app.example/app.js',method:'GET'},respondWith:p=>pending=p});assert.equal(await pending,'cached');assert.equal(matches,1);
 });
+
+test('native 48 MP phone photo over previous size caps is accepted and reduced to server dimensions',async()=>{
+ const revoked=[],seen=[];
+ class HugeImage {constructor(){this.width=8064;this.height=6048;}set src(v){}async decode(){}}
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:(mime,q)=>{
+   assert.equal(mime,'image/jpeg');assert.equal(q,0.85);seen.push([canvas.width,canvas.height]);
+   return 'data:image/jpeg;base64,AA==';
+ }};
+ const g=harness({URL:{createObjectURL:()=> 'blob:48mp',revokeObjectURL:url=>revoked.push(url)},
+   Image:HugeImage,document:{createElement:()=>canvas}});
+ const jpg=await g.normalizePhoto({type:'image/jpeg',name:'IMG_48MP.jpg',size:27000000});
+ assert.equal(jpg,'data:image/jpeg;base64,AA==');
+ assert.deepEqual(seen,[[1600,1200]]);
+ assert.deepEqual(revoked,['blob:48mp']);
+});
+
+test('large phone portrait remains portrait when reduced',async()=>{
+ const bounds=[];
+ class TallImage {constructor(){this.width=6000;this.height=8000;}set src(v){}async decode(){}}
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),
+   toDataURL:()=>{bounds.push([canvas.width,canvas.height]);return 'data:image/jpeg;base64,AA==';}};
+ const g=harness({URL:{createObjectURL:()=> 'blob:portrait',revokeObjectURL:()=>{}},Image:TallImage,
+   document:{createElement:()=>canvas}});
+ await g.normalizePhoto({type:'image/heic',name:'portrait.heic',size:14000000});
+ assert.deepEqual(bounds,[[1200,1600]]);
+});
+
+test('large noisy photo adjusts JPEG quality without rejecting the original resolution',async()=>{
+ class HugeImage {constructor(){this.width=8000;this.height=6000;}set src(v){}async decode(){}}
+ const calls=[];
+ const tooLarge='data:image/jpeg;base64,'+'A'.repeat(2600000);
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:(_,q)=>{
+   calls.push([canvas.width,canvas.height,q]);return q===0.85?tooLarge:'data:image/jpeg;base64,AA==';
+ }};
+ const g=harness({URL:{createObjectURL:()=> 'blob:noise',revokeObjectURL:()=>{}},Image:HugeImage,
+   document:{createElement:()=>canvas}});
+ assert.equal(await g.normalizePhoto({type:'image/jpeg',name:'complex.jpg',size:25000000}),'data:image/jpeg;base64,AA==');
+ assert.deepEqual(calls,[[1600,1200,0.85],[1600,1200,0.72]]);
+});
+
+test('uncompressible image reduces canvas edge instead of rejecting full-resolution input',async()=>{
+ class HugeImage {constructor(){this.width=8064;this.height=6048;}set src(v){}async decode(){}}
+ const calls=[];
+ const tooLarge='data:image/jpeg;base64,'+'A'.repeat(2600000);
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:(_,q)=>{
+   calls.push([canvas.width,canvas.height,q]);
+   return canvas.width===1600?tooLarge:'data:image/jpeg;base64,AA==';
+ }};
+ const g=harness({URL:{createObjectURL:()=> 'blob:noise',revokeObjectURL:()=>{}},Image:HugeImage,
+   document:{createElement:()=>canvas}});
+ const result=await g.normalizePhoto({type:'image/jpeg',name:'highly-textured.jpg',size:40000000});
+ assert.equal(result,'data:image/jpeg;base64,AA==');
+ assert.deepEqual(calls.map(v=>v[0]),[1600,1600,1600,1280]);
+});
+
+test('8+ MB source does not bypass supported file-type or minimum dimension checks',async()=>{
+ class TinyImage {constructor(){this.width=60;this.height=60;}set src(v){}async decode(){}}
+ let allocated=0,revoked=0;
+ const g=harness({URL:{createObjectURL:()=>{allocated++;return 'blob:tiny';},revokeObjectURL:()=>revoked++;},
+   Image:TinyImage});
+ await assert.rejects(()=>g.normalizePhoto({type:'image/jpeg',name:'tiny.jpg',size:35000000}),/at least 64/);
+ await assert.rejects(()=>g.normalizePhoto({type:'image/svg+xml',name:'vector.svg',size:35000000}),/SVG is not supported/);
+ assert.equal(allocated,1);assert.equal(revoked,1);
+});
+
+test('large photo uses supported size-bounded bitmap decoding and promptly releases bitmap',async()=>{
+ let closed=0,created=0;const sizes=[];
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=>{
+  sizes.push([canvas.width,canvas.height]);return 'data:image/jpeg;base64,AA==';
+ }};
+ const g=harness({
+  createImageBitmap:async(file,options)=>{assert.equal(file.size,25000000);assert.equal(options.resizeWidth,1600);assert.equal(options.resizeQuality,'high');
+   return {width:1600,height:1200,close:()=>closed++};},
+  URL:{createObjectURL:()=>{created++;return 'blob:should-not-happen';},revokeObjectURL:()=>{}},
+  document:{createElement:()=>canvas}
+ });
+ assert.equal(await g.normalizePhoto({type:'image/jpeg',name:'large.jpg',size:25000000}),'data:image/jpeg;base64,AA==');
+ assert.equal(closed,1);assert.equal(created,0);assert.deepEqual(sizes,[[1600,1200]]);
+});
+
+test('bitmap decoder rejecting HEIC falls back to native Safari image-element decoding',async()=>{
+ let bitmapCalls=0,revoked=0;
+ class HeicImage{constructor(){this.width=6048;this.height=8064;}set src(v){}async decode(){}}
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/jpeg;base64,AA=='};
+ const g=harness({
+  createImageBitmap:async()=>{bitmapCalls++;throw Error('codec unavailable here');},Image:HeicImage,
+  URL:{createObjectURL:()=> 'blob:heic',revokeObjectURL:()=>revoked++},
+  document:{createElement:()=>canvas}
+ });
+ assert.equal(await g.normalizePhoto({type:'image/heic',name:'portrait.heic',size:17000000}),'data:image/jpeg;base64,AA==');
+ assert.equal(bitmapCalls,1);assert.equal(revoked,1);
+ assert.equal(canvas.width,1200);assert.equal(canvas.height,1600);
+});
+
