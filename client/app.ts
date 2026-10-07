@@ -313,7 +313,8 @@ namespace GQ {
       if(input.id==='photo-file') captureImage=img;
       else if(input.id==='product-front') productFront=img;
       else if(input.id==='product-back') productBack=img;
-      render(false);
+      if(screen==='product-scan')refreshProductView();
+      else render(false);
     } catch(err){toast(err instanceof Error?err.message:'Could not open that photo.',true);}
   }
   export function boot():void {
