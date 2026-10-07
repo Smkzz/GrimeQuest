@@ -44,7 +44,7 @@ from server.evaluation import (
     score_target,
     summarize,
 )
-from server.provider import ProviderFailure, VisionProvider, verify_openrouter_key_limit
+from server.provider import ProviderFailure, VisionProvider, verify_openrouter_key_limit, verify_openrouter_zdr_model
 
 MAX_SOURCE_BYTES = 8_000_000
 MAX_SOURCE_PIXELS = 12_000_000
@@ -138,6 +138,16 @@ async def main_async(args) -> int:
             "non-resetting total spend limit of at most $0.50."
         ) from exc
 
+    # A ZDR-filtered endpoint must advertise both JSON response formatting
+    # and the parameters used by this adapter. This costs no inference credits.
+    try:
+        zdr_receipt = await verify_openrouter_zdr_model(key, model)
+    except ProviderFailure as exc:
+        raise SystemExit(
+            "No paid request was made: the selected fixed model lacks a verified "
+            "ZDR endpoint with compatible structured-output parameters."
+        ) from exc
+
     cases = manifest.cases[: args.max_cases] if args.max_cases else manifest.cases
     provider = VisionProvider(base, model, key, timeout=args.timeout)
     rows = []
@@ -171,6 +181,7 @@ async def main_async(args) -> int:
         "provider_host": parsed.hostname,
         "provider_model": model,
         "provider_key_limit_verified": budget_receipt,
+        "zdr_endpoint_preflight": zdr_receipt,
         "routing_policy": {"zdr": True, "data_collection": "deny", "require_parameters": True},
         "cases_requested": len(cases),
         "development_small_dataset": bool(args.allow_small),
