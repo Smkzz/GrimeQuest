@@ -33,7 +33,8 @@ def validate_openrouter_key_limit(data: object, maximum_usd: float = 0.50) -> di
             or not 0 < limit <= maximum_usd
             or not 0 <= remaining <= limit
             or data.get("limit_reset", "not_reported") is not None
-            or data.get("is_management_key") is True):
+            or data.get("is_management_key") is not False
+            or data.get("include_byok_in_limit") is not True):
         raise ProviderFailure("A non-resetting provider-side spending cap is required before testing.")
     return {"verified": True, "limit_usd": float(limit),
             "remaining_usd": float(remaining), "reset": None}
@@ -55,7 +56,7 @@ async def verify_openrouter_key_limit(key: str, maximum_usd: float = 0.50,
             return validate_openrouter_key_limit(payload.get("data"), maximum_usd)
     except ProviderFailure:
         raise
-    except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+    except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
         raise ProviderFailure("OpenRouter spending-cap verification failed. No inference was made.") from exc
 
 
