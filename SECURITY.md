@@ -12,6 +12,7 @@ A small, single-process **private preview**, not an internet-scale public multi-
 - Actual image decoding and content-type checks, pixel/byte/frame limits, metadata stripping, two concurrent decodes, no arbitrary file paths or client-supplied provider URL.
 - Escaping of untrusted inventory/model text, a restrictive served-app CSP, no inline served-app scripts, no frame embedding and no third-party frontend scripts.
 - Provider timeout/output limits, no redirects/retries or inherited proxy environment, bounded concurrency plus global hourly and daily provider-attempt ceilings.
+- Railway edge tracing is enabled for operational status/latency, while FastAPI-native telemetry and Python auto-instrumentation are disabled to avoid duplicate exporters and application-level exception/log capture.
 - HMAC-bound workflow and before-photo digest, purpose-specific tickets, one active comparison per encounter, idempotent cached completion and fixed rewards.
 - No chemical permissions derived from label text or prompt content. Unknown inputs fail closed. The catalog has explicit expiry.
 - Static-only service-worker allowlist; no private API/image caching; no app request-body logging.
