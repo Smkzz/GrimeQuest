@@ -7,10 +7,11 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser tests | **245 passed, 1 skipped** |
+| Python/API/policy/image/provider/browser tests | **352 passed, 1 skipped** |
 | TypeScript-domain / storage / camera-lifecycle / service-worker Node tests | **34 passed** |
-| Total passing automated test cases | **279 passed** |
+| Total passing automated test cases | **386 passed** |
 | Environment-policy skips | **1** — Chromium navigation to localhost is blocked in this runtime |
+| Client/server policy parity | **1,680 combinations agree** |
 | Strict TypeScript 5.8.3 compilation | Pass |
 | Python combined line/branch coverage | approximately **98%** |
 | Provider adapter coverage | **100%** in this suite |
@@ -69,7 +70,7 @@ A separate opt-in access mode allows a judging/public demo to use live analysis 
 1. No real vision-provider request or model-accuracy qualification has been run.
 2. No physical phone camera/install/offline test has been run.
 3. No real cleaning sequence has been run against the live model.
-4. No independent chemical/material expert review has broadened the tiny product catalog.
+4. The catalog now has five exact manufacturer-sourced consumer variants, including three Finland-market Kiilto products, but it remains intentionally narrow and has not received independent chemical/material expert certification.
 5. Exact application-package advisory queries are clean in OSV (19/19 exact package versions). A trustworthy OS-package/final-container image scan and independent security review remain outstanding.
 6. Repository visibility remains private until the owner deliberately opens it for submission.
 
