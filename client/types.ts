@@ -41,7 +41,7 @@ namespace GQ {
     version: 1; history: HistoryItem[]; inventory: InventoryItem[];
     active: { product: string; startedAt: string } | null;
   }
-  export interface Health {live_ready: boolean; provider_host: string | null; provider_model: string | null; version: string; max_calls_hour: number}
+  export interface Health {live_ready: boolean; provider_host: string | null; provider_model: string | null; version: string; max_calls_hour: number; max_calls_day: number; source_sha?: string; deployment_id?: string; replica_region?: string}
   export interface Scenario {
     id: string; name: string; room: string; subtitle: string; surface: Surface; soil: Soil;
     color: string; before: string; after: string; partial: string;
