@@ -6,10 +6,10 @@ The current software architecture and automated implementation are ready for the
 
 Clean-room evidence:
 
-- **405 Python/API/browser/evaluation tests passed**
+- **412 Python/API/browser/evaluation tests passed**
 - **34 client tests passed**
-- **439 / 439 total; zero skips/warnings**
-- **97.55% combined Python coverage**
+- **446 / 446 total; zero skips/warnings**
+- **97.76% combined Python coverage**
 - **1,680 client/server policy combinations agree**
 - Python 3.13.16 / Node 22.23.3 / TypeScript 5.8.3
 - real-origin PWA/service-worker/offline-shell test passes in Chromium
