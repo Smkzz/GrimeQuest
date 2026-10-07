@@ -59,4 +59,12 @@
 #app-update-now{background:#173d32;color:#fff;border-color:#173d32}
 @media(min-width:621px){.app-update-banner{bottom:18px}}
 @media(forced-colors:active){.app-update-banner{border:2px solid CanvasText}}
-
+/* Explain label reading availability independently from successful camera capture. */
+.label-ai-status{padding:17px;margin:16px 0;border:1px solid var(--line);border-radius:12px;background:var(--cream)}
+.label-ai-status h2{font-size:17px}.label-ai-status p{font-size:12px;line-height:1.7;margin-top:8px}
+.label-ai-status .label-count{font-weight:700;color:var(--ink)}
+.label-private-code{display:grid;gap:9px;margin:14px 0}
+.label-private-code label{font-size:12px;font-weight:690}
+.label-private-code input{width:100%;min-width:0;padding:12px;font-size:16px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:10px}
+.label-private-code .btn{justify-self:start}
+@media (forced-colors:active){.label-ai-status{border:1px solid CanvasText}}
