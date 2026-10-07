@@ -79,7 +79,7 @@ class Boundary:
                 return await reject(403, "ORIGIN", "Same-origin requests are required.")
             if not self.settings.ready:
                 return await reject(503, "LIVE_NOT_CONFIGURED", "Live analysis is not configured. Practice mode never contacts an AI service.")
-            if not hmac.compare_digest(h.get("x-gq-access", "").encode(), self.settings.access_code.encode()):
+            if not self.settings.public_live and not hmac.compare_digest(h.get("x-gq-access", "").encode(), self.settings.access_code.encode()):
                 return await reject(401, "ACCESS", "Enter the private access code in Settings.")
             if h.get("content-type", "").split(";")[0].strip().lower() != "application/json":
                 return await reject(415, "CONTENT_TYPE", "application/json is required.")
@@ -183,6 +183,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
                 "catalog_version": CATALOG["version"], "provider_host": urlsplit(settings.provider_base).hostname if settings.ready else None,
                 "provider_model": settings.provider_model if settings.ready else None,
                 "max_calls_hour": settings.max_calls_hour, "max_calls_day": settings.max_calls_day,
+                "access_mode": "public_rate_limited" if settings.public_live else "private_code",
                 "workflow_receipts_persistent": bool(settings.ticket_secret),
                 "source_sha": os.getenv("RAILWAY_GIT_COMMIT_SHA", ""),
                 "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID", ""),
