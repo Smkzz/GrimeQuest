@@ -7,3 +7,5 @@ Runtime dependencies include FastAPI (MIT), Starlette (BSD-3-Clause), Uvicorn (B
 System fonts are referenced by CSS; no font files are distributed. SVG/PNG practice scenes and the mascot/icon geometry are original, not photographs of a real cleaning result.
 
 Official implementation references are linked inline in README, SECURITY and SAFETY. The TypeScript 5.8.3 package integrity was read from the official npm package metadata. Manual CI action pins were verified against the corresponding official action release commits on 2026-10-06; being pinned does not certify that a dependency is vulnerability-free.
+
+The self-hosted desktop QR code encoder includes **qr-creator** (Copyright © 2017 The Nimiq Foundation, MIT), derived from jquery-qrcode (Lars Jung, MIT) and the JavaScript QR Code Generator (Kazuhiko Arase, MIT). The vendored browser source has its ES-module export removed to run under the existing self-hosted, no-inline-script CSP. Its original license is preserved in `web/vendor/qr-creator.LICENSE.txt`. There is no third-party QR or tracking endpoint.

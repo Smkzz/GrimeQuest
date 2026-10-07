@@ -13,10 +13,45 @@
   <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="stylesheet" href="styles.css">
   <title>GrimeQuest · Small chores. Real wins.</title>
+  <script defer src="vendor/qr-creator.js"></script>
+  <script defer src="install.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
   <div id="app"></div>
+
+  <section id="install-gate" class="install-gate" aria-labelledby="install-heading" hidden>
+    <div class="install-card">
+      <div class="install-copy">
+        <div class="install-identity"><span class="install-mark" aria-hidden="true">✦</span><span>grimequest<span class="install-dot">.</span></span></div>
+        <span class="install-eyebrow">YOUR NEXT QUEST IS IN YOUR POCKET</span>
+        <h2 id="install-heading">Less scrolling.<br><em>More sparkling.</em></h2>
+        <p>GrimeQuest is made for your phone. Scan the QR code with your camera to open the game, then add it to your Home Screen.</p>
+        <ol class="install-list">
+          <li><span>01</span>Open your phone's camera and point it at the code.</li>
+          <li><span>02</span>Tap the link that appears on your phone.</li>
+          <li><span>03</span>Follow the install instructions for your phone.</li>
+        </ol>
+        <button id="install-desktop" class="btn secondary" type="button">Continue in desktop browser →</button>
+        <p class="install-caption">No App Store download. No account needed for practice mode. Public live AI remains disabled.</p>
+      </div>
+      <div class="install-qr-column">
+        <div class="install-qr-label"><span aria-hidden="true">✧</span> SCAN TO START</div>
+        <div id="install-qr" class="install-qr" role="img" aria-label="QR code linking to GrimeQuest on your phone"><span>QR code loading…</span></div>
+        <p class="install-qr-title">Point. Tap. Play.</p>
+        <a id="install-link" href="/" class="install-address">Open GrimeQuest on your phone</a>
+        <button id="install-copy" type="button" class="install-copy-link">Copy link instead</button>
+        <span id="install-copy-status" role="status" aria-live="polite" class="install-status"></span>
+      </div>
+    </div>
+    <p class="install-legal"><a href="/privacy.html">Privacy</a> · <a href="/safety.html">Safety</a> · Offline practice available after installation</p>
+  </section>
+  <aside id="install-tip" class="install-tip" aria-label="Install GrimeQuest" hidden>
+    <button id="install-dismiss" class="install-dismiss" type="button" aria-label="Dismiss install suggestion">×</button>
+    <div class="install-tip-heading"><span class="install-mark" aria-hidden="true">✦</span><div><strong>Take GrimeQuest with you</strong><span>Add it to your Home Screen for easy access.</span></div></div>
+    <button id="install-cta" class="btn primary" type="button">How to install</button>
+    <div id="install-steps" class="install-steps" hidden></div>
+  </aside>
   <noscript><main><h1>GrimeQuest needs JavaScript</h1><p>This PWA uses JavaScript for local inventory and camera controls. It performs no chemical recommendation without it.</p></main></noscript>
 </body>
 </html>
