@@ -39,7 +39,7 @@ def main():
     counts={'web_files':len([p for p in runtime if p.is_file()]),'runtime_js_bytes':(ROOT/'web/app.js').stat().st_size,
             'standalone_preview_bytes':(ROOT/'preview.html').stat().st_size,
             'generated_files_byte_identical_after_rebuild':True,'compiler':version,
-            'provider_calls':0,'external_ci_executed':False,'dependency_advisory_scan':'not_performed'}
+            'provider_calls':0,'external_ci_executed':False,'dependency_advisory_scan':'not_run_by_this_script; see docs/TEST_REPORT.md'}
     (ROOT/'evidence').mkdir(exist_ok=True)
     (ROOT/'evidence/build-check.json').write_text(json.dumps(counts,indent=2)+'\n')
     print(json.dumps(counts,indent=2))
