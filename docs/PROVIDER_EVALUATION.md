@@ -2,6 +2,8 @@
 
 GrimeQuest needs **image input + strict structured text output**. The model is an observation component only; it never receives authority to grant chemical compatibility.
 
+**Fixed-ZDR trial outcome (2026-10-08):** `google/gemini-2.5-flash-lite` succeeded on **three real photo requests (200/200/200)** with ZDR routing, strict JSON outputs, and 1.3–2.0 second response times. It abstained on the fingerprinted-glass material, correctly excluded mixed dirty dishes, and rejected a mismatched before/after pair. This is a **preliminary smoke PASS**, not a public model accuracy PASS. See [trial report](REAL_FIXED_ZDR_TRIAL_20261008.md).
+
 **Budget/ZDR qualification update (2026-10-08):** Paid OpenRouter evaluation now fails closed unless a dedicated key has a provider-enforced, **non-resetting ≤US$0.50** total cap including BYOK. OpenRouter image calls require `provider.zdr=true`, `provider.data_collection="deny"`, and `require_parameters=true`. The existing shared key's cap was too high; **no paid inference was made**. See [bounded paid-vision runbook](PAID_VISION_PRECHECK.md).
 
 > **Real-API update (2026-10-08):** OpenRouter key authentication passed, but **no free route has qualified** for unattended household-photo analysis. Exact `qwen/qwen3.8-27b:free` returned HTTP 404 (free endpoint unavailable); `openrouter/free` returned one schema-shaped real image result in ~23.2 s but another request failed HTTP 404; fixed Gemma 4 31B with required ZDR routing returned HTTP 404. Do not configure public live-image access from this list. See [real provider smoke evidence](REAL_PROVIDER_SMOKE_20261008.md).
