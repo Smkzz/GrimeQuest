@@ -1,0 +1,21 @@
+# Disposable, auditable build-time OS vulnerability qualification.
+# This is NOT the application production image and must not be deployed to users.
+# Each successful scan emits a marker only after Trivy has exited zero.
+FROM aquasec/trivy:0.74.0
+
+RUN trivy --version
+
+# The released Python base carries the OS packages used by the runtime stage.
+# The application Python packages are separately exact-pinned/OSV-audited.
+RUN trivy image --image-src remote --scanners vuln --severity HIGH,CRITICAL \
+    --ignore-unfixed --exit-code 1 --no-progress \
+    python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c \
+    && echo "GQ_RUNTIME_BASE_TRIVY_PASS"
+
+# The Node builder is not shipped as part of the runtime, but is still supply-chain input.
+RUN trivy image --image-src remote --scanners vuln --severity HIGH,CRITICAL \
+    --ignore-unfixed --exit-code 1 --no-progress \
+    node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 \
+    && echo "GQ_FRONTEND_BUILDER_TRIVY_PASS"
+
+CMD ["--version"]
