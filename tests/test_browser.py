@@ -106,6 +106,21 @@ def upload(page,selector,data_url):
     page.locator(selector).set_input_files({'name':'synthetic-test.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data_url.split(',')[1])})
     page.wait_for_selector('img[alt="Selected image preview"]')
 
+def test_public_demo_live_mode_needs_no_shared_code(page,settings,vision,before):
+    from dataclasses import replace
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    public=replace(settings,public_live=True,access_code='',max_calls_day=45)
+    with TestClient(create_app(public,vision)) as c:
+        errors=mount(page,c);click(page,'settings')
+        expect(page.locator('main')).to_contain_text('Public demo access')
+        assert page.locator('#access-code').count()==0
+        click(page,'mode-live');click(page,'home');click(page,'find')
+        upload(page,'#photo-file',before);page.locator('[name="photo-consent"]').check();click(page,'analyze-photo')
+        page.wait_for_selector('#surface')
+        assert vision.calls==['analyze']
+        assert not errors,errors
+
 def test_live_full_browser_api_flow_with_injected_vision(page,client,vision,before,after):
     errors=setup_live(page,client)
     upload(page,'#photo-file',before)
