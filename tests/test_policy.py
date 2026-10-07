@@ -10,7 +10,7 @@ from server.models import Surface, Soil, Hazard, Attestations, TargetAnalysis, B
 from server.policy import CATALOG, PRODUCTS, match_product, adjudicate
 from conftest import PRODUCT
 
-TODAY=date(2026,10,6)
+TODAY=date(2026,10,7)
 @pytest.mark.parametrize('surface',get_args(Surface))
 @pytest.mark.parametrize('soil',get_args(Soil))
 @pytest.mark.parametrize('product',list(PRODUCTS)+['unknown'])
@@ -18,7 +18,11 @@ def test_only_explicit_matrix_is_eligible(surface,soil,product,attestations):
     r=match_product(surface,soil,product,attestations,['none'],TODAY)
     expected=(surface,soil,product) in {
       ('glazed_ceramic','grease',PRODUCT),('glazed_ceramic','light_grime',PRODUCT),
-      *[(s,d,'method-glass-mint-uk-828') for s in ['glazed_ceramic','uncoated_glass'] for d in ['fingerprints','light_grime']]}
+      *[(s,d,'method-glass-mint-uk-828') for s in ['glazed_ceramic','uncoated_glass'] for d in ['fingerprints','light_grime']],
+      *[('uncoated_glass',d,'kiilto-ikkuna-hajusteeton-fi-600') for d in ['fingerprints','light_grime']],
+      ('glazed_ceramic','light_grime','kiilto-koti-hajusteeton-fi-600'),
+      ('glazed_ceramic','grease','kiilto-keittio-hajusteeton-fi-600'),
+      ('glazed_ceramic','light_grime','kiilto-keittio-hajusteeton-fi-600')}
     assert (r['status']=='eligible') is expected
 
 @pytest.mark.parametrize('hazard',[h for h in get_args(Hazard) if h!='none'])
@@ -73,4 +77,22 @@ def test_client_server_policy_parity(attestations):
     for args,result in zip(cases,observed,strict=True):
         surface,soil,p,a,hazards,day=args
         assert result==match_product(surface,soil,p,Attestations(**a),hazards,date.fromisoformat(day)),args
-    assert len(cases)==840
+    assert len(cases)==1680
+
+
+def test_finland_consumer_entries_are_exact_and_narrow():
+    ids={
+        'kiilto-ikkuna-hajusteeton-fi-600',
+        'kiilto-koti-hajusteeton-fi-600',
+        'kiilto-keittio-hajusteeton-fi-600',
+    }
+    assert ids <= PRODUCTS.keys()
+    for product_id in ids:
+        p=PRODUCTS[product_id]
+        assert p['variant'].endswith('600 ml · Finland')
+        assert p['source'].startswith('https://kiiltokodinpuhdistus.fi/tuote/')
+        assert p['enabled'] is True
+        assert 'natural_stone' in p['excluded'] and 'glass_ceramic_hob' in p['excluded']
+    assert PRODUCTS['kiilto-ikkuna-hajusteeton-fi-600']['surfaces']==['uncoated_glass']
+    assert PRODUCTS['kiilto-koti-hajusteeton-fi-600']['surfaces']==['glazed_ceramic']
+    assert PRODUCTS['kiilto-keittio-hajusteeton-fi-600']['surfaces']==['glazed_ceramic']
