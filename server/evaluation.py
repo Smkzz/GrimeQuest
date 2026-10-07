@@ -13,10 +13,23 @@ from typing import Annotated, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .models import Comparison, Hazard, Soil, Surface, TargetAnalysis
-from .policy import adjudicate
+from .policy import PRODUCTS, adjudicate
 
-SUPPORTED_SURFACES = {"uncoated_glass", "glazed_ceramic"}
-SUPPORTED_SOILS = {"grease", "fingerprints", "light_grime"}
+# Model release evaluation must use the *actual reviewed product-pair universe*,
+# not a cartesian product of separately supported surfaces and soil types.
+# In particular, grease on glass must not count as a supported target when
+# the catalog only approves grease on glazed ceramic.
+POLICY_UNSUPPORTED_SURFACES = {"unknown", "natural_stone", "wood", "glass_ceramic_hob", "stainless_steel"}
+POLICY_UNSUPPORTED_SOILS = {"unknown", "limescale"}
+REVIEWED_TARGET_PAIRS = frozenset(
+    (surface, soil)
+    for product in PRODUCTS.values() if product["enabled"]
+    for surface in product["surfaces"]
+    for soil in product["soils"]
+    if surface not in product["excluded"]
+    and surface not in POLICY_UNSUPPORTED_SURFACES
+    and soil not in POLICY_UNSUPPORTED_SOILS
+)
 
 
 class EvalModel(BaseModel):
@@ -92,8 +105,7 @@ def target_candidate_supported(observation: TargetAnalysis) -> bool:
     return (
         observation.visible_soil
         and observation.image_quality == "usable"
-        and observation.surface in SUPPORTED_SURFACES
-        and observation.soil in SUPPORTED_SOILS
+        and (observation.surface, observation.soil) in REVIEWED_TARGET_PAIRS
         and all(h == "none" for h in observation.hazards)
     )
 
