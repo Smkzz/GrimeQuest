@@ -61,7 +61,7 @@ A phone's `localhost` is the phone, not your computer. Real phone-camera use nee
 
 ## Configure live analysis deliberately
 
-Live mode requires a **vision-capable Chat Completions-compatible endpoint** supporting image inputs and JSON-object responses. Endpoint/model compatibility has not been established against a real service in this release. There is no hard-coded paid model and no automatic fallback to a simulation.
+Live mode requires a **vision-capable Chat Completions-compatible endpoint** supporting image inputs and strict JSON-schema responses. Endpoint/model compatibility has not been established against a real service in this release. There is no hard-coded paid model and no automatic fallback to a simulation.
 
 The adapter posts to `<GQ_PROVIDER_BASE>/chat/completions`, requests strict JSON-schema structured output, caps output at 1,800 tokens, and validates the response again against strict Pydantic schemas. On OpenRouter it also requires routing only to endpoints that support every requested parameter. Provider-specific unsupported parameters, refusals or incomplete output fail without issuing a cleaning result.
 
@@ -120,7 +120,7 @@ python scripts/verify_build.py
 
 `GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The normal browser suite covers desktop and phone layouts, while `tests/test_pwa_runtime.py` starts the real server and exercises the real browser origin, service worker, offline app shell and legal routes.
 
-The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **369 Python/API/browser/evaluation tests + 34 client tests = 403/403 passes, zero skips or warnings**, **97.55% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A trustworthy OS-package scan of the final container/base image remains a release gate; attempted disposable Trivy paths did not yield inspectable scan evidence and are not counted as a pass.
+The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **405 Python/API/browser/evaluation tests + 34 client tests = 439/439 passes, zero skips or warnings**, **97.55% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, with the vision-release evaluator additionally rejecting surface–soil pairs not covered by any reviewed product, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A trustworthy OS-package scan of the final container/base image remains a release gate; attempted disposable Trivy paths did not yield inspectable scan evidence and are not counted as a pass.
 
 ## Architecture and handoff
 
