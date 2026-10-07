@@ -7,9 +7,9 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser tests | **242 passed, 1 skipped** |
+| Python/API/policy/image/provider/browser tests | **245 passed, 1 skipped** |
 | TypeScript-domain / storage / camera-lifecycle / service-worker Node tests | **34 passed** |
-| Total passing automated test cases | **276 passed** |
+| Total passing automated test cases | **279 passed** |
 | Environment-policy skips | **1** — Chromium navigation to localhost is blocked in this runtime |
 | Strict TypeScript 5.8.3 compilation | Pass |
 | Python combined line/branch coverage | approximately **98%** |
@@ -45,6 +45,10 @@ A temporary Railway vision fixture returned deterministic schema-valid observati
 Qualification log marker: `GQ_QUALIFICATION_PASS` on temporary deployment `52e34e89-4386-461e-9902-979dfa4a0b3e`.
 
 Both temporary services were deleted immediately afterward and production was restored to AI-off-by-default. **This proves the hosted protocol and trust boundaries, not the visual accuracy of any real model.**
+
+## Public-demo access qualification
+
+A separate opt-in access mode allows a judging/public demo to use live analysis without distributing a shared secret. It is disabled by default. Server configuration rejects public mode unless persistent workflow signing is configured and the daily attempt ceiling is at most 200. Automated tests establish that private mode still requires the access code, public mode succeeds without it, and cross-origin requests remain rejected. The browser integration test confirms the public-mode UI hides the access-code field and can reach the live target-analysis flow.
 
 ## Security/reproducibility changes since the first report
 
