@@ -1,6 +1,6 @@
 # Build plan and completed iterations
 
-Status: local implementation complete; empirical live/public qualification outstanding.
+Status: automated software/protocol qualification complete; real-model accuracy, physical-device/cleaning evidence and final public-release gates outstanding.
 
 | Stage | Outcome |
 | --- | --- |
@@ -16,6 +16,6 @@ Status: local implementation complete; empirical live/public qualification outst
 | Regression tests | Practice/live browser flows, export, label scan, XSS text handling, duplicates, concurrent comparison and client/server rule parity |
 | Handoff | Source, prebuilt preview, test logs, screenshots, usage instructions, manual CI recipe and release gates |
 
-The browser environment blocks all URL navigation and physical capture by policy. Tests therefore injected the generated app in a browser document and used declared storage/API adapters. No browser policy was disabled. API enforcement was separately tested at HTTP/ASGI boundaries. Installation, TLS and a real phone remain explicitly unverified.
+The original execution shell blocked browser URL navigation, so early tests used explicit browser storage/API adapters. A later Python-3.13 Railway clean-room build now also passes the real-origin Chromium PWA/service-worker/offline-shell tests. Physical camera hardware, Add to Home Screen behavior on the target phone and real cleaning remain explicitly unverified.
 
 No existing project repository or code was imported. No paid model calls, public deployment, database writes, repository push, cloud CI run or third-party account changes were performed.
