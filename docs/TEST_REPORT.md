@@ -22,7 +22,7 @@
 | Hosted public-HTTPS protocol qualification | **PASS with deterministic observation fixture** |
 | Real/paid provider calls | **0** |
 | GitHub Actions automatically consumed | **0** |
-| OS/base-image vulnerability scan | **Not qualified** — no inspectable successful scanner report |
+| Base-image / effective-runtime Trivy scan | **Effective runtime equivalence passed: 0 HIGH/CRITICAL after removing unused tooling.** An exact final registry-artifact scan is still outstanding. |
 
 ## Clean-room qualification
 
@@ -91,7 +91,7 @@ The runtime/test dependency set is exact-pinned. Docker bases are digest-pinned.
 
 A full OSV querybatch checked **32 exact package/version entries** spanning the Python runtime, Python test toolchain and TypeScript. The first expanded scan correctly caught a pytest 9.0.2 advisory; pytest was upgraded to 9.1.1 and the same scan then returned **0 known vulnerabilities / 0 errors**.
 
-The remaining supply-chain gap is a trustworthy OS-package/final-container scan. Multiple disposable Trivy attempts did not yield inspectable evidence, so no image-scan pass is claimed.
+The old base scan identified four HIGH Python-tooling issues. The 2026-10-08 equivalent runtime rootfs scan passed after removing unused tooling, as detailed below. A separately inspectable scan of the final registry-published image remains a release-completeness improvement.
 
 ## Remaining empirical/external gates
 
@@ -105,3 +105,12 @@ The remaining supply-chain gap is a trustworthy OS-package/final-container scan.
 8. Make the repository public immediately before a submission that requires open source.
 
 No practice fixture or mock-provider output should be described as real AI or physical-cleaning evidence.
+
+## 2026-10-08 effective runtime security qualification
+
+The original digest-pinned Python 3.13 slim base contained **four fixed HIGH findings** in bundled Python tooling (msgpack, setuptools and urllib3), while its Debian OS-package report had zero HIGH/CRITICAL issues. Refreshing the tag alone was insufficient: the registry still served the same pinned digest.
+
+An isolated Railway Trivy **0.74.0** rootfs audit repeated the GrimeQuest runtime dependency install, ran `pip check`, uninstalled unused `msgpack`/`setuptools`/`urllib3`, removed pip itself after dependency installation, re-ran `pip check` and confirmed FastAPI/HTTPX/Pydantic/Pillow/Uvicorn imports. Its **whole-rootfs HIGH/CRITICAL scan passed** with `GQ_EFFECTIVE_RUNTIME_ROOTFS_TRIVY_PASS` (audit commit `66007e3c8ff6cd5e1a2d8f0475049c2bbfa8a511`). Only the Trivy executable itself was excluded: that scanner was injected solely into the disposable audit image and is not distributed in production.
+
+The same package cleanup is now in the production `Dockerfile` (commit `b80ca1c26dfdaaf284903fe6f2a0023612f65fc3`). An isolated Railway canary deployment `765f8221-d02e-401b-8d20-56def7ca8f0a` built that exact Dockerfile and passed healthcheck. The application source itself did not change; previously qualified 439 automated test cases remain the software baseline. This confirms an **equivalent runtime filesystem**, not a cryptographically attested scan of the registry's final shipped image; preserve that distinction during final release review.
+
