@@ -43,11 +43,24 @@ namespace GQ {
     return data;
   }
   export async function normalizePhoto(file:File):Promise<string> {
-    if(!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Choose a JPEG, PNG or WebP photo. HEIC and SVG are not supported; export a JPEG first.');
+    const mime=file.type.toLowerCase();
+    // Safari 17+ can decode native iPhone HEIC/HEIF; other browsers fail with
+    // a clear JPEG-export fallback. No external WASM decoder or original file
+    // is uploaded: all accepted photos are drawn and re-encoded to JPEG.
+    const heic=['image/heic','image/heif'].includes(mime) ||
+      (mime==='' && /\.(heic|heif)$/i.test(file.name));
+    if(!['image/jpeg','image/png','image/webp'].includes(mime) && !heic)
+      throw new Error('Choose a JPEG, PNG, WebP or supported HEIC/HEIF photo. SVG is not supported.');
     if(file.size>8_000_000) throw new Error('Choose a photo smaller than 8 MB.');
     const url=URL.createObjectURL(file);
     try {
-      const image=new Image();image.src=url;await image.decode();
+      const image=new Image();image.src=url;
+      try {await image.decode();}
+      catch {
+        throw new Error(heic
+          ? 'This browser cannot open this HEIC/HEIF photo. Use Safari 17+ or export the photo as JPEG.'
+          : 'This photo could not be decoded. Choose another JPEG, PNG or WebP image.');
+      }
       if(image.width<64||image.height<64) throw new Error('Photo must be at least 64 × 64 pixels.');
       return fromPixels(image,image.width,image.height);
     } finally {URL.revokeObjectURL(url);}
