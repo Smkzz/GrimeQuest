@@ -11,7 +11,8 @@
 - Upgraded vision transport to strict JSON-schema structured output and OpenRouter parameter-support enforcement.
 - Qualified the complete public-HTTPS live protocol with temporary deterministic mock infrastructure, then deleted the infrastructure and restored AI-off-by-default.
 - Added 0.5 vCPU / 0.5 GB Railway resource ceilings.
-- Current-source automated result: 276 passes, one environment-policy skip.
+- Current-source automated result: 279 passes, one environment-policy skip.
+- Added an opt-in, rate-limited public demo access mode so judges can use live analysis without a distributed shared secret; default remains private/off.
 - Added global daily provider-attempt ceiling and deployed commit provenance in health.
 - Enabled Railway edge tracing without Python auto-instrumentation; capped production at 0.5 vCPU / 0.5 GB.
 - OSV audit: 19 exact package/version queries, 0 known vulnerabilities; final OS-package/container scan remains unqualified.
