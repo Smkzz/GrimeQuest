@@ -158,6 +158,20 @@ def test_live_full_browser_api_flow_with_injected_vision(page,client,vision,befo
     assert vision.calls==['analyze','compare']
     assert not errors,errors
 
+def test_live_removed_product_cannot_start(page,client,vision,before):
+    setup_live(page,client)
+    upload(page,'#photo-file',before);page.locator('[name="photo-consent"]').check();click(page,'analyze-photo')
+    page.wait_for_selector('#surface');confirm(page)
+    click(page,'choose-product','method-kitchen-clementine-uk-828')
+    # Leave the quest, remove the exact reviewed product, then resume.
+    click(page,'inventory')
+    item_id=page.evaluate("GQ.readStore().inventory.find(i=>i.catalogId==='method-kitchen-clementine-uk-828').id")
+    click(page,'remove-product',item_id)
+    click(page,'home');click(page,'resume')
+    assert page.locator('[data-action="prepare"]').count()==0
+    expect(page.locator('main')).to_contain_text('No reviewed products in your arsenal yet')
+    assert vision.calls==['analyze']
+
 def test_bad_server_response_never_unlocks_or_awards(page,client,before):
     setup_live(page,client)
     page.evaluate('window.fetch=async()=>new Response(JSON.stringify({analysis:{surface:"magic"},target_ticket:"fake"}),{status:200,headers:{"content-type":"application/json"}})')
