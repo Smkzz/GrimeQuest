@@ -7,14 +7,14 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser/evaluation tests | **405 passed, 0 failed, 0 skipped** |
+| Python/API/policy/image/provider/browser/evaluation tests | **412 passed, 0 failed, 0 skipped** |
 | TypeScript-domain / storage / camera / service-worker Node tests | **34 passed, 0 failed** |
-| Total automated test cases | **439 / 439 passed** |
+| Total automated test cases | **446 / 446 passed** |
 | Client/server policy parity | **1,680 combinations agree** |
 | Strict TypeScript | **5.8.3 — pass** |
 | Clean-room Python | **3.13.16** |
 | Clean-room Node | **22.23.3** |
-| Python combined line/branch coverage | **97.55%** |
+| Python combined line/branch coverage | **97.76%** |
 | Provider adapter measured coverage | **100%** |
 | Generated PWA rebuild | **Byte-identical** |
 | npm clean-install audit | **0 vulnerabilities** |
@@ -26,12 +26,12 @@
 
 ## Clean-room qualification
 
-A disposable Railway service builds `Dockerfile.qualify` from the repository source. It uses the same digest-pinned Python 3.13 base family as production, adds pinned Node 22 plus system Chromium, performs a clean Python/npm install, runs `pip check`, compiles the PWA, runs strict TypeScript, all 34 Node/client tests, all 405 Python/API/browser/evaluation tests with coverage, and `scripts/verify_build.py`.
+A disposable Railway service builds `Dockerfile.qualify` from the repository source. It uses the same digest-pinned Python 3.13 base family as production, adds pinned Node 22 plus system Chromium, performs a clean Python/npm install, runs `pip check`, compiles the PWA, runs strict TypeScript, all 34 Node/client tests, all 412 Python/API/browser/evaluation tests with coverage, and `scripts/verify_build.py`.
 
 The accepted clean-room build emitted:
 
 ```text
-405 passed
+412 passed
 TOTAL Python coverage: 97.55%
 generated_files_byte_identical_after_rebuild: true
 GQ_CLEAN_ROOM_QUALIFIED
@@ -92,6 +92,14 @@ The runtime/test dependency set is exact-pinned. Docker bases are digest-pinned.
 A full OSV querybatch checked **32 exact package/version entries** spanning the Python runtime, Python test toolchain and TypeScript. The first expanded scan correctly caught a pytest 9.0.2 advisory; pytest was upgraded to 9.1.1 and the same scan then returned **0 known vulnerabilities / 0 errors**.
 
 The old base scan identified four HIGH Python-tooling issues. The 2026-10-08 equivalent runtime rootfs scan passed after removing unused tooling, as detailed below. A separately inspectable scan of the final registry-published image remains a release-completeness improvement.
+
+## OpenRouter ZDR and hard spending-cap gate
+
+A dedicated fixed-model qualification path now requires a **read-only provider-side key check before any image upload or inference**. The OpenRouter key must have a non-resetting total spending cap of at most US$0.50, valid remaining headroom, BYOK usage counted toward the limit, and a non-management key type. A second read-only preflight checks the fixed model against OpenRouter's ZDR endpoint inventory and the request's required structured-output parameters. Every OpenRouter inference request then sets `provider.zdr=true`, `provider.data_collection="deny"`, and `provider.require_parameters=true`; strict Pydantic validation remains mandatory.
+
+The current shared key has a cap above the authorized limit, so the gate correctly denies paid inference. No paid provider calls were made. A dedicated limited key is still required; see `docs/PAID_VISION_PRECHECK.md`.
+
+Clean-room qualification on commit `74134ced3a32c8371466f9c4c50f18387e2fa97f` passed **412 Python + 34 Node tests = 446 total**, 97.76% combined coverage, and a byte-identical PWA build. The additional tests cover over-budget or resettable keys, unconfirmed BYOK caps, missing ZDR routes, and denial before model initialization or image upload.
 
 ## Remaining empirical/external gates
 
