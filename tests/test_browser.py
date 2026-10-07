@@ -57,7 +57,8 @@ def test_partial_retry_and_all_care_checks(page):
 def test_expanded_catalog_loadout_has_no_mobile_overflow(page,width):
     page.set_viewport_size({'width':width,'height':844})
     mount(page);click(page,'practice-first');confirm(page)
-    assert page.locator('[data-action="choose-product"]').count()==5
+    # Five reviewed products plus the deliberate unreviewed-product safety card.
+    assert page.locator('[data-action="choose-product"]').count()==6
     assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
     expect(page.locator('main')).to_contain_text('Kiilto')
 
