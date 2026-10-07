@@ -79,6 +79,7 @@ def test_matching_api_and_health_do_not_leak_key(client,attestations):
     assert r.json()['status']=='eligible'
     h=client.get('/api/health');assert h.json()['live_ready'] is True;assert h.json()['workflow_receipts_persistent'] is True
     assert h.json()['max_calls_hour']==100 and h.json()['max_calls_day']==200
+    assert h.json()['access_mode']=='private_code'
     assert 'fake-secret' not in h.text and 'test-only-access' not in h.text
 
 def test_concurrent_verification_is_single_flight(settings,analysis,clear,before,after,attestations):
