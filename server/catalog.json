@@ -1,8 +1,8 @@
 {
-  "version": "2026-10-06.1",
-  "reviewed_on": "2026-10-06",
+  "version": "2026-10-07.1",
+  "reviewed_on": "2026-10-07",
   "valid_until": "2027-01-04",
-  "scope": "Prototype reference catalog, UK variants only. Sources are manufacturer-published guidance, not independent safety certification. Confirm the exact package and surface-care instructions at every use. No extrapolation to similar bottles or regional variants.",
+  "scope": "Prototype reference catalog with exact UK Method and Finland Kiilto consumer variants. Sources are current manufacturer-published guidance, not independent safety certification. Confirm the exact package and surface-care instructions at every use. No extrapolation to similar bottles, scents, package sizes or regional variants.",
   "products": [
     {
       "id": "method-glass-mint-uk-828",
@@ -10,14 +10,34 @@
       "variant": "Mint · 828 ml · UK",
       "category": "glass",
       "color": "mint",
-      "surfaces": ["uncoated_glass", "glazed_ceramic"],
-      "soils": ["fingerprints", "light_grime"],
-      "excluded": ["natural_stone", "wood", "unknown", "glass_ceramic_hob", "stainless_steel"],
+      "surfaces": [
+        "uncoated_glass",
+        "glazed_ceramic"
+      ],
+      "soils": [
+        "fingerprints",
+        "light_grime"
+      ],
+      "excluded": [
+        "natural_stone",
+        "wood",
+        "unknown",
+        "glass_ceramic_hob",
+        "stainless_steel"
+      ],
       "source": "https://shop.methodproducts.co.uk/products/glass-surface-cleaner-mint/mglass.aspx?productid=mglass",
       "source_title": "method official shop: glass + surface cleaner, mint",
       "evidence_summary": "Manufacturer lists glass and tiles among intended sealed surfaces and describes dirt, dust and handprints. Patch testing is advised. App scope is narrower than the source.",
-      "steps": ["Read the current bottle directions and surface-care instructions, including all warnings.", "Use only this product, exactly as the label directs. Test an inconspicuous area first if permitted.", "Complete the label's wiping or removal directions. Let the area dry before comparing photos."],
-      "restrictions": ["Only ordinary uncoated glass or sound glazed ceramic confirmed by the user.", "No special coatings, damaged surfaces, electronics, food-contact items or glass-ceramic hobs.", "Not a disinfection procedure. No claim of sanitization or germ removal."],
+      "steps": [
+        "Read the current bottle directions and surface-care instructions, including all warnings.",
+        "Use only this product, exactly as the label directs. Test an inconspicuous area first if permitted.",
+        "Complete the label's wiping or removal directions. Let the area dry before comparing photos."
+      ],
+      "restrictions": [
+        "Only ordinary uncoated glass or sound glazed ceramic confirmed by the user.",
+        "No special coatings, damaged surfaces, electronics, food-contact items or glass-ceramic hobs.",
+        "Not a disinfection procedure. No claim of sanitization or germ removal."
+      ],
       "enabled": true
     },
     {
@@ -26,14 +46,141 @@
       "variant": "Clementine · 828 ml · UK",
       "category": "general",
       "color": "peach",
-      "surfaces": ["glazed_ceramic"],
-      "soils": ["grease", "light_grime"],
-      "excluded": ["natural_stone", "wood", "unknown", "glass_ceramic_hob", "stainless_steel", "uncoated_glass"],
+      "surfaces": [
+        "glazed_ceramic"
+      ],
+      "soils": [
+        "grease",
+        "light_grime"
+      ],
+      "excluded": [
+        "natural_stone",
+        "wood",
+        "unknown",
+        "glass_ceramic_hob",
+        "stainless_steel",
+        "uncoated_glass"
+      ],
       "source": "https://shop.methodproducts.co.uk/products/daily-kitchen-cleaner-clementine/mkitchen.aspx?productid=mkitchen",
       "source_title": "method official shop: daily kitchen cleaner, clementine",
       "evidence_summary": "Manufacturer describes grease and food spills on most non-porous surfaces, with an inconspicuous-area test. This prototype restricts use to user-confirmed glazed ceramic and requires explicit current label and surface-care permission.",
-      "steps": ["Read the current bottle directions and surface-care instructions, including all warnings.", "Use only this product, exactly as the label directs. Test an inconspicuous area first if permitted.", "Complete the label's wiping or removal directions. Let the area dry before comparing photos."],
-      "restrictions": ["Only sound glazed ceramic, such as a tile splashback; not grout or an entire mixed-material assembly.", "No food-contact items, powered appliances, hot surfaces or baked-on deposits.", "The app does not invent dilution, contact time, protective equipment or chemical mixtures."],
+      "steps": [
+        "Read the current bottle directions and surface-care instructions, including all warnings.",
+        "Use only this product, exactly as the label directs. Test an inconspicuous area first if permitted.",
+        "Complete the label's wiping or removal directions. Let the area dry before comparing photos."
+      ],
+      "restrictions": [
+        "Only sound glazed ceramic, such as a tile splashback; not grout or an entire mixed-material assembly.",
+        "No food-contact items, powered appliances, hot surfaces or baked-on deposits.",
+        "The app does not invent dilution, contact time, protective equipment or chemical mixtures."
+      ],
+      "enabled": true
+    },
+    {
+      "id": "kiilto-ikkuna-hajusteeton-fi-600",
+      "name": "Kiilto Ikkuna biohajoava puhdistussuihke",
+      "variant": "Hajusteeton · 600 ml · Finland",
+      "category": "glass",
+      "color": "mint",
+      "surfaces": [
+        "uncoated_glass"
+      ],
+      "soils": [
+        "fingerprints",
+        "light_grime"
+      ],
+      "excluded": [
+        "glazed_ceramic",
+        "natural_stone",
+        "wood",
+        "unknown",
+        "glass_ceramic_hob",
+        "stainless_steel"
+      ],
+      "source": "https://kiiltokodinpuhdistus.fi/tuote/kiilto-ikkuna-biohajoava-puhdistussuihke-hajusteeton/",
+      "source_title": "Kiilto Kodinpuhdistus: Kiilto Ikkuna biohajoava puhdistussuihke Hajusteeton",
+      "evidence_summary": "Manufacturer lists glass, mirrors and other shiny household surfaces and says the fragrance-free 600 ml spray removes dirt and leaves surfaces clear. GrimeQuest narrows this to user-confirmed ordinary uncoated glass with fingerprints or light visible grime.",
+      "steps": [
+        "Read the current 600 ml fragrance-free bottle directions and the surface-care instructions, including all warnings.",
+        "Use only this exact product and follow the current package directions. Do not combine it with another cleaner.",
+        "Complete the label-directed wiping/drying step and let the target become visibly dry before the comparison photo."
+      ],
+      "restrictions": [
+        "Only ordinary uncoated glass confirmed by the user; mirrors, coatings and specialty glazing are not inferred from a photo.",
+        "No electronics, hot surfaces, food-contact items, glass-ceramic hobs or damaged surfaces.",
+        "Not a disinfection procedure. No claim of sanitization or germ removal."
+      ],
+      "enabled": true
+    },
+    {
+      "id": "kiilto-koti-hajusteeton-fi-600",
+      "name": "Kiilto Koti biohajoava yleispuhdistussuihke",
+      "variant": "Hajusteeton · 600 ml · Finland",
+      "category": "general",
+      "color": "mint",
+      "surfaces": [
+        "glazed_ceramic"
+      ],
+      "soils": [
+        "light_grime"
+      ],
+      "excluded": [
+        "uncoated_glass",
+        "natural_stone",
+        "wood",
+        "unknown",
+        "glass_ceramic_hob",
+        "stainless_steel"
+      ],
+      "source": "https://kiiltokodinpuhdistus.fi/tuote/kiilto-koti-biohajoava-yleispuhdistussuihke-hajusteeton/",
+      "source_title": "Kiilto Kodinpuhdistus: Kiilto Koti biohajoava yleispuhdistussuihke Hajusteeton",
+      "evidence_summary": "Manufacturer says the fragrance-free 600 ml all-purpose spray removes dirt from most wipe-clean household surfaces. GrimeQuest uses a deliberately narrower match: user-confirmed sound glazed ceramic with light visible grime only.",
+      "steps": [
+        "Read the current 600 ml fragrance-free bottle directions and surface-care instructions, including all warnings.",
+        "Use only this exact product, exactly as the current package directs. Do not add or layer another cleaner.",
+        "Complete the label-directed wipe and let the target dry before taking the comparison photo."
+      ],
+      "restrictions": [
+        "Only sound glazed ceramic confirmed by the user; not grout or a mixed-material assembly.",
+        "No food-contact items, powered/hot appliances, stone, wood, metal, hobs or damaged surfaces.",
+        "Not a disinfection procedure and not enabled for limescale or unknown deposits."
+      ],
+      "enabled": true
+    },
+    {
+      "id": "kiilto-keittio-hajusteeton-fi-600",
+      "name": "Kiilto Keittiö biohajoava puhdistussuihke",
+      "variant": "Hajusteeton · 600 ml · Finland",
+      "category": "general",
+      "color": "peach",
+      "surfaces": [
+        "glazed_ceramic"
+      ],
+      "soils": [
+        "grease",
+        "light_grime"
+      ],
+      "excluded": [
+        "uncoated_glass",
+        "natural_stone",
+        "wood",
+        "unknown",
+        "glass_ceramic_hob",
+        "stainless_steel"
+      ],
+      "source": "https://kiiltokodinpuhdistus.fi/tuote/kiilto-keittio-biohajoava-puhdistussuihke-hajusteeton/",
+      "source_title": "Kiilto Kodinpuhdistus: Kiilto Keittiö biohajoava puhdistussuihke Hajusteeton",
+      "evidence_summary": "Manufacturer says the fragrance-free 600 ml kitchen spray removes grease and dirt from wipe-clean kitchen surfaces. GrimeQuest narrows this to user-confirmed sound glazed ceramic with grease or light visible grime.",
+      "steps": [
+        "Read the current 600 ml fragrance-free bottle directions and surface-care instructions, including all warnings.",
+        "Use only this exact product, following the current package directions. Do not mix or layer cleaners.",
+        "Complete the label-directed wipe and let the target dry before comparing photos."
+      ],
+      "restrictions": [
+        "Only sound glazed ceramic confirmed by the user; not grout or mixed-material assemblies.",
+        "Despite the manufacturer's broader kitchen examples, GrimeQuest does not enable metal sinks/taps, worktops, powered appliances or glass-ceramic hobs in this catalog.",
+        "Not a disinfection procedure and not for baked-on deposits or unknown chemicals."
+      ],
       "enabled": true
     }
   ]
