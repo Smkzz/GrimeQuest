@@ -31,7 +31,7 @@ Practice and mock-provider evidence remain explicitly separated from real AI/phy
 
 ## Before a general public live-image launch
 
-- Complete an inspectable OS-package/final-container vulnerability scan. Application-package OSV checks are clean, but that is not an OS image scan.
+- Equivalent runtime Trivy rootfs HIGH/CRITICAL audit passed after removing unused Python tooling, and the actual Dockerfile passed a canary healthcheck. Before general public launch, obtain independent security review and, where possible, an exact final published-image scan; do not conflate the original vulnerable base with the remediated runtime.
 - Independently review security and the narrow product/material rules at a level appropriate to the audience.
 - Perform actual screen-reader and target-device accessibility review.
 - Add the final service/operator privacy identity/contact and provider-specific processing/retention information.
