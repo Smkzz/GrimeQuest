@@ -21,7 +21,7 @@ def main():
     files=sorted(p for p in ROOT.rglob('*') if selected(p))
     records=[{'path':str(p.relative_to(ROOT)),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files]
     aggregate=hashlib.sha256('\n'.join(r['path']+' '+r['sha256'] for r in records).encode()).hexdigest()
-    manifest={'project':'GrimeQuest','version':'0.1.0','source_date':'2026-10-06','qualification':'local prototype; real provider and physical use unverified',
+    manifest={'project':'GrimeQuest','version':'0.1.0','source_date':'2026-10-06','qualification':'automated app/protocol qualified; real vision accuracy, target-phone behavior and physical cleaning remain unverified',
               'manifest_algorithm':'SHA-256; aggregate hashes ordered path + space + file digest, newline-separated',
               'aggregate_sha256':aggregate,'files':records}
     (ROOT/'BUILD_MANIFEST.json').write_text(json.dumps(manifest,indent=2)+'\n')
