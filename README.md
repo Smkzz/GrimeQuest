@@ -51,7 +51,7 @@ A phone's `localhost` is the phone, not your computer. Real phone-camera use nee
 | --- | --- |
 | Mobile interface | Responsive quest, inventory, care-check, capture, comparison, journal and settings screens |
 | Practice mode | Three explicitly illustrated scenarios: grease, fingerprints, and an unsupported material |
-| Camera and photos | Permission-on-click, file fallback, resizing, track cleanup, and explicit per-request upload consent |
+| Camera and photos | Permission-on-click, JPEG/PNG/WebP and Safari 17+ native HEIC/HEIF file support, JPEG normalization, HEIC fallback guidance, track cleanup and explicit per-request upload consent |
 | Inventory | Local product notes; front/back label analysis; manually linked exact catalog variants |
 | Matching | Separate deterministic policy with exclusions, hazard gates, five owner confirmations and catalog expiry |
 | Comparison | Clear / partial / unverifiable; one 300-XP clear per encounter; practice/live separation |
@@ -122,7 +122,7 @@ python scripts/verify_build.py
 
 `GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The normal browser suite covers desktop and phone layouts, while `tests/test_pwa_runtime.py` starts the real server and exercises the real browser origin, service worker, offline app shell and legal routes.
 
-The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **412 Python/API/browser/evaluation tests + 34 client tests = 446/446 passes, zero skips or warnings**, **97.76% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, with the vision-release evaluator additionally rejecting surface–soil pairs not covered by any reviewed product, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A subsequent auditable Trivy whole-rootfs scan of the **remediated equivalent runtime** found zero HIGH/CRITICAL issues after removing unused Python tooling. The updated production Dockerfile passed an isolated Railway canary build and healthcheck. An exact final registry-image attestation and independent review remain separate launch steps.
+The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **413 Python/API/browser/evaluation tests + 36 client tests = 449/449 passes, zero skips or warnings**, **97.76% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, with the vision-release evaluator additionally rejecting surface–soil pairs not covered by any reviewed product, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A subsequent auditable Trivy whole-rootfs scan of the **remediated equivalent runtime** found zero HIGH/CRITICAL issues after removing unused Python tooling. The updated production Dockerfile passed an isolated Railway canary build and healthcheck. An exact final registry-image attestation and independent review remain separate launch steps.
 
 ## Architecture and handoff
 
@@ -132,6 +132,8 @@ The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.2
 - [Security model](SECURITY.md)
 - [Test report](docs/TEST_REPORT.md)
 - [Actual-cleaning demo script](docs/DEMO_SCRIPT.md)
+- [Physical iPhone/Android release checklist](docs/PHONE_RELEASE_CHECKLIST.md)
+- [Manufacturer-catalog source review (2026-10-08)](docs/PRODUCT_CATALOG_REVIEW_20261008.md)
 - [Release checklist and validation plan](docs/RELEASE_GATES.md)
 - [Build plan and completed iterations](docs/BUILD_PLAN.md)
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
