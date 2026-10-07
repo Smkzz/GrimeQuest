@@ -22,7 +22,7 @@ The first repo-backed deployment reached application startup but failed Railway'
 
 - TypeScript/client tests: 34 passed;
 - Python/API/browser tests: 235 passed;
-- current automated qualification: 279 passed, one environment-policy skip;
+- current automated qualification: 386 passed, one environment-policy skip;
 - no failures or skips;
 - deterministic PWA rebuild remained byte-identical.
 
@@ -31,6 +31,9 @@ The corrected deployment passed Railway's health gate. Later hardening refreshed
 A temporary deterministic vision provider and external qualification runner then exercised the full public-HTTPS live workflow successfully (qualification runner deployment `52e34e89-4386-461e-9902-979dfa4a0b3e`). Both temporary services were deleted afterward.
 
 ## Current configuration
+
+The deterministic catalog now contains five exact consumer variants: two UK Method products and three Finland-market Kiilto fragrance-free 600 ml sprays. The policy surface remains unchanged—ordinary uncoated glass and sound glazed ceramic only—and exhaustive client/server parity now covers 1,680 combinations.
+
 
 Railway edge request tracing is enabled for status/latency visibility; Python auto-instrumentation remains disabled so this does not add application request-body/photo logging. Production is bounded to 0.5 vCPU and 0.5 GB RAM per replica.
 
