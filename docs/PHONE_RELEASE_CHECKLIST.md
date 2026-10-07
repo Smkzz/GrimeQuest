@@ -6,8 +6,8 @@ Test origin: [GrimeQuest HTTPS](https://grimequest-web-production.up.railway.app
 
 ## Offline practice and install (no AI required)
 
-1. Open the HTTPS URL in iPhone Safari 17+ and a current Android Chrome browser if both are available. Confirm the page renders without horizontal scrolling at normal display scale.
-2. Use **Add to Home Screen** / **Install App**, open it from the icon, and verify standalone display and app icon.
+1. On a computer, open the HTTPS home page: confirm the QR code is visible and scans to the exact same-origin HTTPS root without third-party requests; verify the plain link and **Continue in desktop browser** work. Then open that HTTPS URL in iPhone Safari 17+ and a current Android Chrome browser if both are available. Confirm the page renders without horizontal scrolling at normal display scale.
+2. Scan the desktop QR with the real phone camera and accept the URL banner. On iPhone tap **Share → Add to Home Screen** (enable **Open as Web App** when offered) / on Android Chrome use **Install app** when available. Open it from the icon; verify standalone display and app icon. Also test a browser without install-prompt support: the manual guidance must remain available.
 3. Complete one **Practice** Grease Gremlin clear and one deliberately **unverifiable/partial** outcome. Confirm only clear yields practice XP, and that the journal labels the results **SIMULATED**.
 4. Reload the page, switch tabs and reopen the installed app. Confirm inventory and practice journal persist, no duplicated clear XP appears, and interrupted live tasks cannot be silently forgotten.
 5. While online, visit privacy and safety notices; then go offline and reopen the installed shell. Confirm practice/history remain available while live analysis explicitly reports that the network is required.

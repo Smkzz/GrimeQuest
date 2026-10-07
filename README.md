@@ -2,6 +2,9 @@
 
 **Small chores. Real wins.** A camera-first cleaning quest PWA.
 
+**Install from a computer:** Visit the HTTPS production URL on a desktop browser. The page displays a locally generated QR code encoding that same origin (no third-party QR service, tracking, or phone-OS guessing by screen width). Scan with your phone camera, tap the link, then follow the mobile install prompt. You can still choose **Continue in desktop browser**. On iPhone/iPad use Safari → Share → Add to Home Screen → Open as Web App → Add; on Android Chrome use the browser's Install app / Add to Home screen option. QR scanning opens the site; **it never silently installs an app**. The existing manifest, Home Screen icons and allowlisted offline service worker remain in use. Mobile users can dismiss the installation hint. Live AI stays disabled for public users.
+
+
 Identify one visible mess, confirm its material, choose a product from your own inventory, do the real cleaning, and compare the result. The useful core is product matching; the game adds a reason to start and finish.
 
 **v0.1.0 is a working, externally clean-room-qualified prototype, not a publicly qualified chemical-advice service.** The shipped default is an explicitly simulated practice mode. The live application protocol is qualified with deterministic observations, but no real vision model or physical cleaning trial has yet passed the release gate. See [test evidence](docs/TEST_REPORT.md) and [release gates](docs/RELEASE_GATES.md).

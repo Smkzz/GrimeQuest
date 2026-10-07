@@ -55,6 +55,7 @@ def test_real_origin_service_worker_and_offline_shell():
             page.wait_for_function("navigator.serviceWorker.controller !== null")
             cached=page.evaluate("caches.keys().then(async ks=>{const c=await caches.open(ks.find(k=>k.startsWith('grimequest-')));return (await c.keys()).map(r=>new URL(r.url).pathname)})")
             assert '/' in cached and '/privacy.html' in cached and '/safety.html' in cached
+            assert '/vendor/qr-creator.js' in cached and '/install.js' in cached
             context.set_offline(True)
             page.reload(wait_until='domcontentloaded')
             expect(page.locator('h1')).to_contain_text('A little mess.')
@@ -75,7 +76,7 @@ def test_real_http_origin_exposes_complete_pwa_shell():
     process=subprocess.Popen([os.environ.get('PYTHON','python'),'run.py','--host','127.0.0.1'],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     try:
         wait_ready(base)
-        for path in ['/', '/app.js', '/styles.css', '/manifest.webmanifest', '/sw.js', '/privacy.html', '/safety.html', '/robots.txt']:
+        for path in ['/', '/app.js', '/install.js', '/vendor/qr-creator.js', '/styles.css', '/manifest.webmanifest', '/sw.js', '/privacy.html', '/safety.html', '/robots.txt']:
             with urllib.request.urlopen(base+path,timeout=2) as r:
                 assert r.status==200, path
                 body=r.read()

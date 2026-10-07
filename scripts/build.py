@@ -90,6 +90,7 @@ self.addEventListener('fetch', event => {
         data='data:image/svg+xml;base64,'+base64.b64encode(asset.read_bytes()).decode()
         js=js.replace('assets/'+asset.name,data)
     html=html.replace('<link rel="stylesheet" href="styles.css">','<style>'+css+'</style>')
+    html=html.replace('<script defer src="vendor/qr-creator.js"></script>','').replace('<script defer src="install.js"></script>','')
     html=html.replace('<script defer src="app.js"></script>','<script>'+js.replace('</script','<\\/script')+'</script>')
     html='\n'.join(line for line in html.splitlines() if '<link rel="manifest"' not in line and '<link rel="icon"' not in line and '<link rel="apple-touch-icon"' not in line)
     (ROOT/'preview.html').write_text(html)
