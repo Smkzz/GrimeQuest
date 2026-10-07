@@ -44,7 +44,7 @@ from server.evaluation import (
     score_target,
     summarize,
 )
-from server.provider import ProviderFailure, VisionProvider
+from server.provider import ProviderFailure, VisionProvider, verify_openrouter_key_limit
 
 MAX_SOURCE_BYTES = 8_000_000
 MAX_SOURCE_PIXELS = 12_000_000
@@ -123,6 +123,20 @@ async def main_async(args) -> int:
     parsed = urlsplit(base)
     if parsed.scheme != "https" or not parsed.hostname:
         raise SystemExit("Provider base must be HTTPS for evaluation")
+    if parsed.hostname != "openrouter.ai":
+        raise SystemExit("This budget-capped qualification runner supports only the verified OpenRouter billing API.")
+    if model in {"openrouter/free", "openrouter/auto"}:
+        raise SystemExit("Choose a fixed model identifier; variable free routers cannot qualify.")
+
+    # Critical authorization boundary: NO inference and NO image upload occurs
+    # until the provider itself confirms an enforceable, non-resetting total cap.
+    try:
+        budget_receipt = await verify_openrouter_key_limit(key, maximum_usd=0.50)
+    except ProviderFailure as exc:
+        raise SystemExit(
+            "No paid request was made: use a dedicated OpenRouter API key with a "
+            "non-resetting total spend limit of at most $0.50."
+        ) from exc
 
     cases = manifest.cases[: args.max_cases] if args.max_cases else manifest.cases
     provider = VisionProvider(base, model, key, timeout=args.timeout)
@@ -132,6 +146,11 @@ async def main_async(args) -> int:
         rows.append(row)
         status = "ERROR" if row.get("error") else ("CRITICAL" if row.get("critical") else "OK")
         print(f"[{index}/{len(cases)}] {case.id} {case.task}: {status}")
+        # A call failure or a safety-critical error cannot be recovered into a
+        # qualified run. Stop immediately to conserve the finite test budget.
+        if row.get("error") or row.get("critical"):
+            print("Stopped after an unqualified observation; further calls would waste budget.")
+            break
         if args.delay_ms and index != len(cases):
             await asyncio.sleep(args.delay_ms / 1000)
 
@@ -151,7 +170,10 @@ async def main_async(args) -> int:
         "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
         "provider_host": parsed.hostname,
         "provider_model": model,
+        "provider_key_limit_verified": budget_receipt,
+        "routing_policy": {"zdr": True, "data_collection": "deny", "require_parameters": True},
         "cases_requested": len(cases),
+        "development_small_dataset": bool(args.allow_small),
         "privacy": "No image bytes, data URLs, OCR label text, prompts, access codes or provider credentials are stored in this report.",
         "summary": summary,
         "rows": rows,
