@@ -3,6 +3,7 @@ import asyncio
 from collections import deque
 from contextlib import asynccontextmanager
 import hmac
+import os
 from pathlib import Path
 import secrets
 import time
@@ -115,17 +116,20 @@ class Boundary:
 
 class Budget:
     """Single-process bounds, not a dollar budget. Production must keep one worker."""
-    def __init__(self, limit: int):
+    def __init__(self, limit: int, daily_limit: int = 200):
         self.limit = limit
+        self.daily_limit = daily_limit
         self.events: deque[tuple[float, str]] = deque()
         self.active = 0
 
     @asynccontextmanager
     async def slot(self, client: str):
         now = time.monotonic()
-        while self.events and self.events[0][0] < now - 3600:
+        while self.events and self.events[0][0] < now - 86400:
             self.events.popleft()
-        if self.active >= 2 or len(self.events) >= self.limit or sum(c == client for _, c in self.events) >= 20:
+        hourly = sum(t >= now - 3600 for t, _ in self.events)
+        client_hourly = sum(t >= now - 3600 and c == client for t, c in self.events)
+        if self.active >= 2 or hourly >= self.limit or len(self.events) >= self.daily_limit or client_hourly >= 20:
             raise HTTPException(429, "Analysis capacity reached. Try later; no result has been fabricated.")
         self.events.append((now, client))
         self.active += 1
@@ -141,7 +145,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     app.add_middleware(Boundary, settings=settings)
     signer = tickets or Tickets(settings.ticket_secret.encode("utf-8") if settings.ticket_secret else None)
     vision = provider or VisionProvider(settings.provider_base, settings.provider_model, settings.provider_key)
-    budget = Budget(settings.max_calls_hour)
+    budget = Budget(settings.max_calls_hour, settings.max_calls_day)
     # Only bounded receipts/results are cached, never images or product label text.
     results: dict[str, tuple[float, dict]] = {}
     in_flight: set[str] = set()
@@ -178,7 +182,11 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
         return {"status": "ok", "version": VERSION, "live_ready": settings.ready, "policy_version": POLICY_VERSION,
                 "catalog_version": CATALOG["version"], "provider_host": urlsplit(settings.provider_base).hostname if settings.ready else None,
                 "provider_model": settings.provider_model if settings.ready else None,
-                "max_calls_hour": settings.max_calls_hour, "workflow_receipts_persistent": bool(settings.ticket_secret),
+                "max_calls_hour": settings.max_calls_hour, "max_calls_day": settings.max_calls_day,
+                "workflow_receipts_persistent": bool(settings.ticket_secret),
+                "source_sha": os.getenv("RAILWAY_GIT_COMMIT_SHA", ""),
+                "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID", ""),
+                "replica_region": os.getenv("RAILWAY_REPLICA_REGION", ""),
                 "real_world_validation": "not_performed"}
 
     @app.get("/api/catalog")
