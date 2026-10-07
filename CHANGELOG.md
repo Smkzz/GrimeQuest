@@ -1,5 +1,11 @@
 # Changelog
 
+## Exact-pair vision-evaluation hardening — 2026-10-07
+
+- Removed the false-supported evaluation case where a known surface and known soil were incorrectly combined despite no reviewed product covering that exact pair.
+- Linked evaluation candidate pairs to enabled reviewed catalog rules and added 36 regression cases (35 matrix combinations plus one explicit counterexample).
+- Clean-room evidence: **405 Python + 34 client tests = 439/439 passing**, 97.55% Python coverage and byte-identical build; no real vision model or physical cleaning claims.
+
 ## Release hardening wave — 2026-10-07
 
 - Added persistent workflow signing across restarts.
@@ -11,7 +17,7 @@
 - Upgraded vision transport to strict JSON-schema structured output and OpenRouter parameter-support enforcement.
 - Qualified the complete public-HTTPS live protocol with temporary deterministic mock infrastructure, then deleted the infrastructure and restored AI-off-by-default.
 - Added 0.5 vCPU / 0.5 GB Railway resource ceilings.
-- Final clean-room automated result: **403/403 passes**, zero skips/warnings; 97.55% Python coverage; 1,680 client/server policy combinations agree.
+- Final clean-room automated result: **439/439 passes**, zero skips/warnings; 97.55% Python coverage; 1,680 client/server policy combinations agree.
 - Added three exact Finland-market Kiilto consumer spray variants (Ikkuna, Koti, Keittiö; fragrance-free 600 ml) without broadening the supported surface classes.
 - Added a 320/390 px expanded-loadout regression; fixed a real 320 px overflow from long Finnish product names.
 - Kept Railway edge tracing while explicitly disabling FastAPI-native telemetry/OTLP auto-configuration to remove startup errors and avoid duplicate application telemetry.
