@@ -7,9 +7,9 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser tests | **239 passed, 1 skipped** |
+| Python/API/policy/image/provider/browser tests | **242 passed, 1 skipped** |
 | TypeScript-domain / storage / camera-lifecycle / service-worker Node tests | **34 passed** |
-| Total passing automated test cases | **273 passed** |
+| Total passing automated test cases | **276 passed** |
 | Environment-policy skips | **1** — Chromium navigation to localhost is blocked in this runtime |
 | Strict TypeScript 5.8.3 compilation | Pass |
 | Python combined line/branch coverage | approximately **98%** |
@@ -17,6 +17,8 @@
 | Rebuild of generated client/catalog/assets/preview | Byte-identical |
 | Real-origin HTTP PWA smoke | Pass |
 | Railway clean dependency install / Docker build / healthcheck | Pass |
+| OSV advisory audit of exact Python runtime pins + TypeScript | **19 checked, 0 vulnerable, 0 errors** |
+| Final OS-package/container image scan | **Not qualified** — attempted Trivy path did not yield inspectable scan evidence |
 | Hosted public-HTTPS protocol qualification | **PASS with deterministic mock vision provider** |
 | Paid / real provider calls | **0** |
 | GitHub Actions consumed | **0** |
@@ -64,7 +66,7 @@ Both temporary services were deleted immediately afterward and production was re
 2. No physical phone camera/install/offline test has been run.
 3. No real cleaning sequence has been run against the live model.
 4. No independent chemical/material expert review has broadened the tiny product catalog.
-5. A dedicated current dependency/container vulnerability scan and independent security review remain outstanding.
+5. Exact application-package advisory queries are clean in OSV (19/19 exact package versions). A trustworthy OS-package/final-container image scan and independent security review remain outstanding.
 6. Repository visibility remains private until the owner deliberately opens it for submission.
 
 No practice fixture or mock-provider output should be described as real AI or physical-cleaning evidence.
