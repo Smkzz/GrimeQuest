@@ -6,23 +6,23 @@ The source-folder application, self-contained practice preview, deterministic ma
 
 ## Hosted repo-backed checkpoint
 
-The full repo-backed Railway service is live over HTTPS at `grimequest-web-production.up.railway.app`. Deployment `5554ddd7-c9ff-4c35-aaeb-4cee4681cc43` runs exact source commit `a7acac65c79db80e5e86516d2b196bd25503c21b`, one replica in Amsterdam, with `/api/health` passing. Generated frontend assets are built inside the Docker image.
+The full repo-backed Railway service is live over HTTPS at `grimequest-web-production.up.railway.app`, one replica in Amsterdam, with `/api/health` passing and a 0.5 vCPU / 0.5 GB ceiling. Docker bases are digest-pinned, generated PWA assets are built inside the image, and the refreshed Python dependency lock installs cleanly with `pip check`.
 
-The first deployment exposed a platform-integration defect: Railway's internal health probe used a Host value outside the public allowlist. The fix exempts only `GET /api/health` from Host filtering; protected API and static routes remain strict. The change passed the complete local suite before redeployment (235 Python/API/browser tests plus 34 client tests).
+A temporary deterministic vision fixture plus external Railway runner exercised the entire public-HTTPS live protocol successfully. Both temporary services were deleted afterward and live AI was disabled again. This qualifies networking, auth, schema/policy boundaries, signing, verification/idempotency and static PWA routes; it does **not** qualify visual model accuracy.
 
-The temporary practice-only Railway Function was removed once this service was healthy. Live vision remains disabled because no provider/model/key or private live-mode access code is configured. The GitHub repository also remains private, which is incompatible with a hackathon rule requiring open source.
+Current-source local qualification: 239 Python/API/browser passes + 34 client passes = 273 passes, one environment-policy skip, approximately 98% combined Python coverage and byte-identical generated output.
 
 ## Before the first physical live demo
 
 1. Confirm the organizer's exact build-week dates and rules for AI-generated code/assets. The supplied weekday window does not identify dates.
-2. Choose an authorized vision endpoint/model and establish its image/JSON protocol, privacy terms, costs, timeouts and refusal behavior. Keep credentials server-side and impose a provider-side spend cap.
+2. Choose an authorized real vision endpoint/model and establish its image/JSON-schema protocol, privacy terms, costs, timeouts, availability and refusal behavior. Keep credentials server-side. For a free tier, document its daily/request limits and data terms rather than pretending it has production SLA/spend controls.
 3. Use the exact current supported product variant and a surface whose care instructions establish suitability. Have the planned real-use procedure reviewed appropriately; do not substitute an unreviewed local bottle. The prototype is not a qualified cleaning adviser.
 4. Serve over HTTPS and test the actual phone/browser: permission grant/deny, rotate, background/resume, camera track shutdown, image upload, persistent storage, installation, offline shell and failure recovery.
 5. Perform actual cleaning and test clear, partial, unchanged and uncomparable photos. Keep failures/abstentions visible. Repeat a known valid sequence without manually choosing practice outcomes or quietly replacing failed results.
 
 ## Before any public live launch
 
-Resolve current dependency advisories and repeat a clean install/build. Build and scan the container if using it. Qualify specific model accuracy on independent labeled data, especially false clears and unsafe or unsupported material selections. Expand and review the market-specific catalog rather than trusting OCR to create permissions. Review accessibility with screen readers and actual mobile devices. Replace shared access-code controls with appropriate authentication, durable quotas and privacy/retention operations. Check operating cost and abuse resilience under load. Run hosted CI and independently review the exact deployed source and configuration.
+Run a dedicated current dependency/container vulnerability scan. The dependency baseline has already been refreshed, exact pins are synchronized, Docker bases are digest-pinned, and Railway clean-install/build plus `pip check` pass; this is not a substitute for an advisory/image scan. Qualify specific model accuracy on independent labeled data, especially false clears and unsafe or unsupported material selections. Expand and review the market-specific catalog rather than trusting OCR to create permissions. Review accessibility with screen readers and actual mobile devices. Replace shared access-code controls with appropriate authentication, durable quotas and privacy/retention operations. Check operating cost and abuse resilience under load. Run hosted CI and independently review the exact deployed source and configuration.
 
 None of those external gates is inferred from the local automated test count.
 
