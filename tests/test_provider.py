@@ -14,7 +14,11 @@ def test_provider_transport_shape_and_strict_schema(analysis,before):
     def handle(r):
         seen.append(r)
         body=json.loads(r.content)
-        assert body['response_format']=={'type':'json_object'} and body['stream'] is False
+        fmt=body['response_format']
+        assert fmt['type']=='json_schema' and fmt['json_schema']['strict'] is True
+        assert fmt['json_schema']['name']=='targetanalysis'
+        assert fmt['json_schema']['schema']['additionalProperties'] is False
+        assert body['stream'] is False and body['temperature']==0
         assert body['max_tokens']==1800
         assert body['messages'][1]['content'][1]['image_url']['url']==before
         assert 'untrusted' in body['messages'][0]['content']
@@ -61,3 +65,12 @@ def test_compare_and_label_adapter(before,after,clear):
     assert asyncio.run(p.compare(before,after))==clear
     assert asyncio.run(p.product(before,after)).label_readable is False
     assert len(calls)==2
+
+
+def test_openrouter_requires_supported_parameters(analysis,before):
+    def handle(r):
+        body=json.loads(r.content)
+        assert body['provider']=={'require_parameters':True}
+        return httpx.Response(200,json=envelope(analysis.model_dump_json()))
+    p=VisionProvider('https://openrouter.ai/api/v1','qwen/qwen3.8-27b:free','synthetic',transport=httpx.MockTransport(handle))
+    assert asyncio.run(p.analyze(before))==analysis
