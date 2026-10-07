@@ -7,9 +7,9 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser tests | **352 passed, 1 skipped** |
+| Python/API/policy/image/provider/browser tests | **354 passed, 1 skipped** |
 | TypeScript-domain / storage / camera-lifecycle / service-worker Node tests | **34 passed** |
-| Total passing automated test cases | **386 passed** |
+| Total passing automated test cases | **388 passed** |
 | Environment-policy skips | **1** — Chromium navigation to localhost is blocked in this runtime |
 | Client/server policy parity | **1,680 combinations agree** |
 | Strict TypeScript 5.8.3 compilation | Pass |
@@ -25,6 +25,9 @@
 | GitHub Actions consumed | **0** |
 
 ## Current-source browser/PWA qualification
+
+The expanded five-product catalog is explicitly regression-tested at 390 px and 320 px widths. A real 320 px overflow caused by long Finnish product names was found and fixed by making the product grid/card tracks shrinkable (`minmax(0,1fr)`, `min-width:0`) and allowing long text to wrap. The final 320/390 px checks pass without page-level horizontal overflow.
+
 
 The current generated application is covered at desktop and phone widths by the browser integration suite. A new real-origin PWA test starts the actual server and is designed to verify service-worker registration, app-shell caching, offline reload and standalone legal routes. The execution environment blocks Chromium navigation to localhost, so that browser-origin test is skipped rather than bypassing the policy. A sibling real HTTP-origin test still verifies that `/`, `app.js`, `styles.css`, `manifest.webmanifest`, `sw.js`, `privacy.html`, `safety.html` and `robots.txt` are served, and that security headers and service-worker allowlisting are correct.
 
