@@ -6,9 +6,9 @@ The current software architecture and automated implementation are ready for the
 
 Clean-room evidence:
 
-- **369 Python/API/browser/evaluation tests passed**
+- **405 Python/API/browser/evaluation tests passed**
 - **34 client tests passed**
-- **403 / 403 total; zero skips/warnings**
+- **439 / 439 total; zero skips/warnings**
 - **97.55% combined Python coverage**
 - **1,680 client/server policy combinations agree**
 - Python 3.13.16 / Node 22.23.3 / TypeScript 5.8.3
@@ -18,7 +18,7 @@ Clean-room evidence:
 - OSV: 32 exact package/version queries, zero known vulnerabilities
 - hosted HTTPS application protocol passed with deterministic observations
 
-Practice and mock-provider evidence remain explicitly separated from real AI/physical-cleaning evidence.
+Practice and mock-provider evidence remain explicitly separated from real AI/physical-cleaning evidence. The candidate-space evaluator now derives exact surface–soil combinations from the reviewed catalog instead of using a cross-product of independently supported fields.
 
 ## Before the first real-model / physical demo
 
