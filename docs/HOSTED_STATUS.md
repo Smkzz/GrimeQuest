@@ -61,13 +61,21 @@ Production remains deliberately conservative:
 
 An opt-in code-free public-demo access path exists for judging, but must stay off until the exact real vision provider passes the labeled evaluation/privacy gates. For a free provider with a lower quota, the application daily ceiling must be set below the provider allowance.
 
+## 2026-10-08 effective runtime security qualification
+
+The original digest-pinned Python 3.13 slim base contained **four fixed HIGH findings** in bundled Python tooling (msgpack, setuptools and urllib3), while its Debian OS-package report had zero HIGH/CRITICAL issues. Refreshing the tag alone was insufficient: the registry still served the same pinned digest.
+
+An isolated Railway Trivy **0.74.0** rootfs audit repeated the GrimeQuest runtime dependency install, ran `pip check`, uninstalled unused `msgpack`/`setuptools`/`urllib3`, removed pip itself after dependency installation, re-ran `pip check` and confirmed FastAPI/HTTPX/Pydantic/Pillow/Uvicorn imports. Its **whole-rootfs HIGH/CRITICAL scan passed** with `GQ_EFFECTIVE_RUNTIME_ROOTFS_TRIVY_PASS` (audit commit `66007e3c8ff6cd5e1a2d8f0475049c2bbfa8a511`). Only the Trivy executable itself was excluded: that scanner was injected solely into the disposable audit image and is not distributed in production.
+
+The same package cleanup is now in the production `Dockerfile` (commit `b80ca1c26dfdaaf284903fe6f2a0023612f65fc3`). An isolated Railway canary deployment `765f8221-d02e-401b-8d20-56def7ca8f0a` built that exact Dockerfile and passed healthcheck. The application source itself did not change; previously qualified 439 automated test cases remain the software baseline. This confirms an **equivalent runtime filesystem**, not a cryptographically attested scan of the registry's final shipped image; preserve that distinction during final release review.
+
 ## Remaining external gates
 
 1. Qualify the exact real vision model/endpoint with the private labeled dataset.
 2. Accept/document provider privacy, retention, quota and cost terms for household images.
 3. Run actual target-phone camera/PWA install/offline tests.
 4. Perform controlled real cleaning trials.
-5. Complete an inspectable OS-package/final-container vulnerability scan and an independent security review appropriate to launch scope.
+5. Remediated runtime-equivalent rootfs now passes Trivy HIGH/CRITICAL inspection; still complete an independent security review and preferably a direct final published-image scan.
 6. Complete actual screen-reader/mobile accessibility review.
 7. Add the final service/operator privacy identity/contact before a general public live-image launch.
 8. Make the GitHub repository public only at the final submission/publication step.
