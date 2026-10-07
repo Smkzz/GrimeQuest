@@ -46,7 +46,7 @@ def test_verification_uncertainty_never_awards(clear,field,value):
     c=Comparison(**{**clear.model_dump(),field:value})
     assert adjudicate(c)['status']=='unverifiable' and adjudicate(c)['xp']==0
 
-@pytest.mark.parametrize('residue,improvement',itertools.product(['not_visible','reduced','present'],['substantial','some','none']))
+@pytest.mark.parametrize('residue,improvement',list(itertools.product(['not_visible','reduced','present'],['substantial','some','none'])))
 def test_clear_requires_both_signals(clear,residue,improvement):
     d=adjudicate(Comparison(**{**clear.model_dump(),'residue_after':residue,'improvement':improvement}))
     expected=residue=='not_visible' and improvement=='substantial'
