@@ -1,55 +1,75 @@
-# Hosted status — 2026-10-06
+# Hosted status — 2026-10-07
 
-## Repo-backed production service
+## Production service
 
-The full GrimeQuest application is deployed on Railway:
+The repo-backed GrimeQuest application is deployed on Railway:
 
 - URL: `https://grimequest-web-production.up.railway.app/`
 - Railway project: `grimequest`
 - Environment: `production`
 - Service: `grimequest-web`
-- Production state: healthy / one Amsterdam replica
+- Region: Amsterdam / `europe-west4-drams3a`
+- Replicas: 1
 - Per-replica ceiling: 0.5 vCPU / 0.5 GB
-- Builder: digest-pinned multi-stage Dockerfile
+- Builder: digest-pinned multi-stage `Dockerfile`
 - Platform healthcheck: `/api/health`
-- Live AI: disabled after mock-provider qualification
+- Railway edge tracing: enabled
+- Python auto-instrumentation: disabled
+- FastAPI native traces/metrics/log export: disabled
 - Persistent workflow signing: configured
+- Live AI: intentionally disabled
+- Public-demo access: intentionally disabled
 - Real-world cleaning validation: not performed
 
-Railway builds the generated PWA assets inside the multi-stage Docker image, then serves the FastAPI backend and static PWA from one runtime container. The deployment uses Railway's injected `PORT`, bounded restart-on-failure behavior and the configured public app origin.
+The application builds generated PWA assets inside the image, serves the FastAPI API and PWA from one runtime container, honors Railway's injected `PORT`, and runs as a non-root application user. Provider/model/key and live access code are unset in the production service, so live analysis fails closed while practice mode remains available.
 
-The first repo-backed deployment reached application startup but failed Railway's health gate because the strict Host allowlist rejected the platform's internal health-probe hostname. The boundary was changed narrowly so only `GET /api/health` is host-agnostic; all other routes keep the Host restriction. That change was requalified locally before redeployment:
+## Automated qualification state
 
-- TypeScript/client tests: 34 passed;
-- Python/API/browser tests: 235 passed;
-- current automated qualification: 388 passed, one environment-policy skip;
-- no failures or skips;
-- deterministic PWA rebuild remained byte-identical.
+The current software release candidate has passed a separate Railway clean-room build on the same Python 3.13 runtime family as production:
 
-The corrected deployment passed Railway's health gate. Later hardening refreshed runtime dependencies, added persistent workflow signing, stricter browser headers, privacy/safety offline pages, accessibility improvements, strict JSON-schema provider output and resource ceilings. Railway again completed a clean network install/build/start.
+- Python: 3.13.16
+- Node: 22.23.3
+- Python/API/browser/evaluation tests: 369 passed
+- client/Node tests: 34 passed
+- total: **403 / 403 passed**
+- skips/warnings: **0**
+- Python combined coverage: **97.55%**
+- client/server policy parity: **1,680 combinations**
+- real-origin Chromium PWA/service-worker/offline test: pass
+- generated rebuild: byte-identical
+- npm clean-install audit: 0 vulnerabilities
+- full OSV exact-version audit: 32 checked, 0 vulnerable, 0 errors
 
-A temporary deterministic vision provider and external qualification runner then exercised the full public-HTTPS live workflow successfully (qualification runner deployment `52e34e89-4386-461e-9902-979dfa4a0b3e`). Both temporary services were deleted afterward.
+The clean-room image emits `GQ_CLEAN_ROOM_QUALIFIED` only after strict TypeScript, client tests, Python tests/coverage and build reproducibility all pass.
 
-## Current configuration
+## Hosted protocol evidence
 
-The deterministic catalog now contains five exact consumer variants: two UK Method products and three Finland-market Kiilto fragrance-free 600 ml sprays. The policy surface remains unchanged—ordinary uncoated glass and sound glazed ceramic only—and exhaustive client/server parity now covers 1,680 combinations.
+A previous temporary deterministic vision provider plus an external Railway runner exercised the complete live protocol through the public HTTPS origin: private-access rejection, bounded target observation, product scan staying unreviewed, deterministic match/start, signed encounter, visual comparison, fixed XP, signed completion and idempotent repeat. All temporary qualification services were removed afterward.
 
+That evidence qualifies the network/application protocol. It **does not** qualify a real model's visual accuracy or a physical cleaning outcome.
 
-Railway edge request tracing is enabled for status/latency visibility. Python auto-instrumentation is disabled, and FastAPI native tracing/metrics/logs plus automatic OTLP configuration are explicitly disabled, so Railway's exporter environment does not create duplicate app telemetry or application exception/body logging. Production is bounded to 0.5 vCPU and 0.5 GB RAM per replica.
+## Access / cost posture
 
+Production remains deliberately conservative:
 
-The production service retains the app origin, model-attempt limit and persistent ticket-signing secret. Provider base/model/key and live access code were cleared after qualification, so the hosted app is again fail-closed in practice mode. `GQ_PUBLIC_LIVE` is explicitly disabled; the optional code-free public demo path is qualified but will not be enabled until a real provider has passed the accuracy/privacy gates.
+- `GQ_PUBLIC_LIVE=0`
+- `GQ_MAX_CALLS_HOUR=40`
+- `GQ_MAX_CALLS_DAY=200`
+- no configured provider key/model
+- one application replica
+- no database, persistent photo store, analytics SDK or advertising SDK
 
-The public Railway domain exists and the platform healthcheck succeeds. This execution environment could not independently resolve the Railway public hostname through its own DNS, so an external-browser fetch from this environment is not claimed. Railway's deployment state, replica state and healthcheck are the current hosting evidence.
+An opt-in code-free public-demo access path exists for judging, but must stay off until the exact real vision provider passes the labeled evaluation/privacy gates. For a free provider with a lower quota, the application daily ceiling must be set below the provider allowance.
 
 ## Remaining external gates
 
-Before a real live-AI cleaning demo is qualified:
+1. Qualify the exact real vision model/endpoint with the private labeled dataset.
+2. Accept/document provider privacy, retention, quota and cost terms for household images.
+3. Run actual target-phone camera/PWA install/offline tests.
+4. Perform controlled real cleaning trials.
+5. Complete an inspectable OS-package/final-container vulnerability scan and an independent security review appropriate to launch scope.
+6. Complete actual screen-reader/mobile accessibility review.
+7. Add the final service/operator privacy identity/contact before a general public live-image launch.
+8. Make the GitHub repository public only at the final submission/publication step.
 
-1. Make `Smkz-Entertainment/GrimeQuest` public if the hackathon requires open source. The repository is still private at this checkpoint.
-2. Configure and qualify a vision-capable provider, server-side credential and private `GQ_ACCESS_CODE`; establish image/JSON protocol, cost controls, privacy terms, timeout/refusal behavior and provider-side spend limits.
-3. Test PWA installation and camera permission/capture on an actual target phone/browser over the deployed HTTPS origin.
-4. Perform controlled real-cleaning trials covering clear, partial, unchanged and unverifiable outcomes with supported products/surfaces.
-5. Application-package advisories are currently clean in OSV (19 exact versions checked, 0 known vulnerabilities). Complete a trustworthy OS-package/final-container image scan before presenting this as a public production cleaning-advice service.
-
-The deployed practice behavior must not be presented as real AI or physical-cleaning validation.
+Practice, deterministic fixture and mock-provider results must never be presented as real AI or physical-cleaning evidence.
