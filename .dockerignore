@@ -7,7 +7,6 @@ __pycache__
 .env
 .env.*
 *.log
-tests
 evidence
 docs
 preview.html
