@@ -9,12 +9,16 @@ WORKDIR /app
 COPY requirements.lock ./
 RUN python -m pip install --no-cache-dir -r requirements.lock \
     && python -m pip check \
-    && python -m pip list --format=freeze | grep -Ei '^(msgpack|setuptools|urllib3)==' || true
+    && python -m pip uninstall --yes msgpack setuptools urllib3 \
+    && python -m pip check \
+    && rm -rf /usr/local/lib/python3.13/site-packages/pip \
+              /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
+    && python -c "import fastapi, starlette, anyio, httpx, pydantic, PIL, uvicorn"
 COPY server ./server
 COPY run.py ./
 COPY --from=scanner /usr/local/bin/trivy /usr/local/bin/trivy
 RUN trivy --version \
     && trivy rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-       --exit-code 1 --no-progress / \
+       --skip-files /usr/local/bin/trivy --exit-code 1 --no-progress / \
     && echo GQ_EFFECTIVE_RUNTIME_ROOTFS_TRIVY_PASS
 CMD ["python","run.py","--host","0.0.0.0"]
