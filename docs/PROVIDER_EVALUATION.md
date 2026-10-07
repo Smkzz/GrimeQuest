@@ -17,6 +17,7 @@ Why it is the first no-cost candidate:
 
 Caveats:
 - free endpoints are rate limited;
+- when testing a free account that advertises 50 requests/day, set `GQ_MAX_CALLS_DAY` below that allowance (for example 45) so GrimeQuest fails closed before the provider quota;
 - recent OpenRouter availability is materially below a paid production SLA;
 - OpenRouter Free plan currently advertises 50 requests/day;
 - privacy/data routing for a free multi-provider path must be reviewed before public live use;
