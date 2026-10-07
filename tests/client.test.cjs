@@ -63,6 +63,26 @@ test('storage round trip and tab scoped access',()=>{const local=storage(),sessi
 test('corrupted original is not silently overwritten',()=>{const local=storage();local.setItem('grimequest.v1','not-json');const g=harness({localStorage:local});assert.equal(g.readStore().history.length,0);assert.ok(g.storageWarning);assert.equal(g.saveStore(g.emptyStore()),false);assert.equal(local.getItem('grimequest.v1'),'not-json');g.resetStore();assert.equal(g.storageWarning,'');assert.equal(local.getItem('grimequest.v1'),null);});
 test('quota denied is visible',()=>{const g=harness({localStorage:{getItem:()=>null,setItem:()=>{throw Error('quota')},removeItem:()=>{}}});assert.equal(g.saveStore(g.emptyStore()),false);assert.match(g.storageWarning,/only in this tab/);});
 
+test('native iPhone HEIC and HEIF input is normalized into JPEG',async()=>{
+ const revoked=[],created=[];
+ class ImageFixture {constructor(){this.width=320;this.height=240;}set src(v){this.srcValue=v;}async decode(){}}
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:(type,quality)=>{assert.equal(type,'image/jpeg');assert.equal(quality,0.85);return 'data:image/jpeg;base64,AA==';}};
+ const g=harness({URL:{createObjectURL:()=>{created.push('blob:fixture');return 'blob:fixture';},revokeObjectURL:v=>revoked.push(v)},Image:ImageFixture,document:{createElement:tag=>{assert.equal(tag,'canvas');return canvas;}}});
+ for(const [type,name] of [['image/heic','iPhone.HEIC'],['image/heif','iPhone.heif'],['','iPhone.HEIC']]){
+   const result=await g.normalizePhoto({type,name,size:10000});
+   assert.equal(result,'data:image/jpeg;base64,AA==');
+ }
+ assert.equal(created.length,3);assert.deepEqual(revoked,['blob:fixture','blob:fixture','blob:fixture']);
+});
+test('unsupported HEIC decoder returns JPEG fallback advice and releases blob',async()=>{
+ const revoked=[];
+ class Undecodable {set src(v){}async decode(){throw Error('unsupported codec');}}
+ const g=harness({URL:{createObjectURL:()=> 'blob:unsupported',revokeObjectURL:v=>revoked.push(v)},Image:Undecodable});
+ await assert.rejects(()=>g.normalizePhoto({type:'image/heic',name:'photo.heic',size:12345}),/Use Safari 17\+ or export the photo as JPEG/);
+ assert.deepEqual(revoked,['blob:unsupported']);
+ await assert.rejects(()=>g.normalizePhoto({type:'image/svg+xml',name:'malicious.svg',size:123}),/SVG is not supported/);
+ await assert.rejects(()=>g.normalizePhoto({type:'image/heic',name:'huge.heic',size:9000000}),/smaller than 8 MB/);
+});
 test('camera rejects insecure context',async()=>{const g=harness({window:{isSecureContext:false},navigator:{}});await assert.rejects(new g.Camera().start({isConnected:true}),/HTTPS/);});
 test('camera stops tracks after late permission resolution',async()=>{
  let resolve,stopped=0;const g=harness({window:{isSecureContext:true},navigator:{mediaDevices:{getUserMedia:()=>new Promise(r=>resolve=r)}}});
