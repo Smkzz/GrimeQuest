@@ -22,7 +22,7 @@ The first repo-backed deployment reached application startup but failed Railway'
 
 - TypeScript/client tests: 34 passed;
 - Python/API/browser tests: 235 passed;
-- total automated tests: 269 passed;
+- current automated qualification: 276 passed, one environment-policy skip;
 - no failures or skips;
 - deterministic PWA rebuild remained byte-identical.
 
@@ -31,6 +31,9 @@ The corrected deployment passed Railway's health gate. Later hardening refreshed
 A temporary deterministic vision provider and external qualification runner then exercised the full public-HTTPS live workflow successfully (qualification runner deployment `52e34e89-4386-461e-9902-979dfa4a0b3e`). Both temporary services were deleted afterward.
 
 ## Current configuration
+
+Railway edge request tracing is enabled for status/latency visibility; Python auto-instrumentation remains disabled so this does not add application request-body/photo logging. Production is bounded to 0.5 vCPU and 0.5 GB RAM per replica.
+
 
 The production service retains the app origin, model-attempt limit and persistent ticket-signing secret. Provider base/model/key and live access code were cleared after qualification, so the hosted app is again fail-closed in practice mode.
 
@@ -44,6 +47,6 @@ Before a real live-AI cleaning demo is qualified:
 2. Configure and qualify a vision-capable provider, server-side credential and private `GQ_ACCESS_CODE`; establish image/JSON protocol, cost controls, privacy terms, timeout/refusal behavior and provider-side spend limits.
 3. Test PWA installation and camera permission/capture on an actual target phone/browser over the deployed HTTPS origin.
 4. Perform controlled real-cleaning trials covering clear, partial, unchanged and unverifiable outcomes with supported products/surfaces.
-5. Run a dedicated current dependency/container vulnerability review before presenting this as a public production cleaning-advice service. The refreshed pins and clean Railway build are positive evidence but not an advisory scan.
+5. Application-package advisories are currently clean in OSV (19 exact versions checked, 0 known vulnerabilities). Complete a trustworthy OS-package/final-container image scan before presenting this as a public production cleaning-advice service.
 
 The deployed practice behavior must not be presented as real AI or physical-cleaning validation.
