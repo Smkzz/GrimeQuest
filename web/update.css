@@ -1,0 +1,18 @@
+:root{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f7f8f2;color:#263e35;color-scheme:light;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;background:radial-gradient(circle at 90% 10%,#e1eecd 0,transparent 46%),#f7f8f2}
+.refresh-page{width:min(95%,520px);background:#fff;border:1px solid #e1e8dc;border-radius:22px;margin:24px auto;padding:clamp(24px,6vw,44px);box-shadow:0 18px 56px #19372b13}
+.refresh-logo{display:flex;align-items:center;gap:9px;font-size:23px;font-weight:800;letter-spacing:-1px;color:#173d32;margin-bottom:43px}
+.sparkle{display:inline-grid;place-items:center;background:#173d32;color:#d3ef86;border-radius:9px;font-size:26px;width:38px;height:38px}.dot{color:#86a355;margin-left:-8px}
+.eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:750;color:#728265}
+h1{font-size:clamp(34px,7vw,51px);line-height:1.13;letter-spacing:-1.9px;color:#173d32;margin:13px 0 22px}h1 span{color:#77944d}
+p{font-size:14px;line-height:1.75;color:#52665a;margin:0 0 22px}
+.refresh-note{border-radius:14px;border:1px solid #dce8c9;background:#f3f7eb;padding:18px;margin:23px 0}
+.refresh-note strong{font-size:13px}.refresh-note p{font-size:12px;margin:7px 0 0}
+.refresh-button{min-height:54px;width:100%;border:0;border-radius:12px;background:#173d32;color:#fff;font-weight:720;font-size:14px;cursor:pointer}
+.refresh-button:disabled{opacity:.65;cursor:wait}
+.refresh-status{font-size:12px;min-height:22px;margin:15px 0}
+.back-link{display:inline-block;padding:12px 0;color:#173d32;font-weight:650;font-size:13px}
+details{margin-top:18px;padding-top:14px;border-top:1px solid #e1e8dc;font-size:12px;color:#52665a}
+details summary{cursor:pointer;font-weight:650;color:#173d32;padding:8px 0}details p{font-size:12px;margin:6px 0}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #687cda;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

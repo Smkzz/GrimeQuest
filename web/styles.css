@@ -51,3 +51,12 @@
 @media(max-width:760px){.install-gate{justify-content:flex-start;padding:16px 13px}.install-card{grid-template-columns:1fr;max-width:540px;border-radius:18px}.install-copy{padding:26px}.install-identity{margin-bottom:19px}.install-copy>p{font-size:13px}.install-list{margin:22px 0}.install-qr-column{padding:26px 20px}.install-qr-label{margin-bottom:13px}.install-qr{width:292px;min-height:292px}.install-qr-title{margin-top:16px}}
 @media(min-width:621px){.install-tip{bottom:20px}}
 @media(forced-colors:active){.install-card,.install-qr,.install-tip{border:2px solid CanvasText}}
+.app-update-banner[hidden]{display:none!important}
+.app-update-banner{position:fixed;z-index:900;bottom:calc(90px + env(safe-area-inset-bottom));right:18px;max-width:min(380px,calc(100% - 36px));border-radius:15px;border:1px solid #c5d7ad;background:#fff;box-shadow:0 9px 35px #173d3230;padding:19px;display:grid;gap:12px}
+.app-update-banner strong{font-size:14px;color:#173d32}.app-update-banner p{font-size:12px;line-height:1.6;margin-top:5px}
+.app-update-actions{display:flex;gap:9px;flex-wrap:wrap}
+.app-update-actions button{border:1px solid #dce6d3;border-radius:10px;background:#f3f7eb;color:#173d32;min-height:44px;padding:9px 14px;font-size:12px;font-weight:650;cursor:pointer}
+#app-update-now{background:#173d32;color:#fff;border-color:#173d32}
+@media(min-width:621px){.app-update-banner{bottom:18px}}
+@media(forced-colors:active){.app-update-banner{border:2px solid CanvasText}}
+

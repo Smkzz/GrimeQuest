@@ -26,8 +26,13 @@ def main():
     assert manifest['display']=='standalone' and manifest['start_url']=='/'
     for icon in manifest['icons']:assert (ROOT/'web'/icon['src'].lstrip('/')).is_file()
     sw=(ROOT/'web/sw.js').read_text()
-    assert 'skipWaiting(' not in sw and '/api/' in sw
-    assert 'addAll(PATHS)' in sw
+    assert '/api/' in sw and 'addAll(PATHS)' in sw
+    # Automatic takeover only after successful precache, never mid-cleaning reload.
+    assert "cache.addAll(PATHS)).then(() => self.skipWaiting())" in sw
+    assert "event.data.type === 'GRIMEQUEST_ACTIVATE_UPDATE'" in sw
+    for name in ('update.html', 'update.js', 'update.css'):
+        assert '"/'+name+'"' not in sw
+    assert '"/update-client.js"' in sw
     runtime=list((ROOT/'web').rglob('*'))
     forbidden=['GQ_PROVIDER_KEY=sk-','sk-proj-','-----BEGIN PRIVATE KEY-----']
     for path in runtime:

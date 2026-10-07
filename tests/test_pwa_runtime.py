@@ -56,6 +56,8 @@ def test_real_origin_service_worker_and_offline_shell():
             cached=page.evaluate("caches.keys().then(async ks=>{const c=await caches.open(ks.find(k=>k.startsWith('grimequest-')));return (await c.keys()).map(r=>new URL(r.url).pathname)})")
             assert '/' in cached and '/privacy.html' in cached and '/safety.html' in cached
             assert '/vendor/qr-creator.js' in cached and '/install.js' in cached
+            assert '/update-client.js' in cached
+            assert not any(p in cached for p in ['/update.html','/update.js','/update.css'])
             context.set_offline(True)
             page.reload(wait_until='domcontentloaded')
             expect(page.locator('h1')).to_contain_text('A little mess.')
@@ -76,7 +78,7 @@ def test_real_http_origin_exposes_complete_pwa_shell():
     process=subprocess.Popen([os.environ.get('PYTHON','python'),'run.py','--host','127.0.0.1'],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     try:
         wait_ready(base)
-        for path in ['/', '/app.js', '/install.js', '/vendor/qr-creator.js', '/styles.css', '/manifest.webmanifest', '/sw.js', '/privacy.html', '/safety.html', '/robots.txt']:
+        for path in ['/', '/app.js', '/install.js', '/update-client.js', '/update.html', '/update.js', '/update.css', '/vendor/qr-creator.js', '/styles.css', '/manifest.webmanifest', '/sw.js', '/privacy.html', '/safety.html', '/robots.txt']:
             with urllib.request.urlopen(base+path,timeout=2) as r:
                 assert r.status==200, path
                 body=r.read()
@@ -84,11 +86,15 @@ def test_real_http_origin_exposes_complete_pwa_shell():
                 if path=='/':
                     assert 'frame-ancestors' in r.headers['content-security-policy']
                     assert r.headers['cross-origin-opener-policy']=='same-origin'
+                if path in ('/update.html', '/update.js', '/update.css'):
+                    assert r.headers['cache-control']=='no-store'
         with urllib.request.urlopen(base+'/manifest.webmanifest',timeout=2) as r:
             manifest=json.loads(r.read())
         assert manifest['display']=='standalone' and manifest['scope']=='/'
         sw=urllib.request.urlopen(base+'/sw.js',timeout=2).read().decode()
         assert '/privacy.html' in sw and '/safety.html' in sw and '/api/' in sw
+        assert '/update-client.js' in sw and 'self.skipWaiting()' in sw
+        assert all(p not in sw for p in ('"/update.html"','"/update.js"','"/update.css"'))
     finally:
         process.terminate()
         try:process.wait(timeout=5)

@@ -4,6 +4,13 @@
 
 Test origin: [GrimeQuest HTTPS](https://grimequest-web-production.up.railway.app/). Production is intentionally **practice-only** until fixed-model qualification and privacy decisions are complete; do not bypass the server's private access controls.
 
+## Installed app update/recovery (required before accepting photo-limit fix)
+1. Install the previous build with its old cache-first worker, open the app and verify original local inventory survives page reload.
+2. Publish the new build. Reopen the installed Home Screen app while online; the new worker must precache completely before activating. If an update arrives during a live task, no automatic reload may interrupt it.
+3. If stale assets persist, open **Settings → Refresh or repair this installation**, tap **Refresh installed app**, and verify that the previous 12-MP warning no longer exists in the current app. Verify saved inventory and journal survive (do not record photos).
+4. Verify /update.html, /update.js and /update.css respond with `Cache-Control: no-store` and are excluded from all service-worker cache allowlists, including the prior release's list; QR and offline shell remain functional.
+5. Repeat from a real iPhone Home Screen app context; testing only a Safari tab is insufficient because installed web apps have separate storage. Test offline after recovery and ensure the worker is registered again.
+
 ## Offline practice and install (no AI required)
 
 1. On a computer, open the HTTPS home page: confirm the QR code is visible and scans to the exact same-origin HTTPS root without third-party requests; verify the plain link and **Continue in desktop browser** work. Then open that HTTPS URL in iPhone Safari 17+ and a current Android Chrome browser if both are available. Confirm the page renders without horizontal scrolling at normal display scale.

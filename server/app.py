@@ -51,7 +51,7 @@ class Boundary:
         async def safe_send(message):
             if message["type"] == "http.response.start":
                 extra = dict(HEADERS)
-                if scope["path"].startswith("/api/"):
+                if scope["path"].startswith("/api/") or scope["path"] in ("/update.html", "/update.js", "/update.css"):
                     extra["cache-control"] = "no-store"
                 elif scope["path"] in ("/", "/index.html", "/sw.js"):
                     extra["cache-control"] = "no-cache"
