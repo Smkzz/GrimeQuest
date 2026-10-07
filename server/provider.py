@@ -6,6 +6,7 @@ the operator. Strict JSON-schema response format support is required.
 """
 import asyncio
 import json
+import math
 from urllib.parse import urlsplit
 from typing import TypeVar
 import httpx
@@ -16,6 +17,47 @@ T = TypeVar("T", bound=BaseModel)
 
 class ProviderFailure(RuntimeError):
     pass
+
+def validate_openrouter_key_limit(data: object, maximum_usd: float = 0.50) -> dict:
+    """Require a real provider-enforced, non-resetting USD ceiling before paid tests.
+
+    Never infer a cap from local counters or process-lifetime quotas. A resettable,
+    absent or oversized key budget cannot qualify under a one-time authorization.
+    """
+    if not isinstance(data, dict):
+        raise ProviderFailure("A provider-side key spending limit could not be verified.")
+    limit = data.get("limit")
+    remaining = data.get("limit_remaining")
+    if (type(limit) not in (int, float) or type(remaining) not in (int, float)
+            or not math.isfinite(limit) or not math.isfinite(remaining)
+            or not 0 < limit <= maximum_usd
+            or not 0 <= remaining <= limit
+            or data.get("limit_reset", "not_reported") is not None
+            or data.get("is_management_key") is True):
+        raise ProviderFailure("A non-resetting provider-side spending cap is required before testing.")
+    return {"verified": True, "limit_usd": float(limit),
+            "remaining_usd": float(remaining), "reset": None}
+
+
+async def verify_openrouter_key_limit(key: str, maximum_usd: float = 0.50,
+                                      transport=None) -> dict:
+    """Read-only OpenRouter key metadata preflight; never make an inference call."""
+    if not key or not 0 < maximum_usd <= 0.50:
+        raise ProviderFailure("A dedicated key and a maximum $0.50 test budget are required.")
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=False,
+                                     trust_env=False, transport=transport) as client:
+            response = await client.get("https://openrouter.ai/api/v1/key",
+                                        headers={"Authorization": "Bearer " + key})
+            if response.status_code != 200 or len(response.content) > 20_000:
+                raise ProviderFailure("OpenRouter did not confirm the key spending cap.")
+            payload = response.json()
+            return validate_openrouter_key_limit(payload.get("data"), maximum_usd)
+    except ProviderFailure:
+        raise
+    except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
+        raise ProviderFailure("OpenRouter spending-cap verification failed. No inference was made.") from exc
+
 
 class VisionProvider:
     def __init__(self, base_url: str, model: str, key: str = "", transport=None, timeout: float = 25):
@@ -46,7 +88,14 @@ class VisionProvider:
         # OpenRouter can enforce that the chosen endpoint actually supports every
         # requested parameter instead of silently ignoring structured output.
         if urlsplit(self.base_url).hostname == "openrouter.ai":
-            body["provider"] = {"require_parameters": True}
+            # Household photos must not reach an endpoint that retains or trains on
+            # their contents. Keep both requirements mandatory and fail closed when
+            # OpenRouter cannot find a compatible endpoint.
+            body["provider"] = {
+                "require_parameters": True,
+                "zdr": True,
+                "data_collection": "deny",
+            }
         headers = {"Content-Type": "application/json"}
         if self.key:
             headers["Authorization"] = "Bearer " + self.key
