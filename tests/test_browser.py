@@ -118,6 +118,18 @@ def setup_live(page,client):
     click(page,'inventory');click(page,'add-catalog','method-kitchen-clementine-uk-828')
     click(page,'home');click(page,'find');return errors
 
+def test_photo_pickers_offer_native_heic_and_heif(page,client):
+    setup_live(page,client)
+    accept=page.locator('#photo-file').get_attribute('accept')
+    assert 'image/heic' in accept and 'image/heif' in accept
+    assert 'image/jpeg' in accept and 'image/png' in accept
+    click(page,'inventory');click(page,'scan-product')
+    for item in ('product-front','product-back'):
+        accepted=page.locator('#'+item).get_attribute('accept')
+        assert 'image/heic' in accepted and 'image/heif' in accepted
+        assert 'image/jpeg' in accepted
+
+
 def upload(page,selector,data_url):
     page.locator(selector).set_input_files({'name':'synthetic-test.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data_url.split(',')[1])})
     page.wait_for_selector('img[alt="Selected image preview"]')
