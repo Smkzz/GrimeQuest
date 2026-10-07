@@ -120,7 +120,7 @@ python scripts/verify_build.py
 
 `GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The normal browser suite covers desktop and phone layouts, while `tests/test_pwa_runtime.py` starts the real server and exercises the real browser origin, service worker, offline app shell and legal routes.
 
-The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **405 Python/API/browser/evaluation tests + 34 client tests = 439/439 passes, zero skips or warnings**, **97.55% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, with the vision-release evaluator additionally rejecting surface–soil pairs not covered by any reviewed product, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A trustworthy OS-package scan of the final container/base image remains a release gate; attempted disposable Trivy paths did not yield inspectable scan evidence and are not counted as a pass.
+The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **405 Python/API/browser/evaluation tests + 34 client tests = 439/439 passes, zero skips or warnings**, **97.55% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, with the vision-release evaluator additionally rejecting surface–soil pairs not covered by any reviewed product, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A subsequent auditable Trivy whole-rootfs scan of the **remediated equivalent runtime** found zero HIGH/CRITICAL issues after removing unused Python tooling. The updated production Dockerfile passed an isolated Railway canary build and healthcheck. An exact final registry-image attestation and independent review remain separate launch steps.
 
 ## Architecture and handoff
 
@@ -135,6 +135,7 @@ The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.2
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
 - [Hosted deployment status](docs/HOSTED_STATUS.md)
 - [Vision provider evaluation plan](docs/PROVIDER_EVALUATION.md)
+- [Real provider smoke-test results (2026-10-08)](docs/REAL_PROVIDER_SMOKE_20261008.md)
 - [Vision provider qualification dataset](eval/README.md)
 
 CI is provided as a **manual-only GitHub Actions workflow**. The source is still hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
