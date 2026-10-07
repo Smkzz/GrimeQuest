@@ -66,6 +66,15 @@ def test_ticket_secret_configuration():
             Settings(ticket_secret=value).validate()
     assert Settings(ticket_secret='x'*32).validate().ticket_secret == 'x'*32
 
+def test_public_live_configuration_is_bounded():
+    base=dict(provider_base='https://vision.example/v1',provider_model='vision',public_live=True)
+    with pytest.raises(ValueError):
+        Settings(**base,ticket_secret='',max_calls_day=45).validate()
+    with pytest.raises(ValueError):
+        Settings(**base,ticket_secret='x'*32,max_calls_day=201).validate()
+    configured=Settings(**base,ticket_secret='x'*32,max_calls_day=45).validate()
+    assert configured.ready and configured.public_live
+
 @pytest.mark.parametrize('origin',['http://example.com','https://example.com/path','https://user@example.com','https://example.com?x=1'])
 def test_origin_configuration(origin):
     with pytest.raises(ValueError):Settings(app_origin=origin).validate()
@@ -81,7 +90,7 @@ def test_bad_daily_call_limit(limit):
 def test_default_is_off_and_private_headers():
     with TestClient(create_app(Settings())) as c:
         health=c.get('/api/health');assert not health.json()['live_ready'];assert health.json()['workflow_receipts_persistent'] is False
-        assert health.json()['max_calls_day']==200
+        assert health.json()['max_calls_day']==200 and health.json()['access_mode']=='private_code'
         assert health.json()['source_sha']=='' and health.json()['deployment_id']==''
         assert health.headers['cache-control']=='no-store'
         assert 'frame-ancestors' in health.headers['content-security-policy']
@@ -176,3 +185,15 @@ def test_configured_external_origin_https_headers(settings,vision):
         assert 'max-age' in h.headers['strict-transport-security']
         r=c.post('/api/match',headers={'origin':'https://grime.example','x-gq-access':ACCESS},json={})
         assert r.status_code==422 # Passed origin check; empty payload is invalid.
+
+
+def test_public_live_still_requires_same_origin(settings,vision,before):
+    public=replace(settings,public_live=True,access_code='',max_calls_day=45)
+    with TestClient(create_app(public,vision)) as c:
+        h=c.get('/api/health')
+        assert h.status_code==200 and h.json()['live_ready'] is True
+        assert h.json()['access_mode']=='public_rate_limited'
+        ok=c.post('/api/analyze-target',headers={'origin':'http://testserver'},json={'image':before,'consent':True})
+        assert ok.status_code==200,ok.text
+        bad=c.post('/api/analyze-target',headers={'origin':'https://evil.example'},json={'image':before,'consent':True})
+        assert bad.status_code==403
