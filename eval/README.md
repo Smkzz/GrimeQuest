@@ -17,7 +17,7 @@ eval/
 
 The manifest supports three task types:
 
-- **target** — one dirty target. Human truth records whether the scene belongs in GrimeQuest's currently supported visual candidate space, optional expected surface/soil, and hazards the model must notice.
+- **target** — one dirty target. Human truth records whether the scene belongs in GrimeQuest's **exact reviewed catalog-supported surface–soil space**, optional expected surface/soil, and hazards the model must notice. A known surface with a known soil is *not* enough: for example, grease on uncoated glass is unsupported in the current catalog.
 - **compare** — before/after pair. Human truth is `clear`, `partial` or `unverifiable`.
 - **product** — front/back label pair. This only tests transcription/readability. Product OCR can never mint cleaning permissions.
 
