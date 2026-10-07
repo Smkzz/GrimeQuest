@@ -26,8 +26,17 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY requirements.lock ./
-RUN python -m pip install --no-cache-dir -r requirements.lock \
-    && python -c "import fastapi, starlette, anyio, pydantic, PIL, uvicorn" \
+# The official base bundles pip and build-time utilities; these are not needed to
+# serve GrimeQuest. Remove them only AFTER resolving and checking app dependencies.
+# The exact removal procedure passed a fail-closed Trivy rootfs audit.
+RUN python -m pip install --root-user-action=ignore --no-cache-dir -r requirements.lock \
+    && python -m pip check \
+    && python -m pip uninstall --yes --root-user-action=ignore msgpack setuptools urllib3 \
+    && python -m pip check \
+    && rm -rf /usr/local/lib/python3.13/site-packages/pip \
+              /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
+              /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13 \
+    && python -c "import fastapi, starlette, anyio, httpx, pydantic, PIL, uvicorn" \
     && useradd --system --uid 10001 --no-create-home appuser
 
 COPY server ./server
