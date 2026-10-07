@@ -141,7 +141,14 @@ class Budget:
 
 def create_app(settings: Settings | None = None, provider=None, tickets: Tickets | None = None) -> FastAPI:
     settings = (settings or Settings.from_env()).validate()
-    app = FastAPI(title="GrimeQuest", version=VERSION, docs_url=None, redoc_url=None, openapi_url="/api/openapi.json")
+    app = FastAPI(
+        title="GrimeQuest",
+        version=VERSION,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url="/api/openapi.json",
+        telemetry={"tracing": False, "metrics": False, "logs": False, "operation_spans": False, "auto_configure": False},
+    )
     app.add_middleware(Boundary, settings=settings)
     signer = tickets or Tickets(settings.ticket_secret.encode("utf-8") if settings.ticket_secret else None)
     vision = provider or VisionProvider(settings.provider_base, settings.provider_model, settings.provider_key)
