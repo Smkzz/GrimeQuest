@@ -20,7 +20,7 @@
 | npm clean-install audit | **0 vulnerabilities** |
 | Full OSV exact-version audit | **32 checked, 0 vulnerable, 0 errors** |
 | Hosted public-HTTPS protocol qualification | **PASS with deterministic observation fixture** |
-| Real/paid provider calls | **0** |
+| Paid-model calls in the clean-room automated test run | **0** (separate owner-authorized live model smoke: **3**) |
 | GitHub Actions automatically consumed | **0** |
 | Base-image / effective-runtime Trivy scan | **Effective runtime equivalence passed: 0 HIGH/CRITICAL after removing unused tooling.** An exact final registry-artifact scan is still outstanding. |
 
@@ -122,3 +122,10 @@ An isolated Railway Trivy **0.74.0** rootfs audit repeated the GrimeQuest runtim
 
 The same package cleanup is now in the production `Dockerfile` (commit `b80ca1c26dfdaaf284903fe6f2a0023612f65fc3`). An isolated Railway canary deployment `765f8221-d02e-401b-8d20-56def7ca8f0a` built that exact Dockerfile and passed healthcheck. The application source itself did not change; previously qualified 439 automated test cases remain the software baseline. This confirms an **equivalent runtime filesystem**, not a cryptographically attested scan of the registry's final shipped image; preserve that distinction during final release review.
 
+
+
+## Owner-authorized fixed-model smoke — 2026-10-08
+
+After the original 446-test clean-room baseline, **three additional real (potentially billable) OpenRouter calls** were made in an isolated Railway probe using public Creative Commons photos. Fixed `google/gemini-2.5-flash-lite` with required ZDR/data-collection denial returned HTTP 200 and schema-valid JSON in 2009, 1336 and 1413 ms. Two target observations conservatively avoided unsupported product recommendations; a deliberately mismatched comparison returned `same_target=false, comparable=false`. See [full evidence and spending limitations](REAL_FIXED_ZDR_TRIAL_20261008.md).
+
+This separate exploratory run does not increase the automated test count; no full private labeled safety dataset or phone/physical cleaning trial has been qualified. A key with a US$10 hard limit was used under the owner's express small-trial waiver, with a three-call and US$0.25 observed-usage-delta stop. The immediate metadata check registered no change in reported usage; that is **not** a billing certification.
