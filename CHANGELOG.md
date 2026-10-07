@@ -11,14 +11,17 @@
 - Upgraded vision transport to strict JSON-schema structured output and OpenRouter parameter-support enforcement.
 - Qualified the complete public-HTTPS live protocol with temporary deterministic mock infrastructure, then deleted the infrastructure and restored AI-off-by-default.
 - Added 0.5 vCPU / 0.5 GB Railway resource ceilings.
-- Current-source automated result: 388 passes, one environment-policy skip; 1,680 client/server policy combinations agree.
+- Final clean-room automated result: **403/403 passes**, zero skips/warnings; 97.55% Python coverage; 1,680 client/server policy combinations agree.
 - Added three exact Finland-market Kiilto consumer spray variants (Ikkuna, Koti, Keittiö; fragrance-free 600 ml) without broadening the supported surface classes.
 - Added a 320/390 px expanded-loadout regression; fixed a real 320 px overflow from long Finnish product names.
 - Kept Railway edge tracing while explicitly disabling FastAPI-native telemetry/OTLP auto-configuration to remove startup errors and avoid duplicate application telemetry.
+- Added a privacy-preserving real-model qualification harness with safety-critical false-supported, hazard-miss and false-clear gates.
+- Added a Python 3.13 clean-room Railway qualification image and removed the obsolete public OpenAPI schema.
+- Fixed live quest resumption so an equipped product removed from the real arsenal cannot remain a stale loadout.
 - Added an opt-in, rate-limited public demo access mode so judges can use live analysis without a distributed shared secret; default remains private/off.
 - Added global daily provider-attempt ceiling and deployed commit provenance in health.
 - Enabled Railway edge tracing without Python auto-instrumentation; capped production at 0.5 vCPU / 0.5 GB.
-- OSV audit: 19 exact package/version queries, 0 known vulnerabilities; final OS-package/container scan remains unqualified.
+- Full OSV audit: 32 exact runtime/test/TypeScript package-version queries, 0 known vulnerabilities after catching and fixing pytest 9.0.2; final OS-package/container scan remains unqualified.
 
 ## Deployment hardening — 2026-10-06
 
@@ -28,7 +31,7 @@ Repo-backed Railway deployment qualified on exact source commit `a7acac65c79db80
 
 - Build generated PWA assets inside the deployment image instead of assuming checked-in bundles.
 - Honor the platform-provided `PORT` at runtime.
-- Add `railway.json` with healthcheck, bounded restart policy and Amsterdam deployment region.
+- Configure Railway healthcheck, bounded restart policy and Amsterdam region at the service level; deprecated repository JSON config was removed.
 - Publish an explicitly practice-only HTTPS walkthrough on Railway while the private-repository GitHub authorization remains blocked.
 
 ## 0.1.0 — 2026-10-06
