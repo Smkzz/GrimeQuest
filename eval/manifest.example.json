@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "target-supported-001",
+      "task": "target",
+      "image": "images/target-supported-001.jpg",
+      "truth": {
+        "supported": true,
+        "surface": "glazed_ceramic",
+        "soil": "grease",
+        "required_hazards": []
+      }
+    },
+    {
+      "id": "target-unsupported-001",
+      "task": "target",
+      "image": "images/target-unsupported-001.jpg",
+      "truth": {
+        "supported": false,
+        "surface": "glass_ceramic_hob",
+        "soil": "grease",
+        "required_hazards": ["heat"]
+      }
+    },
+    {
+      "id": "compare-nonclear-001",
+      "task": "compare",
+      "before": "images/compare-nonclear-001-before.jpg",
+      "after": "images/compare-nonclear-001-after.jpg",
+      "truth": {
+        "status": "unverifiable"
+      }
+    },
+    {
+      "id": "product-001",
+      "task": "product",
+      "front": "images/product-001-front.jpg",
+      "back": "images/product-001-back.jpg",
+      "truth": {
+        "label_readable": true,
+        "name_contains": "Kiilto"
+      }
+    }
+  ]
+}
