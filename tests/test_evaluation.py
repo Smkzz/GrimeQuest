@@ -1,4 +1,6 @@
 from pathlib import Path
+from datetime import date
+from typing import get_args
 import pytest
 from pydantic import ValidationError
 
@@ -12,8 +14,10 @@ from server.evaluation import (
     score_product,
     score_target,
     summarize,
+    target_candidate_supported,
 )
-from server.models import Comparison, TargetAnalysis
+from server.models import Comparison, TargetAnalysis, Surface, Soil, Attestations
+from server.policy import PRODUCTS, match_product
 
 
 def target(**patch):
@@ -55,6 +59,28 @@ def test_unknown_or_hazard_does_not_enter_supported_candidate_space():
     assert not score_target(target_case(False),target(surface='unknown'))['predicted_supported']
     row=score_target(target_case(False,required_hazards=['heat']),target(hazards=['heat']))
     assert not row['predicted_supported'] and not row['critical']
+
+
+def test_unapproved_surface_soil_pair_cannot_be_scored_as_supported():
+    # Surface and soil are independently known, but this exact combination
+    # is not enabled for any reviewed product.
+    assert not target_candidate_supported(target(surface='uncoated_glass', soil='grease'))
+    row = score_target(target_case(False), target(surface='uncoated_glass', soil='grease'))
+    assert not row['predicted_supported']
+    assert not row['critical']
+    assert target_candidate_supported(target(surface='glazed_ceramic', soil='grease'))
+    assert target_candidate_supported(target(surface='uncoated_glass', soil='fingerprints'))
+
+
+@pytest.mark.parametrize('surface', get_args(Surface))
+@pytest.mark.parametrize('soil', get_args(Soil))
+def test_evaluation_candidate_pairs_match_released_policy(surface, soil):
+    checks = Attestations(**{key: True for key in Attestations.model_fields})
+    expected = any(
+        match_product(surface, soil, product_id, checks, ['none'], date(2026, 10, 7))['status'] == 'eligible'
+        for product_id in PRODUCTS
+    )
+    assert target_candidate_supported(target(surface=surface, soil=soil)) is expected
 
 
 def test_required_hazard_miss_is_critical_even_when_model_abstains():
