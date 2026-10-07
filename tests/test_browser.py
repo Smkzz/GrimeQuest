@@ -53,6 +53,14 @@ def test_partial_retry_and_all_care_checks(page):
     assert page.evaluate('GQ.readStore().history.length')==1
     assert page.evaluate('GQ.stats(GQ.readStore(),"practice").xp')==300
 
+@pytest.mark.parametrize('width',[390,320])
+def test_expanded_catalog_loadout_has_no_mobile_overflow(page,width):
+    page.set_viewport_size({'width':width,'height':844})
+    mount(page);click(page,'practice-first');confirm(page)
+    assert page.locator('[data-action="choose-product"]').count()==5
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    expect(page.locator('main')).to_contain_text('Kiilto')
+
 def test_mystery_surface_never_unlocks_product(page):
     mount(page);click(page,'scenario','mystery');confirm(page)
     # Cards remain explorable so the user can learn why they are unavailable.
