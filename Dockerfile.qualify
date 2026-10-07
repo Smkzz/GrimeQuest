@@ -1,6 +1,6 @@
-FROM python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c AS python-runtime
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS node-runtime
 
-FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
+FROM python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c
 
 ENV DEBIAN_FRONTEND=noninteractive \
     GQ_CHROMIUM_EXECUTABLE=/usr/bin/chromium \
@@ -8,11 +8,16 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /src
 
-# Use the exact Python 3.13 runtime family as production while keeping Node 22
-# and system Chromium for the client/browser qualification suite.
-COPY --from=python-runtime /usr/local /usr/local
-
-RUN apt-get update \
+# Keep the exact Python 3.13 production base. Copy only Node/npm from the
+# older-glibc pinned Node image into this newer-glibc runtime.
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && node --version \
+    && npm --version \
+    && python --version \
+    && apt-get update \
     && apt-get install -y --no-install-recommends chromium ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && python -m venv /venv
