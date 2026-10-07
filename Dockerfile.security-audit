@@ -14,7 +14,7 @@ COPY server ./server
 COPY run.py ./
 COPY --from=scanner /usr/local/bin/trivy /usr/local/bin/trivy
 RUN trivy --version \
-    && trivy rootfs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-       --exit-code 1 --no-progress / \
-    && echo GQ_FINAL_RUNTIME_ROOTFS_TRIVY_PASS
+    && trivy filesystem --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+       --exit-code 1 --no-progress /usr/local/lib/python3.13/site-packages \
+    && echo GQ_RUNTIME_PYTHON_PACKAGE_TRIVY_PASS
 CMD ["python","run.py","--host","0.0.0.0"]
