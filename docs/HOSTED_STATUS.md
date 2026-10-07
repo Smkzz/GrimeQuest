@@ -8,14 +8,12 @@ The full GrimeQuest application is deployed on Railway:
 - Railway project: `grimequest`
 - Environment: `production`
 - Service: `grimequest-web`
-- Deployment: `5554ddd7-c9ff-4c35-aaeb-4cee4681cc43`
-- Deployed source commit: `a7acac65c79db80e5e86516d2b196bd25503c21b`
-- Region: Amsterdam / `europe-west4-drams3a`
-- Replicas: 1
-- Builder: Dockerfile
+- Production state: healthy / one Amsterdam replica
+- Per-replica ceiling: 0.5 vCPU / 0.5 GB
+- Builder: digest-pinned multi-stage Dockerfile
 - Platform healthcheck: `/api/health`
-- Deployment status at qualification: SUCCESS
-- Live AI: disabled
+- Live AI: disabled after mock-provider qualification
+- Persistent workflow signing: configured
 - Real-world cleaning validation: not performed
 
 Railway builds the generated PWA assets inside the multi-stage Docker image, then serves the FastAPI backend and static PWA from one runtime container. The deployment uses Railway's injected `PORT`, bounded restart-on-failure behavior and the configured public app origin.
@@ -28,11 +26,13 @@ The first repo-backed deployment reached application startup but failed Railway'
 - no failures or skips;
 - deterministic PWA rebuild remained byte-identical.
 
-The corrected deployment passed Railway's health gate. The temporary `grimequest-practice` Railway Function used during bring-up was removed after the full service became healthy.
+The corrected deployment passed Railway's health gate. Later hardening refreshed runtime dependencies, added persistent workflow signing, stricter browser headers, privacy/safety offline pages, accessibility improvements, strict JSON-schema provider output and resource ceilings. Railway again completed a clean network install/build/start.
+
+A temporary deterministic vision provider and external qualification runner then exercised the full public-HTTPS live workflow successfully (qualification runner deployment `52e34e89-4386-461e-9902-979dfa4a0b3e`). Both temporary services were deleted afterward.
 
 ## Current configuration
 
-The service currently has `GQ_APP_ORIGIN` and `GQ_MAX_CALLS_HOUR` configured. Provider configuration and the private live-mode access code are intentionally absent, so `live_ready` remains false and the default hosted experience is practice mode.
+The production service retains the app origin, model-attempt limit and persistent ticket-signing secret. Provider base/model/key and live access code were cleared after qualification, so the hosted app is again fail-closed in practice mode.
 
 The public Railway domain exists and the platform healthcheck succeeds. This execution environment could not independently resolve the Railway public hostname through its own DNS, so an external-browser fetch from this environment is not claimed. Railway's deployment state, replica state and healthcheck are the current hosting evidence.
 
@@ -44,6 +44,6 @@ Before a real live-AI cleaning demo is qualified:
 2. Configure and qualify a vision-capable provider, server-side credential and private `GQ_ACCESS_CODE`; establish image/JSON protocol, cost controls, privacy terms, timeout/refusal behavior and provider-side spend limits.
 3. Test PWA installation and camera permission/capture on an actual target phone/browser over the deployed HTTPS origin.
 4. Perform controlled real-cleaning trials covering clear, partial, unchanged and unverifiable outcomes with supported products/surfaces.
-5. Run a current dependency/container vulnerability review before presenting this as a public production cleaning-advice service.
+5. Run a dedicated current dependency/container vulnerability review before presenting this as a public production cleaning-advice service. The refreshed pins and clean Railway build are positive evidence but not an advisory scan.
 
 The deployed practice behavior must not be presented as real AI or physical-cleaning validation.
