@@ -68,7 +68,9 @@ namespace GQ {
   }
   function cleanView():string {
     if(!quest) return homeView();
-    const q=quest,p=products.find(p=>p.id===q.productId);
+    const q=quest;
+    if(q.mode==='live' && q.phase==='equipped' && q.productId && !store.inventory.some(i=>i.catalogId===q.productId)) return loadoutView();
+    const p=products.find(p=>p.id===q.productId);
     if(!p) return loadoutView();
     const active=q.phase==='cleaning';
     return `${back('loadout-back','Loadout')}${steps(2)}${heading(active?'ONE PRODUCT. NO RUSH.':'A LITTLE CARE BEFORE THE QUEST',active?'The real action is yours.':'Ready, carefully.',q.mode==='practice'?'This walkthrough simulates a cleaning session. It does not claim a real chore was completed.':'Set the phone somewhere dry and away from the cleaning area. Follow the actual label, not a game timer.')}<div class="split"><section class="panel"><div class="selected-product">${productArt(p)}<div>${tag('SELECTED TOOL')}<h2>${e(p.name)}</h2><p>${e(p.variant)}</p></div></div><ol class="instructions">${p.steps.map((s,i)=>`<li><span>${i+1}</span><p>${e(s)}</p></li>`).join('')}</ol><details><summary>Scope and restrictions</summary>${p.restrictions.map(r=>`<p>${e(r)}</p>`).join('')}<a href="${e(p.source)}" target="_blank" rel="noopener noreferrer">Manufacturer guidance ↗</a></details><div class="notice warning">${icon('shield')} Never mix or layer cleaners. A dry appearance does not prove that chemical residues are absent.</div></section><section class="panel">${active?`<h2>${q.mode==='practice'?'Explore the comparison.':'When the label-directed task is done…'}</h2><p>${q.mode==='practice'?'Choose an explicitly simulated outcome to see how the game responds. Only “clear” earns practice XP.':'Photograph the same target, from the same angle and with similar lighting, after it is dry. No reward for speed or extra product.'}</p>${q.mode==='practice'?`<div class="field"><label for="practice-outcome">Example outcome</label><select id="practice-outcome"><option value="clear">Clear · visible target removed</option><option value="partial">Partial · visible residue remains</option><option value="unverifiable">Unverifiable · glare / framing changed</option></select></div>${button('Run practice comparison '+icon('arrow'),'practice-compare','primary wide')}`:`${button(icon('camera')+'Capture after photo','capture-after','primary wide')}<p class="hint">You will approve sending both before and after photos for visual comparison.</p>`}`:`<h2>The five-point care check.</h2><p>${q.mode==='practice'?'In practice, these stand in for checks you must actually make with the real bottle.':'Confirm each point using the actual bottle and the surface-care instructions.'}</p>${check('exact_product','This is the exact product and variant in its original labeled container.')}${check('label_allows_target','The current label permits this target and I have read all directions and warnings.')}${check('surface_care_allows','The surface-care instructions permit this product; no special coating or damage.')}${check('no_other_product','No other cleaner is present or being used. I will not mix or layer products.')}${check('cool_and_safe','The target is cool and away from electrical, food-contact or other unsupported hazards.')}${button('Start '+(q.mode==='practice'?'practice clean':'cleaning'),'start-cleaning','primary wide')}`}</section></div>`;
@@ -142,6 +144,12 @@ namespace GQ {
   }
   function resume():void {
     if(!quest) {go('home');return;}
+    if(quest.mode==='live' && quest.phase==='equipped' && quest.productId && !store.inventory.some(i=>i.catalogId===quest?.productId)) {
+      quest={...quest,phase:'confirmed',productId:undefined,encounterTicket:undefined};
+      toast('That reviewed product is no longer in your arsenal. Choose the bottle you actually own.',true);
+      go('loadout');
+      return;
+    }
     const map:Record<Phase,Screen>={identified:'confirm',confirmed:'loadout',equipped:'clean',cleaning:'clean',result:'result'};
     go(map[quest.phase]);
   }
