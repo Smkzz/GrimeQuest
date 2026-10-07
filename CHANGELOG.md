@@ -11,8 +11,9 @@
 - Upgraded vision transport to strict JSON-schema structured output and OpenRouter parameter-support enforcement.
 - Qualified the complete public-HTTPS live protocol with temporary deterministic mock infrastructure, then deleted the infrastructure and restored AI-off-by-default.
 - Added 0.5 vCPU / 0.5 GB Railway resource ceilings.
-- Current-source automated result: 386 passes, one environment-policy skip; 1,680 client/server policy combinations agree.
+- Current-source automated result: 388 passes, one environment-policy skip; 1,680 client/server policy combinations agree.
 - Added three exact Finland-market Kiilto consumer spray variants (Ikkuna, Koti, Keittiö; fragrance-free 600 ml) without broadening the supported surface classes.
+- Added a 320/390 px expanded-loadout regression; fixed a real 320 px overflow from long Finnish product names.
 - Added an opt-in, rate-limited public demo access mode so judges can use live analysis without a distributed shared secret; default remains private/off.
 - Added global daily provider-attempt ceiling and deployed commit provenance in health.
 - Enabled Railway edge tracing without Python auto-instrumentation; capped production at 0.5 vCPU / 0.5 GB.
