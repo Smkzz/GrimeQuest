@@ -40,7 +40,7 @@ namespace GQ {
   function picture(src:string,alt:string,cls=''):string {return `<img class="${cls}" src="${e(src)}" alt="${e(alt)}">`;}
   function heading(kicker:string,title:string,description:string):string {return `<div class="page-heading"><p class="eyebrow">${kicker}</p><h1 tabindex="-1">${title}</h1><p class="subtitle">${description}</p></div>`;}
   function steps(active:number):string {return `<ol class="steps" aria-label="Quest progress">${['Identify','Choose','Clean','Compare'].map((s,i)=>`<li class="${i===active?'current':i<active?'complete':''}" ${i===active?'aria-current="step"':''}><span>${i<active?'✓':i+1}</span>${s}</li>`).join('')}</ol>`;}
-  function productArt(p:Product):string {return `<div class="bottle-art ${e(p.color)}" aria-hidden="true"><span class="bottle-trigger"></span><span class="bottle-body"><span>method</span><i>${p.category==='glass'?'gls':'kit'}</i></span></div>`;}
+  function productArt(p:Product):string {const brand=p.name.startsWith('Kiilto')?'kiilto':'method';return `<div class="bottle-art ${e(p.color)}" aria-hidden="true"><span class="bottle-trigger"></span><span class="bottle-body"><span>${brand}</span><i>${p.category==='glass'?'gls':'kit'}</i></span></div>`;}
   function topStats():string {
     const s=stats(store,mode);
     return `<div class="top-meta"><span class="level-avatar">${icon('leaf')}</span><div><b>Level ${s.level} · ${s.level>1?'Grime hunter':'Fresh start'}</b><span>${s.xp} ${mode==='practice'?'practice ':''}XP</span></div></div>`;
