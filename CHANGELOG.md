@@ -14,6 +14,7 @@
 - Current-source automated result: 388 passes, one environment-policy skip; 1,680 client/server policy combinations agree.
 - Added three exact Finland-market Kiilto consumer spray variants (Ikkuna, Koti, Keittiö; fragrance-free 600 ml) without broadening the supported surface classes.
 - Added a 320/390 px expanded-loadout regression; fixed a real 320 px overflow from long Finnish product names.
+- Kept Railway edge tracing while explicitly disabling FastAPI-native telemetry/OTLP auto-configuration to remove startup errors and avoid duplicate application telemetry.
 - Added an opt-in, rate-limited public demo access mode so judges can use live analysis without a distributed shared secret; default remains private/off.
 - Added global daily provider-attempt ceiling and deployed commit provenance in health.
 - Enabled Railway edge tracing without Python auto-instrumentation; capped production at 0.5 vCPU / 0.5 GB.
