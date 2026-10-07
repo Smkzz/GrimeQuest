@@ -1,5 +1,13 @@
 # Changelog
 
+## Native iPhone HEIC photo support — 2026-10-08
+
+- Added iOS Safari 17+ native HEIC/HEIF photo selection and browser JPEG normalization; no WASM dependency or image-upload bypass.
+- Improved unsupported-browser fallback and preserved 8 MB file limit / SVG exclusion.
+- Added upload-format regression tests for both live target and product-label pickers.
+- Clean-room release candidate: **449 automated tests passed** (413 Python/browser + 36 Node), 97.76% Python coverage, reproducible generated PWA; physical-device testing remains open.
+- Refreshed all five official manufacturer links and added a device/cleaning acceptance checklist.
+
 ## Fixed Gemini 2.5 Flash Lite ZDR smoke — 2026-10-08
 
 - Under a narrow owner authorization, issued exactly three live, low-cost fixed-model image-analysis calls using a Railway-isolated test runner; all HTTP 200, model identity stable, structured output valid and ZDR routing required.
