@@ -80,6 +80,7 @@ GQ_PROVIDER_KEY=your-provider-key
 GQ_ACCESS_CODE=your-random-private-code-at-least-24-characters
 GQ_TICKET_SECRET=your-random-persistent-signing-secret-at-least-32-characters
 GQ_MAX_CALLS_HOUR=40
+GQ_MAX_CALLS_DAY=200
 ```
 
 On PowerShell, use `$env:GQ_PROVIDER_BASE = '...'`; on a POSIX shell use `export GQ_PROVIDER_BASE='...'`. `.env.example` documents settings, but the application intentionally does **not** auto-load `.env` files. Never commit credentials.
@@ -113,7 +114,7 @@ python scripts/verify_build.py
 
 `GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The qualification suite exercises the generated HTML with an in-memory browser bridge plus a real-origin HTTP/PWA smoke. In this execution environment Chromium navigation to localhost is blocked by policy, so one service-worker/offline browser-origin test is skipped; the corresponding HTTP-origin shell, manifest, service worker and legal routes are still exercised directly. Physical-device HTTPS installation/camera behavior remains a separate release gate.
 
-The latest current-source qualification records **239 Python/API/browser tests passed plus 34 client tests passed (273 passes total), with one environment-policy skip**, approximately 98% combined Python line/branch coverage, strict TypeScript 5.8.3 compilation and a byte-identical PWA rebuild. Railway separately proved a clean network install and startup of the refreshed runtime dependency lock. Python locks are exact release pins, but a dedicated current vulnerability-advisory scan is still a release gate.
+The latest current-source qualification records **242 Python/API/browser tests passed plus 34 client tests passed (276 passes total), with one environment-policy skip**, approximately 98% combined Python line/branch coverage, strict TypeScript 5.8.3 compilation and a byte-identical PWA rebuild. Railway separately proved a clean network install and startup of the refreshed runtime dependency lock. A disposable OSV audit then checked all 18 pinned Python runtime packages plus TypeScript 5.8.3 and reported **0 known vulnerabilities across 19 exact package/version queries**. A trustworthy OS-package scan of the final container/base image is still a release gate; an attempted disposable Trivy path did not yield inspectable evidence and is not counted as a pass.
 
 ## Architecture and handoff
 
