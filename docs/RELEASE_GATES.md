@@ -6,9 +6,9 @@ The current software architecture and automated implementation are ready for the
 
 Clean-room evidence:
 
-- **412 Python/API/browser/evaluation tests passed**
-- **34 client tests passed**
-- **446 / 446 total; zero skips/warnings**
+- **413 Python/API/browser/evaluation tests passed**
+- **36 client tests passed**
+- **449 / 449 total; zero skips/warnings**
 - **97.76% combined Python coverage**
 - **1,680 client/server policy combinations agree**
 - Python 3.13.16 / Node 22.23.3 / TypeScript 5.8.3
@@ -21,6 +21,8 @@ Clean-room evidence:
 Practice and mock-provider evidence remain explicitly separated from real AI/physical-cleaning evidence. The candidate-space evaluator now derives exact surface–soil combinations from the reviewed catalog instead of using a cross-product of independently supported fields.
 
 A subsequent **exploratory Gemini 2.5 Flash Lite** fixed-model test produced three valid live ZDR-required observations (including a correctly unverifiable comparison). This is not an independent 54+ case accuracy validation; see [evidence](REAL_FIXED_ZDR_TRIAL_20261008.md). Production live AI remains off.
+
+Native HEIC/HEIF upload acceptance and browser error fallback are now source/test qualified for Safari 17+, but still require the actual-device [phone acceptance checklist](PHONE_RELEASE_CHECKLIST.md) before a real-image launch.
 
 ## Before the first real-model / physical demo
 
