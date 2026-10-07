@@ -32,4 +32,4 @@ RUN python scripts/build.py \
     && python scripts/verify_build.py \
     && echo GQ_CLEAN_ROOM_QUALIFIED
 
-CMD ["sh", "-c", "echo GQ_CLEAN_ROOM_IMAGE_READY; sleep 600"]
+CMD ["sh", "-c", "echo GQ_CLEAN_ROOM_IMAGE_READY; python -m http.server ${PORT:-8000} --bind 0.0.0.0"]
