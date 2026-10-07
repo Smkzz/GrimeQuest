@@ -107,6 +107,7 @@ def test_default_is_off_and_private_headers():
         assert c.get('/',headers={'host':'attacker.example'}).status_code==400
         assert c.get('/.env').status_code==404
         assert c.get('/server/catalog.json').status_code==404
+        assert c.get('/api/openapi.json').status_code==404
 
 @pytest.mark.parametrize('headers,status',[({},403),({'origin':'https://evil.example','x-gq-access':ACCESS},403),({'origin':'http://testserver','x-gq-access':'wrong'},401),({**HEADERS,'sec-fetch-site':'cross-site'},403),({**HEADERS,'content-type':'text/plain'},415),({**HEADERS,'content-length':'6000000'},413),({**HEADERS,'content-length':'-1'},413),({**HEADERS,'content-length':'invalid'},400)])
 def test_api_boundary_rejects_before_model(client,vision,headers,status):
