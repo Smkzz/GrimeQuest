@@ -2,7 +2,7 @@ import asyncio
 import json
 import httpx
 import pytest
-from server.provider import VisionProvider,ProviderFailure,validate_openrouter_key_limit,verify_openrouter_key_limit
+from server.provider import VisionProvider,ProviderFailure,validate_openrouter_key_limit,verify_openrouter_key_limit,verify_openrouter_zdr_model
 from server.models import TargetAnalysis,ProductObservation
 
 
@@ -122,3 +122,44 @@ def test_openrouter_budget_preflight_is_read_only_and_fails_closed():
                 transport=httpx.MockTransport(lambda request, response=response:response)))
     with pytest.raises(ProviderFailure):
         asyncio.run(verify_openrouter_key_limit('only-in-memory-test-key',maximum_usd=1))
+
+
+def test_zdr_preflight_requires_fixed_model_and_supported_parameters():
+    calls=[]
+    def handle(request):
+        calls.append((request.method,str(request.url)))
+        assert str(request.url)=='https://openrouter.ai/api/v1/endpoints/zdr'
+        assert request.headers['authorization']=='Bearer synthetic-test-key'
+        return httpx.Response(200,json={'data':[
+            {'model_id':'other/model','status':0,
+             'supported_parameters':['structured_outputs','temperature','max_tokens']},
+            {'model_id':'google/gemini-2.5-flash-lite','status':0,
+             'supported_parameters':['response_format','temperature','max_tokens']},
+        ]})
+    actual=asyncio.run(verify_openrouter_zdr_model(
+        'synthetic-test-key','google/gemini-2.5-flash-lite',
+        transport=httpx.MockTransport(handle)))
+    assert actual=={'verified':True,'model':'google/gemini-2.5-flash-lite','zdr_endpoint_count':1}
+    assert len(calls)==1
+
+    for payload in [
+        {'data':[]},
+        {'data':[{'model_id':'google/gemini-2.5-flash-lite','status':1,
+                  'supported_parameters':['response_format','temperature','max_tokens']}]},
+        {'data':[{'model_id':'google/gemini-2.5-flash-lite','status':0,
+                  'supported_parameters':['temperature','max_tokens']}]},
+        {'data':[{'model_id':'google/gemini-2.5-flash-lite','status':0,
+                  'supported_parameters':['response_format','max_tokens']}]},
+        {'data':{}},
+    ]:
+        with pytest.raises(ProviderFailure):
+            asyncio.run(verify_openrouter_zdr_model(
+                'synthetic-test-key','google/gemini-2.5-flash-lite',
+                transport=httpx.MockTransport(lambda request,payload=payload:httpx.Response(200,json=payload))))
+    for status in [401,500]:
+        with pytest.raises(ProviderFailure):
+            asyncio.run(verify_openrouter_zdr_model(
+                'synthetic-test-key','google/gemini-2.5-flash-lite',
+                transport=httpx.MockTransport(lambda request,status=status:httpx.Response(status,json={}))))
+    with pytest.raises(ProviderFailure):
+        asyncio.run(verify_openrouter_zdr_model('synthetic-test-key','openrouter/free'))
