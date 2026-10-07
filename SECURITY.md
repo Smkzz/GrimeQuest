@@ -6,7 +6,8 @@ A small, single-process **private preview**, not an internet-scale public multi-
 
 ## Implemented controls
 
-- Server-only provider credentials; private per-tab application access code; exact origin and allowed-host checks; constant-time access comparison.
+- Server-only provider credentials; private per-tab application access code by default; exact origin and allowed-host checks; constant-time access comparison.
+- Optional public demo mode can waive the shared code only by explicit server configuration. It remains same-origin, requires persistent signing, and refuses configuration above a bounded daily-attempt ceiling.
 - JSON-only bounded POST bodies, explicit boolean consent (numeric `1` is rejected), strict schemas and no reflected validation payloads.
 - Actual image decoding and content-type checks, pixel/byte/frame limits, metadata stripping, two concurrent decodes, no arbitrary file paths or client-supplied provider URL.
 - Escaping of untrusted inventory/model text, a restrictive served-app CSP, no inline served-app scripts, no frame embedding and no third-party frontend scripts.
