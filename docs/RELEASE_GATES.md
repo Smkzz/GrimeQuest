@@ -10,7 +10,7 @@ The full repo-backed Railway service is live over HTTPS at `grimequest-web-produ
 
 A temporary deterministic vision fixture plus external Railway runner exercised the entire public-HTTPS live protocol successfully. Both temporary services were deleted afterward and live AI was disabled again. This qualifies networking, auth, schema/policy boundaries, signing, verification/idempotency and static PWA routes; it does **not** qualify visual model accuracy.
 
-Current-source local qualification: 352 Python/API/browser passes + 34 client passes = 386 passes, one environment-policy skip, approximately 98% combined Python coverage and byte-identical generated output.
+Current-source local qualification: 354 Python/API/browser passes + 34 client passes = 388 passes, one environment-policy skip, approximately 98% combined Python coverage and byte-identical generated output.
 
 Public demo access is implemented but remains disabled by default. It removes the shared-code UX only when the operator explicitly enables it; same-origin enforcement and hard hourly/daily limits remain active.
 
