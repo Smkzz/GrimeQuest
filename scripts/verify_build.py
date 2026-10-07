@@ -31,8 +31,8 @@ def main():
     assert "cache.addAll(PATHS)).then(() => self.skipWaiting())" in sw
     assert "event.data.type === 'GRIMEQUEST_ACTIVATE_UPDATE'" in sw
     for name in ('update.html', 'update.js', 'update.css'):
-        assert "'/"+name+"'" not in sw
-    assert "'/update-client.js'" in sw
+        assert '"/'+name+'"' not in sw
+    assert '"/update-client.js"' in sw
     runtime=list((ROOT/'web').rglob('*'))
     forbidden=['GQ_PROVIDER_KEY=sk-','sk-proj-','-----BEGIN PRIVATE KEY-----']
     for path in runtime:

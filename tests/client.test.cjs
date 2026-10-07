@@ -196,3 +196,49 @@ test('bitmap decoder rejecting HEIC falls back to native Safari image-element de
  assert.equal(canvas.width,1200);assert.equal(canvas.height,1600);
 });
 
+test('app update check never reloads mid-quest and offers an explicit refresh',async()=>{
+ const nodes=Object.fromEntries(['app-update-banner','app-update-now','app-update-later'].map(id=>[id,{hidden:true,events:{},addEventListener(k,fn){this.events[k]=fn;}}]));
+ const listeners={};let registers=0,checks=0,navigations=[];
+ const registration={waiting:null,events:{},addEventListener(k,fn){this.events[k]=fn;},update:async()=>{checks++;}};
+ const ctx={console,document:{getElementById:id=>nodes[id]},navigator:{serviceWorker:{controller:{},register:async(script,options)=>{assert.equal(script,'/sw.js');assert.equal(options.updateViaCache,'none');registers++;return registration;},addEventListener(k,fn){listeners[k]=fn;}}},location:{protocol:'https:'},window:{isSecureContext:true,location:{assign:u=>navigations.push(u)}}};
+ vm.runInNewContext(fs.readFileSync('web/update-client.js','utf8'),ctx);
+ for(let i=0;i<5&&checks===0;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(registers,1);assert.equal(checks,1);
+ assert.equal(nodes['app-update-banner'].hidden,true);
+ listeners.controllerchange();
+ assert.equal(nodes['app-update-banner'].hidden,false);
+ assert.deepEqual(navigations,[],'worker takeover must never force a quest reload');
+ nodes['app-update-later'].events.click();
+ assert.equal(nodes['app-update-banner'].hidden,true);
+ listeners.controllerchange();assert.equal(nodes['app-update-banner'].hidden,true);
+ nodes['app-update-now'].events.click();assert.deepEqual(navigations,['/update.html']);
+});
+
+test('stale shell recovery deletes only GrimeQuest caches, preserves saved data, and bypasses old worker URL filter',async()=>{
+ const nodes={'refresh-now':{disabled:false,events:{},addEventListener(k,fn){this.events[k]=fn;}},'refresh-status':{textContent:''}};
+ const removed=[],deleted=[],navigations=[],locals=new Map([['grimequest.v1','saved inventory'],['notes','personal']]);
+ const ctx={console,URL,navigator:{onLine:true,serviceWorker:{getRegistration:async path=>{
+  assert.equal(path,'/');return {scope:'https://app.example/',unregister:async()=>{removed.push('root');return true;}};}},},
+ location:{origin:'https://app.example',replace:u=>navigations.push(u)},
+ window:{caches:true,location:{replace:u=>navigations.push(u)}},
+ caches:{keys:async()=>['another-app','grimequest-old','grimequest-previous'],delete:async name=>{deleted.push(name);return true;}},
+ localStorage:{getItem:k=>locals.get(k),setItem:()=>assert.fail('recovery must not change localStorage'),removeItem:()=>assert.fail('recovery must not erase user records')},
+ Date:{now:()=>1234},document:{getElementById:id=>nodes[id]}};
+ vm.runInNewContext(fs.readFileSync('web/update.js','utf8'),ctx);
+ await nodes['refresh-now'].events.click();
+ assert.deepEqual(removed,['root']);assert.deepEqual(deleted.sort(),['grimequest-old','grimequest-previous']);
+ assert.deepEqual(navigations,['/?app_refresh=1234']);
+ assert.equal(locals.get('grimequest.v1'),'saved inventory');
+ assert.equal(nodes['refresh-now'].disabled,true);
+});
+
+test('offline recovery does not unregister or delete anything',async()=>{
+ const nodes={'refresh-now':{disabled:false,events:{},addEventListener(k,fn){this.events[k]=fn;}},'refresh-status':{textContent:''}};
+ let touched=0;
+ const ctx={console,navigator:{onLine:false,serviceWorker:{getRegistration:async()=>{touched++;}}},location:{origin:'https://app.example'},window:{},document:{getElementById:id=>nodes[id]}};
+ vm.runInNewContext(fs.readFileSync('web/update.js','utf8'),ctx);
+ await nodes['refresh-now'].events.click();
+ assert.equal(touched,0);assert.match(nodes['refresh-status'].textContent,/Connect to the internet/);
+ assert.equal(nodes['refresh-now'].disabled,false);
+});
+

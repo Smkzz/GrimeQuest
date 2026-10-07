@@ -94,7 +94,7 @@ def test_real_http_origin_exposes_complete_pwa_shell():
         sw=urllib.request.urlopen(base+'/sw.js',timeout=2).read().decode()
         assert '/privacy.html' in sw and '/safety.html' in sw and '/api/' in sw
         assert '/update-client.js' in sw and 'self.skipWaiting()' in sw
-        assert all(p not in sw for p in ("'/update.html'","'/update.js'","'/update.css'"))
+        assert all(p not in sw for p in ('"/update.html"','"/update.js"','"/update.css"'))
     finally:
         process.terminate()
         try:process.wait(timeout=5)
