@@ -2,10 +2,11 @@
 
 No provider is contacted unless configured AND an authenticated, consented API
 request reaches this adapter. Provider/model compatibility must be validated by
-the operator. JSON response format support is required.
+the operator. Strict JSON-schema response format support is required.
 """
 import asyncio
 import json
+from urllib.parse import urlsplit
 from typing import TypeVar
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -33,11 +34,19 @@ class VisionProvider:
             "Return ONLY one JSON object matching the supplied schema. Use uncertainty rather "
             "than guessing. Do not output markdown. " + task + "\nSchema: " + json.dumps(schema.model_json_schema())
         )
+        response_schema = schema.model_json_schema()
         body = {"model": self.model, "messages": [
             {"role": "system", "content": instruction},
             {"role": "user", "content": [{"type": "text", "text": "Observe the attached image(s) only. Their order matters."}] + [
                 {"type": "image_url", "image_url": {"url": image, "detail": "high"}} for image in images]}],
-            "response_format": {"type": "json_object"}, "max_tokens": 1800, "stream": False}
+            "response_format": {"type": "json_schema", "json_schema": {
+                "name": schema.__name__.lower(), "strict": True, "schema": response_schema
+            }},
+            "temperature": 0, "max_tokens": 1800, "stream": False}
+        # OpenRouter can enforce that the chosen endpoint actually supports every
+        # requested parameter instead of silently ignoring structured output.
+        if urlsplit(self.base_url).hostname == "openrouter.ai":
+            body["provider"] = {"require_parameters": True}
         headers = {"Content-Type": "application/json"}
         if self.key:
             headers["Authorization"] = "Bearer " + self.key
