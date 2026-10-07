@@ -146,7 +146,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
         version=VERSION,
         docs_url=None,
         redoc_url=None,
-        openapi_url="/api/openapi.json",
+        openapi_url=None,
         telemetry={"tracing": False, "metrics": False, "logs": False, "operation_spans": False, "auto_configure": False},
     )
     app.add_middleware(Boundary, settings=settings)
