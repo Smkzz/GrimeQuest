@@ -138,6 +138,7 @@ The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.2
 - [Hosted deployment status](docs/HOSTED_STATUS.md)
 - [Vision provider evaluation plan](docs/PROVIDER_EVALUATION.md)
 - [Real provider smoke-test results (2026-10-08)](docs/REAL_PROVIDER_SMOKE_20261008.md)
+- [Gemini fixed-model ZDR live-image trial, three calls (2026-10-08)](docs/REAL_FIXED_ZDR_TRIAL_20261008.md)
 - [Vision provider qualification dataset](eval/README.md)
 
 CI is provided as a **manual-only GitHub Actions workflow**. The source is still hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
