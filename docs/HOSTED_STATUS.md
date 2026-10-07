@@ -29,9 +29,9 @@ The current software release candidate has passed a separate Railway clean-room 
 
 - Python: 3.13.16
 - Node: 22.23.3
-- Python/API/browser/evaluation tests: 369 passed
+- Python/API/browser/evaluation tests: 405 passed
 - client/Node tests: 34 passed
-- total: **403 / 403 passed**
+- total: **439 / 439 passed**
 - skips/warnings: **0**
 - Python combined coverage: **97.55%**
 - client/server policy parity: **1,680 combinations**
