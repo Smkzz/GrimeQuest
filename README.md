@@ -13,7 +13,7 @@ The full repo-backed application is deployed over HTTPS at:
 
 `https://grimequest-web-production.up.railway.app/`
 
-Railway builds the PWA from source in the multi-stage Docker image, runs the FastAPI service with one replica in Amsterdam, and checks `/api/health`. The deployed source is pinned to commit `a7acac65c79db80e5e86516d2b196bd25503c21b`; deployment `5554ddd7-c9ff-4c35-aaeb-4cee4681cc43` is healthy. Live AI remains intentionally disabled until a tested vision provider, server-side credential and private access code are configured. Practice mode is available without an account or API key, and its illustrated outcomes are **not AI analyses or physical cleaning evidence**.
+Railway builds the PWA from source in a digest-pinned multi-stage Docker image, runs one FastAPI replica in Amsterdam, enforces a 0.5 vCPU / 0.5 GB per-replica ceiling, and checks `/api/health`. The currently hosted release is healthy and live AI is intentionally disabled after hosted protocol qualification. Practice mode is available without an account or API key, and its illustrated outcomes are **not AI analyses or physical cleaning evidence**.
 
 Generated frontend bundles are intentionally not committed. `python scripts/build.py` compiles the TypeScript, generates the PWA assets/service worker and writes `preview.html` for an optional double-click walkthrough.
 
@@ -63,7 +63,7 @@ A phone's `localhost` is the phone, not your computer. Real phone-camera use nee
 
 Live mode requires a **vision-capable Chat Completions-compatible endpoint** supporting image inputs and JSON-object responses. Endpoint/model compatibility has not been established against a real service in this release. There is no hard-coded paid model and no automatic fallback to a simulation.
 
-The adapter posts to `<GQ_PROVIDER_BASE>/chat/completions`, requests `response_format: {"type":"json_object"}`, caps output at 1,800 tokens, and validates the response against strict Pydantic schemas. Provider-specific unsupported parameters, refusals or incomplete output fail without issuing a cleaning result.
+The adapter posts to `<GQ_PROVIDER_BASE>/chat/completions`, requests strict JSON-schema structured output, caps output at 1,800 tokens, and validates the response again against strict Pydantic schemas. On OpenRouter it also requires routing only to endpoints that support every requested parameter. Provider-specific unsupported parameters, refusals or incomplete output fail without issuing a cleaning result.
 
 Create a private code:
 
@@ -78,6 +78,7 @@ GQ_PROVIDER_BASE=https://your-selected-provider.example/v1
 GQ_PROVIDER_MODEL=your-tested-vision-model
 GQ_PROVIDER_KEY=your-provider-key
 GQ_ACCESS_CODE=your-random-private-code-at-least-24-characters
+GQ_TICKET_SECRET=your-random-persistent-signing-secret-at-least-32-characters
 GQ_MAX_CALLS_HOUR=40
 ```
 
@@ -110,9 +111,9 @@ python -m pytest --cov=server --cov-report=term-missing
 python scripts/verify_build.py
 ```
 
-`GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. Browser tests inject the actual generated HTML with an explicit in-memory storage adapter and bridge to FastAPI's TestClient; this avoids network restrictions in the build environment. They are **not physical-device, HTTPS, persistent-browser-storage or PWA-installation tests**.
+`GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The qualification suite exercises the generated HTML with an in-memory browser bridge plus a real-origin HTTP/PWA smoke. In this execution environment Chromium navigation to localhost is blocked by policy, so one service-worker/offline browser-origin test is skipped; the corresponding HTTP-origin shell, manifest, service worker and legal routes are still exercised directly. Physical-device HTTPS installation/camera behavior remains a separate release gate.
 
-`npm ci` requires registry access. The lockfile contains the integrity value from the [official TypeScript 5.8.3 package metadata](https://registry.npmjs.org/typescript/5.8.3). The local build used the already installed exact compiler, not an unverified replacement. Python locks record tested dependency versions; they are not a package-hash lock or a vulnerability scan.
+The latest current-source qualification records **239 Python/API/browser tests passed plus 34 client tests passed (273 passes total), with one environment-policy skip**, approximately 98% combined Python line/branch coverage, strict TypeScript 5.8.3 compilation and a byte-identical PWA rebuild. Railway separately proved a clean network install and startup of the refreshed runtime dependency lock. Python locks are exact release pins, but a dedicated current vulnerability-advisory scan is still a release gate.
 
 ## Architecture and handoff
 
@@ -129,7 +130,7 @@ python scripts/verify_build.py
 
 CI is provided as a **manual-only GitHub Actions workflow**. The source is still hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
 
-The repo-backed Python service is deployed successfully on Railway using the Dockerfile and `railway.json` configuration. The temporary practice-only Railway Function used during deployment bring-up has been removed. No live vision provider is configured, no paid model call was made as part of deployment, and physical phone/cleaning validation remains outstanding. The repository must still be made public before a hackathon submission that requires open source.
+The repo-backed Python service is deployed successfully on Railway. A temporary deterministic vision fixture and external qualification runner exercised the complete hosted HTTPS live protocol—authentication rejection, target observation, product transcription remaining unreviewed, eligibility/start, signed encounter, comparison, XP and idempotent repeat—then both temporary services were deleted and production was restored to AI-off-by-default. That qualification proves the network/application protocol, **not real model accuracy**. Physical phone/cleaning validation remains outstanding. The repository must still be made public before a hackathon submission that requires open source.
 
 ## License
 
