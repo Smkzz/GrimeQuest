@@ -2,7 +2,7 @@
 
 ## Intended deployment
 
-A small, single-process **private preview**, not an internet-scale public multi-tenant service. Keep the default loopback binding until HTTPS, origin configuration, access control, provider privacy and budget controls are reviewed. The private application code is not a user-account system and cannot replace production authentication. No security certification or independent penetration test has been performed.
+A small, single-process PWA service with a public practice experience and fail-closed live mode, not an internet-scale multi-tenant account system. The hosted service uses HTTPS, exact-origin/Host checks, bounded resources and provider-call ceilings. Public-demo live access is opt-in and rate-limited. No security certification or independent penetration test has been performed.
 
 ## Implemented controls
 
@@ -25,7 +25,7 @@ The model can still misobserve a scene or miss a hazard. Prompt instructions are
 
 Resource accounting is in process memory and per-IP limits may aggregate users behind a proxy. Multi-worker/multi-instance deployment would break the intended global limits and result idempotency. Workflow tickets now use a persistent server-side signing secret when configured, so legitimate signed encounters survive ordinary process restarts. Comparison-result deduplication and quotas remain process-local, so a restart can forget prior completion-cache state even though the signed workflow remains valid. A public multi-user release still needs durable account-level quotas, external spend limits, observability with private-field redaction and a reviewed privacy model.
 
-Runtime dependencies were refreshed and pinned, project metadata was synchronized, Docker base images are digest-pinned, the container build runs `pip check`, and Railway completed a clean network install/build/start of that dependency set. The browser runtime has zero npm production dependencies. A disposable OSV querybatch audit checked the exact 18 Python runtime pins plus TypeScript 5.8.3 and returned 0 known vulnerabilities across all 19 queries. A trustworthy OS-package/final-container image scan has **not** yet been completed, and there has been no independent penetration test. Resolve those gates before treating the prototype as a generally available cleaning-advice service.
+Runtime dependencies were refreshed and pinned, project metadata was synchronized, Docker base images are digest-pinned, the container build runs `pip check`, and Railway completed a clean network install/build/start of that dependency set. The browser runtime has zero npm production dependencies. A full OSV querybatch audit checked 32 exact pinned entries across the Python runtime, Python test toolchain and TypeScript. It first caught a pytest 9.0.2 advisory; after upgrading to pytest 9.1.1 the same audit returned 0 known vulnerabilities / 0 errors. A trustworthy OS-package/final-container image scan has **not** yet been completed, and there has been no independent penetration test. Resolve those gates before treating the prototype as a generally available cleaning-advice service.
 
 ## Reporting
 
