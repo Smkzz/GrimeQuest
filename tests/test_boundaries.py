@@ -74,9 +74,15 @@ def test_origin_configuration(origin):
 def test_bad_call_limit(limit):
     with pytest.raises(ValueError):Settings(max_calls_hour=limit).validate()
 
+@pytest.mark.parametrize('limit',[0,-1,10001])
+def test_bad_daily_call_limit(limit):
+    with pytest.raises(ValueError):Settings(max_calls_day=limit).validate()
+
 def test_default_is_off_and_private_headers():
     with TestClient(create_app(Settings())) as c:
         health=c.get('/api/health');assert not health.json()['live_ready'];assert health.json()['workflow_receipts_persistent'] is False
+        assert health.json()['max_calls_day']==200
+        assert health.json()['source_sha']=='' and health.json()['deployment_id']==''
         assert health.headers['cache-control']=='no-store'
         assert 'frame-ancestors' in health.headers['content-security-policy']
         assert health.headers['cross-origin-opener-policy']=='same-origin'
@@ -115,6 +121,11 @@ def test_global_per_client_and_concurrent_budget():
         with pytest.raises(HTTPException):
             async with b.slot('d'):pass
         assert len(b.events)==3
+        b=Budget(100,2)
+        async with b.slot('day-a'):pass
+        async with b.slot('day-b'):pass
+        with pytest.raises(HTTPException):
+            async with b.slot('day-c'):pass
         b=Budget(100)
         for _ in range(20):
             async with b.slot('same'):pass
@@ -131,7 +142,7 @@ def test_budget_releases_on_failure_and_expiry(monkeypatch):
             async with b.slot('a'):raise ValueError('failure')
         assert b.active==0
         b.events[0]=(0,'a')
-        monkeypatch.setattr('server.app.time.monotonic',lambda:4000)
+        monkeypatch.setattr('server.app.time.monotonic',lambda:90000)
         async with b.slot('a'):pass
         assert len(b.events)==1
     asyncio.run(run())
