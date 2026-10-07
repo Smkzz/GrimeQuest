@@ -64,6 +64,13 @@ def test_mystery_surface_never_unlocks_product(page):
     expect(page.locator('main')).to_contain_text('not supported')
     assert page.evaluate('GQ.stats(GQ.readStore(),"practice").xp')==0
 
+def test_finland_catalog_brand_and_exact_variant_visible(page):
+    mount(page);click(page,'inventory')
+    expect(page.locator('main')).to_contain_text('Kiilto Ikkuna')
+    expect(page.locator('main')).to_contain_text('600 ml · Finland')
+    kiilto=page.locator('.catalog-item').filter(has_text='Kiilto Ikkuna').first
+    expect(kiilto.locator('.bottle-body>span')).to_have_text('kiilto')
+
 def test_arsenal_escaping_remove_and_private_export(page):
     errors=mount(page);click(page,'inventory')
     click(page,'add-catalog','method-kitchen-clementine-uk-828')
