@@ -12,11 +12,12 @@ class Settings:
     app_origin: str = ""
     max_calls_hour: int = 40
     max_calls_day: int = 200
+    public_live: bool = False
     allow_local_provider: bool = False
 
     @property
     def ready(self) -> bool:
-        return bool(self.provider_base and self.provider_model and len(self.access_code) >= 24)
+        return bool(self.provider_base and self.provider_model and (self.public_live or len(self.access_code) >= 24))
 
     def validate(self):
         if not 1 <= self.max_calls_hour <= 1000:
@@ -25,6 +26,10 @@ class Settings:
             raise ValueError("GQ_MAX_CALLS_DAY must be 1..10000")
         if self.ticket_secret and not 32 <= len(self.ticket_secret) <= 256:
             raise ValueError("GQ_TICKET_SECRET must be 32..256 characters when set")
+        if self.public_live and self.max_calls_day > 200:
+            raise ValueError("GQ_PUBLIC_LIVE requires GQ_MAX_CALLS_DAY <= 200")
+        if self.public_live and len(self.ticket_secret) < 32:
+            raise ValueError("GQ_PUBLIC_LIVE requires a persistent GQ_TICKET_SECRET")
         if self.provider_base:
             u = urlsplit(self.provider_base)
             local = u.hostname in {"localhost", "127.0.0.1", "::1"}
@@ -45,4 +50,5 @@ class Settings:
                    ticket_secret=os.getenv("GQ_TICKET_SECRET", ""), app_origin=os.getenv("GQ_APP_ORIGIN", "").rstrip("/"),
                    max_calls_hour=int(os.getenv("GQ_MAX_CALLS_HOUR", "40")),
                    max_calls_day=int(os.getenv("GQ_MAX_CALLS_DAY", "200")),
+                   public_live=os.getenv("GQ_PUBLIC_LIVE", "0") == "1",
                    allow_local_provider=os.getenv("GQ_ALLOW_LOCAL_PROVIDER", "0") == "1").validate()
