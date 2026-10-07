@@ -4,7 +4,7 @@
 
 Identify one visible mess, confirm its material, choose a product from your own inventory, do the real cleaning, and compare the result. The useful core is product matching; the game adds a reason to start and finish.
 
-**v0.1.0 is a working, locally tested prototype, not a publicly qualified chemical-advice service.** The shipped default is an explicitly simulated practice mode. The live API and client flow are implemented and tested with injected observations. No real vision provider or physical cleaning trial has been validated for this release. See [test evidence](docs/TEST_REPORT.md) and [release gates](docs/RELEASE_GATES.md).
+**v0.1.0 is a working, externally clean-room-qualified prototype, not a publicly qualified chemical-advice service.** The shipped default is an explicitly simulated practice mode. The live application protocol is qualified with deterministic observations, but no real vision model or physical cleaning trial has yet passed the release gate. See [test evidence](docs/TEST_REPORT.md) and [release gates](docs/RELEASE_GATES.md).
 
 
 ## Try it immediately
@@ -118,9 +118,9 @@ python -m pytest --cov=server --cov-report=term-missing
 python scripts/verify_build.py
 ```
 
-`GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The qualification suite exercises the generated HTML with an in-memory browser bridge plus a real-origin HTTP/PWA smoke. In this execution environment Chromium navigation to localhost is blocked by policy, so one service-worker/offline browser-origin test is skipped; the corresponding HTTP-origin shell, manifest, service worker and legal routes are still exercised directly. Physical-device HTTPS installation/camera behavior remains a separate release gate.
+`GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The normal browser suite covers desktop and phone layouts, while `tests/test_pwa_runtime.py` starts the real server and exercises the real browser origin, service worker, offline app shell and legal routes.
 
-The latest current-source qualification records **354 Python/API/browser tests passed plus 34 client tests passed (388 passes total), with one environment-policy skip**, approximately 98% combined Python line/branch coverage, **1,680 client/server policy combinations agreeing**, strict TypeScript 5.8.3 compilation and a byte-identical PWA rebuild. Railway separately proved a clean network install and startup of the refreshed runtime dependency lock. A disposable OSV audit then checked all 18 pinned Python runtime packages plus TypeScript 5.8.3 and reported **0 known vulnerabilities across 19 exact package/version queries**. A trustworthy OS-package scan of the final container/base image is still a release gate; an attempted disposable Trivy path did not yield inspectable evidence and is not counted as a pass.
+The latest Railway clean-room qualification runs on **Python 3.13.16 + Node 22.23.3 + Chromium** and records **369 Python/API/browser/evaluation tests + 34 client tests = 403/403 passes, zero skips or warnings**, **97.55% combined Python line/branch coverage**, **1,680 client/server policy combinations agreeing**, strict TypeScript 5.8.3 compilation, zero npm audit findings during clean install, and a byte-identical PWA rebuild. A separate OSV querybatch audit checked **32 exact pinned Python runtime/test packages plus TypeScript entries in total and found 0 known vulnerabilities / 0 errors** after catching and fixing an earlier pytest advisory. A trustworthy OS-package scan of the final container/base image remains a release gate; attempted disposable Trivy paths did not yield inspectable scan evidence and are not counted as a pass.
 
 ## Architecture and handoff
 
@@ -134,6 +134,8 @@ The latest current-source qualification records **354 Python/API/browser tests p
 - [Build plan and completed iterations](docs/BUILD_PLAN.md)
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md)
 - [Hosted deployment status](docs/HOSTED_STATUS.md)
+- [Vision provider evaluation plan](docs/PROVIDER_EVALUATION.md)
+- [Vision provider qualification dataset](eval/README.md)
 
 CI is provided as a **manual-only GitHub Actions workflow**. The source is still hosted in the private GitHub repository `Smkz-Entertainment/GrimeQuest`; normal pushes do not trigger CI. Generated frontend bundles and qualification evidence are ignored by Git and can be regenerated locally; `scripts/package_release.py` includes generated runtime files and available evidence in a release archive.
 
