@@ -60,6 +60,44 @@ async def verify_openrouter_key_limit(key: str, maximum_usd: float = 0.50,
         raise ProviderFailure("OpenRouter spending-cap verification failed. No inference was made.") from exc
 
 
+async def verify_openrouter_zdr_model(key: str, model: str, transport=None) -> dict:
+    """Require one advertised ZDR-capable endpoint for the exact fixed model.
+
+    This metadata request is read-only and never incurs inference charges.
+    The eventual model request also requires ZDR/data-collection denial; this
+    preflight alone cannot guarantee a live route remains available.
+    """
+    if not key or not model or model in {"openrouter/free", "openrouter/auto"}:
+        raise ProviderFailure("A fixed model and API key are required for private image evaluation.")
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=False,
+                                     trust_env=False, transport=transport) as client:
+            response = await client.get("https://openrouter.ai/api/v1/endpoints/zdr",
+                                        headers={"Authorization": "Bearer " + key})
+            if response.status_code != 200 or len(response.content) > 12_000_000:
+                raise ProviderFailure("OpenRouter ZDR endpoint availability could not be verified.")
+            data = response.json().get("data")
+            if not isinstance(data, list):
+                raise ProviderFailure("OpenRouter did not return a verified ZDR endpoint list.")
+            eligible = []
+            for row in data:
+                if not isinstance(row, dict) or row.get("model_id") != model:
+                    continue
+                params = row.get("supported_parameters")
+                if not isinstance(params, list) or row.get("status", 0) not in (None, 0):
+                    continue
+                if (("structured_outputs" in params or "response_format" in params)
+                        and "temperature" in params and "max_tokens" in params):
+                    eligible.append(row)
+            if not eligible:
+                raise ProviderFailure("No fixed-model ZDR endpoint supports the required response parameters.")
+            return {"verified": True, "model": model, "zdr_endpoint_count": len(eligible)}
+    except ProviderFailure:
+        raise
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError) as exc:
+        raise ProviderFailure("OpenRouter ZDR preflight failed. No inference was made.") from exc
+
+
 class VisionProvider:
     def __init__(self, base_url: str, model: str, key: str = "", transport=None, timeout: float = 25):
         self.base_url = base_url.rstrip("/")
