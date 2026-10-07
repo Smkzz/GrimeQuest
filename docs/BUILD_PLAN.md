@@ -18,4 +18,4 @@ Status: automated software/protocol qualification complete; real-model accuracy,
 
 The original execution shell blocked browser URL navigation, so early tests used explicit browser storage/API adapters. A later Python-3.13 Railway clean-room build now also passes the real-origin Chromium PWA/service-worker/offline-shell tests. Physical camera hardware, Add to Home Screen behavior on the target phone and real cleaning remain explicitly unverified.
 
-No existing project repository or code was imported. No paid model calls, public deployment, database writes, repository push, cloud CI run or third-party account changes were performed.
+No existing project code was imported for the initial implementation. The source has since been published to the owner's **private** GitHub repository and deployed as a public HTTPS practice-mode app on Railway. Automated clean-room and deterministic hosted protocol tests were run; their results are not real-model or physical-cleaning evidence. No paid vision calls or hosted GitHub Actions qualification were used. Public visibility of the GitHub repository remains deferred until the owner approves publication.
