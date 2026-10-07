@@ -26,7 +26,7 @@ The evaluator now refuses to run a single image request unless the *provider its
 - `include_byok_in_limit is true`
 - `is_management_key is false`
 
-An absent, resettable, inconsistent or oversized limit returns a failure **before constructing the vision client or uploading any image**. This is stronger than `GQ_MAX_CALLS_DAY`, which is only a per-process call-count budget.
+An absent, resettable, inconsistent or oversized limit returns a failure **before constructing the vision client or uploading any image**. A missing compatible ZDR endpoint also fails before inference. Preflight eligibility does not guarantee that the live endpoint will stay available. This is stronger than `GQ_MAX_CALLS_DAY`, which is only a per-process call-count budget.
 
 ## Data and provider routing gate
 
@@ -55,11 +55,12 @@ The reference documentation is:
 ## Qualification steps once a dedicated key exists
 
 1. Re-run the read-only `/api/v1/key` check. Stop if any spending guard is missing.
-2. Send one licensed, non-private image using the fixed model and request-level ZDR. Verify HTTP 200, schema compliance, actual model identity, no unknown fallback, and response latency.
-3. Re-check the remaining *provider-side* key limit. Stop if any unexpected charge or routing change appears.
-4. Run the private, consented `eval/README.md` holdout set through `scripts/evaluate_provider.py`, with the new spending guard. The runner stops immediately on provider failure or a safety-critical false-supported/false-clear/hazard miss.
-5. Apply the mandatory accuracy and abstention gates. Do not infer safety from a handful of photographs. Never commit images, addresses or readable labels.
-6. Complete target-phone, camera, safety and actual cleaning trials.
-7. Only after qualification and owner approval configure production `GQ_PROVIDER_BASE`, `GQ_PROVIDER_MODEL`, a private access code, and subsequently consider public demo mode.
+2. Query `GET /api/v1/endpoints/zdr` **without sending an image**. The fixed model must have an advertised ZDR endpoint supporting JSON response formatting, temperature and output limits; the evaluation runner now enforces this preflight too.
+3. Send one licensed, non-private image using the fixed model and request-level ZDR. Verify HTTP 200, schema compliance, actual model identity, no unknown fallback, and response latency.
+4. Re-check the remaining *provider-side* key limit. Stop if any unexpected charge or routing change appears.
+5. Run the private, consented `eval/README.md` holdout set through `scripts/evaluate_provider.py`, with the new spending guard. The runner stops immediately on provider failure or a safety-critical false-supported/false-clear/hazard miss.
+6. Apply the mandatory accuracy and abstention gates. Do not infer safety from a handful of photographs. Never commit images, addresses or readable labels.
+7. Complete target-phone, camera, safety and actual cleaning trials.
+8. Only after qualification and owner approval configure production `GQ_PROVIDER_BASE`, `GQ_PROVIDER_MODEL`, a private access code, and subsequently consider public demo mode.
 
 **No paid request is authorized when the existing larger-limit key is the only available credential.**
