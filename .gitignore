@@ -16,3 +16,7 @@ playwright-report/
 evidence/*
 !evidence/README.md
 BUILD_MANIFEST.json
+
+# Consented real-world evaluation data stays local/private
+eval/images/
+eval/results/
