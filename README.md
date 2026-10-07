@@ -81,13 +81,19 @@ GQ_ACCESS_CODE=your-random-private-code-at-least-24-characters
 GQ_TICKET_SECRET=your-random-persistent-signing-secret-at-least-32-characters
 GQ_MAX_CALLS_HOUR=40
 GQ_MAX_CALLS_DAY=200
+# Optional public demo; default off. See below.
+GQ_PUBLIC_LIVE=0
 ```
 
 On PowerShell, use `$env:GQ_PROVIDER_BASE = '...'`; on a POSIX shell use `export GQ_PROVIDER_BASE='...'`. `.env.example` documents settings, but the application intentionally does **not** auto-load `.env` files. Never commit credentials.
 
 For an externally hosted app also set `GQ_APP_ORIGIN=https://your-app.example`. Use one server process. A deliberately enabled, operator-managed loopback provider may use HTTP only with `GQ_ALLOW_LOCAL_PROVIDER=1`; it must still support the required vision protocol. Do not assume a local model will be accurate enough.
 
-In the app, open **Settings → save the private access code → Live camera**. Provider keys never belong in the frontend. Provider fees and data-retention terms may apply; call-count limits are not dollar budgets. A normal successful encounter needs target analysis plus a comparison. Reading product labels is a separate model call. No request is retried automatically.
+In private-preview mode, open **Settings → save the private access code → Live camera**. Provider keys never belong in the frontend. Provider fees and data-retention terms may apply; call-count limits are not dollar budgets. A normal successful encounter needs target analysis plus a comparison. Reading product labels is a separate model call. No request is retried automatically.
+
+### Public demo mode
+
+For a hackathon/judging deployment, `GQ_PUBLIC_LIVE=1` removes the shared access-code prompt while keeping same-origin enforcement and the server's concurrency/hour/day ceilings. It is deliberately opt-in and fails configuration unless a persistent `GQ_TICKET_SECRET` exists and `GQ_MAX_CALLS_DAY <= 200`. Keep it off for private previews. If using a provider with a 50-request/day free allowance, use a lower app ceiling such as `GQ_MAX_CALLS_DAY=45` so GrimeQuest stops before the provider quota.
 
 ## Important scope boundaries
 
@@ -114,7 +120,7 @@ python scripts/verify_build.py
 
 `GQ_CHROMIUM_EXECUTABLE` can name an existing Chromium executable. Tests use a deterministic catalog-valid fixture date. The qualification suite exercises the generated HTML with an in-memory browser bridge plus a real-origin HTTP/PWA smoke. In this execution environment Chromium navigation to localhost is blocked by policy, so one service-worker/offline browser-origin test is skipped; the corresponding HTTP-origin shell, manifest, service worker and legal routes are still exercised directly. Physical-device HTTPS installation/camera behavior remains a separate release gate.
 
-The latest current-source qualification records **242 Python/API/browser tests passed plus 34 client tests passed (276 passes total), with one environment-policy skip**, approximately 98% combined Python line/branch coverage, strict TypeScript 5.8.3 compilation and a byte-identical PWA rebuild. Railway separately proved a clean network install and startup of the refreshed runtime dependency lock. A disposable OSV audit then checked all 18 pinned Python runtime packages plus TypeScript 5.8.3 and reported **0 known vulnerabilities across 19 exact package/version queries**. A trustworthy OS-package scan of the final container/base image is still a release gate; an attempted disposable Trivy path did not yield inspectable evidence and is not counted as a pass.
+The latest current-source qualification records **245 Python/API/browser tests passed plus 34 client tests passed (279 passes total), with one environment-policy skip**, approximately 98% combined Python line/branch coverage, strict TypeScript 5.8.3 compilation and a byte-identical PWA rebuild. Railway separately proved a clean network install and startup of the refreshed runtime dependency lock. A disposable OSV audit then checked all 18 pinned Python runtime packages plus TypeScript 5.8.3 and reported **0 known vulnerabilities across 19 exact package/version queries**. A trustworthy OS-package scan of the final container/base image is still a release gate; an attempted disposable Trivy path did not yield inspectable evidence and is not counted as a pass.
 
 ## Architecture and handoff
 
