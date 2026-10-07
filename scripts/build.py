@@ -66,13 +66,22 @@ def main():
     (WEB/'manifest.webmanifest').write_text(json.dumps(manifest,indent=2)+'\n')
     files=sorted(p for p in WEB.rglob('*') if p.is_file() and p.name!='sw.js')
     digest=hashlib.sha256(b''.join(p.relative_to(WEB).as_posix().encode()+p.read_bytes() for p in files)).hexdigest()[:16]
-    paths=['/']+['/'+p.relative_to(WEB).as_posix() for p in files]
+    # The recovery page MUST stay outside the service-worker cache, including in
+    # older installed versions. It can repair a stale offline shell over HTTPS.
+    recovery={'update.html','update.js','update.css'}
+    paths=['/']+['/'+p.relative_to(WEB).as_posix() for p in files if p.name not in recovery]
     sw="""// Generated app-shell-only cache. NEVER cache API responses, uploads or photos.
 const CACHE = 'grimequest-__DIGEST__';
 const PATHS = __PATHS__;
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PATHS)));
-  // No skipWaiting: do not change assets during an active cleaning session.
+  // Prepare the ENTIRE replacement shell first. Only then release the old
+  // worker's waiting hold. Existing pages are NOT reloaded mid-quest.
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PATHS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'GRIMEQUEST_ACTIVATE_UPDATE') {
+    event.waitUntil(self.skipWaiting());
+  }
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('grimequest-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -90,7 +99,7 @@ self.addEventListener('fetch', event => {
         data='data:image/svg+xml;base64,'+base64.b64encode(asset.read_bytes()).decode()
         js=js.replace('assets/'+asset.name,data)
     html=html.replace('<link rel="stylesheet" href="styles.css">','<style>'+css+'</style>')
-    html=html.replace('<script defer src="vendor/qr-creator.js"></script>','').replace('<script defer src="install.js"></script>','')
+    html=html.replace('<script defer src="vendor/qr-creator.js"></script>','').replace('<script defer src="install.js"></script>','').replace('<script defer src="update-client.js"></script>','')
     html=html.replace('<script defer src="app.js"></script>','<script>'+js.replace('</script','<\\/script')+'</script>')
     html='\n'.join(line for line in html.splitlines() if '<link rel="manifest"' not in line and '<link rel="icon"' not in line and '<link rel="apple-touch-icon"' not in line)
     (ROOT/'preview.html').write_text(html)

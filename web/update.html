@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173d32">
+  <meta name="description" content="Safely refresh GrimeQuest on your phone without erasing your local inventory.">
+  <title>Update GrimeQuest</title>
+  <link rel="stylesheet" href="/update.css">
+  <script defer src="/update.js"></script>
+</head>
+<body>
+  <main class="refresh-page">
+    <div class="refresh-logo"><span class="sparkle" aria-hidden="true">✦</span> grimequest<span class="dot">.</span></div>
+    <span class="eyebrow">PHONE APP MAINTENANCE</span>
+    <h1>Get the latest<br><span>GrimeQuest.</span></h1>
+    <p>Seeing an old photo-size warning? Your installed app may be opening an older cached version. This refresh replaces only the offline app files.</p>
+    <section aria-label="Before updating" class="refresh-note">
+      <strong>Before you refresh</strong>
+      <p>Finish any real cleaning and close the current photo quest. Unsaved photos in memory will be lost. Your locally saved arsenal and journal are not deleted.</p>
+    </section>
+    <button id="refresh-now" type="button" class="refresh-button">Refresh installed app</button>
+    <p id="refresh-status" class="refresh-status" role="status" aria-live="polite">Internet connection required. The app icon stays on your Home Screen.</p>
+    <a class="back-link" href="/">Back to GrimeQuest</a>
+    <details>
+      <summary>What gets cleared?</summary>
+      <p>Only GrimeQuest's offline shell cache and service-worker registration. This doesn't remove local storage, products, history or the Home Screen icon. After refreshing, the updated offline shell is installed again when you open the game.</p>
+    </details>
+  </main>
+</body>
+</html>

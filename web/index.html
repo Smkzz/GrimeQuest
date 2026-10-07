@@ -15,10 +15,15 @@
   <title>GrimeQuest · Small chores. Real wins.</title>
   <script defer src="vendor/qr-creator.js"></script>
   <script defer src="install.js"></script>
+  <script defer src="update-client.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
   <div id="app"></div>
+  <aside id="app-update-banner" class="app-update-banner" role="status" aria-live="polite" hidden>
+    <div><strong>Fresh version ready</strong><p>Finish the current cleaning step before refreshing. Saved arsenal and journal entries stay on this phone.</p></div>
+    <div class="app-update-actions"><button type="button" id="app-update-now">Update GrimeQuest</button><button type="button" id="app-update-later">Later</button></div>
+  </aside>
 
   <section id="install-gate" class="install-gate" aria-labelledby="install-heading" hidden>
     <div class="install-card">

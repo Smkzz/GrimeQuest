@@ -91,12 +91,15 @@ test('camera stops tracks after late permission resolution',async()=>{
 test('camera captures only after ready preview',()=>assert.throws(()=>new G.Camera().capture(),/not ready/));
 
 test('service worker only handles allowlisted app shell requests',async()=>{
- const listeners={};const cacheNames=['other-app','grimequest-old'];let added=[],deleted=[],claimed=0,matches=0;
- const context={URL,console,self:{location:{origin:'https://app.example'},clients:{claim:async()=>claimed++},addEventListener:(n,fn)=>listeners[n]=fn},caches:{open:async()=>({addAll:async paths=>added=paths,match:async()=>{matches++;return 'cached'}}),keys:async()=>cacheNames,delete:async k=>{deleted.push(k)}},fetch:()=>{throw Error('Unexpected network')}};
+ const listeners={};const cacheNames=['other-app','grimequest-old'];let added=[],deleted=[],claimed=0,matches=0,skip=0,precacheReady=false;
+ const context={URL,console,self:{location:{origin:'https://app.example'},clients:{claim:async()=>claimed++},skipWaiting:async()=>{assert.equal(precacheReady,true,'activation waits for full offline-shell precache');skip++;},addEventListener:(n,fn)=>listeners[n]=fn},caches:{open:async()=>({addAll:async paths=>{added=paths;precacheReady=true;},match:async()=>{matches++;return 'cached'}}),keys:async()=>cacheNames,delete:async k=>{deleted.push(k)}},fetch:()=>{throw Error('Unexpected network')}};
  vm.createContext(context);vm.runInContext(fs.readFileSync('web/sw.js','utf8'),context);
- let pending;listeners.install({waitUntil:p=>pending=p});await pending;assert.ok(added.includes('/app.js'));assert.ok(!added.some(p=>p.startsWith('/api/')));
+ let pending;listeners.install({waitUntil:p=>pending=p});await pending;assert.equal(skip,1);assert.ok(added.includes('/app.js'));
+ assert.ok(added.includes('/update-client.js'));assert.ok(!added.some(p=>p.startsWith('/api/')));
+ assert.ok(!added.some(p=>['/update.html','/update.js','/update.css'].includes(p)));
+ listeners.message({data:{type:'GRIMEQUEST_ACTIVATE_UPDATE'},waitUntil:p=>pending=p});await pending;assert.equal(skip,2);
  listeners.activate({waitUntil:p=>pending=p});await pending;assert.deepEqual(deleted,['grimequest-old']);assert.equal(claimed,1);
- for(const [url,method] of [['https://app.example/api/health','GET'],['https://app.example/api/verify','POST'],['https://evil.example/app.js','GET'],['https://app.example/app.js?private=1','GET'],['https://app.example/user-photo.jpg','GET']])listeners.fetch({request:{url,method},respondWith:()=>assert.fail('Private request cached')});
+ for(const [url,method] of [['https://app.example/api/health','GET'],['https://app.example/api/verify','POST'],['https://app.example/update.html','GET'],['https://app.example/update.js','GET'],['https://app.example/update.css','GET'],['https://evil.example/app.js','GET'],['https://app.example/app.js?private=1','GET'],['https://app.example/user-photo.jpg','GET']])listeners.fetch({request:{url,method},respondWith:()=>assert.fail('Private request cached')});
  listeners.fetch({request:{url:'https://app.example/app.js',method:'GET'},respondWith:p=>pending=p});assert.equal(await pending,'cached');assert.equal(matches,1);
 });
 
