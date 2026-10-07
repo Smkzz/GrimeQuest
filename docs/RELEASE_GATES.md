@@ -10,7 +10,7 @@ The full repo-backed Railway service is live over HTTPS at `grimequest-web-produ
 
 A temporary deterministic vision fixture plus external Railway runner exercised the entire public-HTTPS live protocol successfully. Both temporary services were deleted afterward and live AI was disabled again. This qualifies networking, auth, schema/policy boundaries, signing, verification/idempotency and static PWA routes; it does **not** qualify visual model accuracy.
 
-Current-source local qualification: 239 Python/API/browser passes + 34 client passes = 273 passes, one environment-policy skip, approximately 98% combined Python coverage and byte-identical generated output.
+Current-source local qualification: 242 Python/API/browser passes + 34 client passes = 276 passes, one environment-policy skip, approximately 98% combined Python coverage and byte-identical generated output.
 
 ## Before the first physical live demo
 
@@ -22,7 +22,7 @@ Current-source local qualification: 239 Python/API/browser passes + 34 client pa
 
 ## Before any public live launch
 
-Run a dedicated current dependency/container vulnerability scan. The dependency baseline has already been refreshed, exact pins are synchronized, Docker bases are digest-pinned, and Railway clean-install/build plus `pip check` pass; this is not a substitute for an advisory/image scan. Qualify specific model accuracy on independent labeled data, especially false clears and unsafe or unsupported material selections. Expand and review the market-specific catalog rather than trusting OCR to create permissions. Review accessibility with screen readers and actual mobile devices. Replace shared access-code controls with appropriate authentication, durable quotas and privacy/retention operations. Check operating cost and abuse resilience under load. Run hosted CI and independently review the exact deployed source and configuration.
+Exact application-package advisory queries are now clean: OSV checked 18 pinned Python runtime packages plus TypeScript 5.8.3 with 0 known vulnerabilities. Complete a trustworthy OS-package/final-container image scan. The dependency baseline is refreshed, exact pins are synchronized, Docker bases are digest-pinned, and Railway clean-install/build plus `pip check` pass; none of that substitutes for the remaining image scan. Qualify specific model accuracy on independent labeled data, especially false clears and unsafe or unsupported material selections. Expand and review the market-specific catalog rather than trusting OCR to create permissions. Review accessibility with screen readers and actual mobile devices. Replace shared access-code controls with appropriate authentication, durable quotas and privacy/retention operations. Check operating cost and abuse resilience under load. Run hosted CI and independently review the exact deployed source and configuration.
 
 None of those external gates is inferred from the local automated test count.
 
