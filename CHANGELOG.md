@@ -1,5 +1,12 @@
 # Changelog
 
+## ZDR evaluation safeguards — 2026-10-08
+
+- Require zero-data-retention routing and deny model-provider data collection.
+- Require a non-resetting, provider-verified key budget and eligible fixed-model ZDR endpoint before evaluation.
+- Clean-room result: 446 tests passing, 97.76% Python coverage, reproducible build.
+- No inference billed in this qualification wave.
+
 ## Runtime image hardening — 2026-10-08
 
 - Removed unused pip/build-time Python packages after installing, checking and import-testing the runtime dependencies; production Dockerfile canary passed.

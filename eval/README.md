@@ -52,6 +52,10 @@ A provider qualifies only when **all** gates pass:
 
 The app still applies its deterministic policy and user confirmations after vision. These evaluation gates do not turn the model into a cleaning adviser.
 
+## Non-resetting paid evaluation preflight
+
+For OpenRouter, the CLI checks `GET /api/v1/key` and stops **before any image upload** unless the key's real total limit is at most US$0.50, has no reset, has BYOK usage included and has valid remaining headroom. Variable model routers and unverified billing hosts are rejected. Before any model call the runner also checks OpenRouter's read-only ZDR endpoint list for the exact fixed model and required formatting/temperature/output parameters. OpenRouter calls require Zero Data Retention and data-collection denial, plus strict JSON-schema validation. The runner also stops after the first safety-critical finding or provider failure. See [the bounded evaluation runbook](../docs/PAID_VISION_PRECHECK.md).
+
 ## Run
 
 Configure the candidate provider only in your shell:

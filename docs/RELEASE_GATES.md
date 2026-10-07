@@ -6,10 +6,10 @@ The current software architecture and automated implementation are ready for the
 
 Clean-room evidence:
 
-- **405 Python/API/browser/evaluation tests passed**
+- **412 Python/API/browser/evaluation tests passed**
 - **34 client tests passed**
-- **439 / 439 total; zero skips/warnings**
-- **97.55% combined Python coverage**
+- **446 / 446 total; zero skips/warnings**
+- **97.76% combined Python coverage**
 - **1,680 client/server policy combinations agree**
 - Python 3.13.16 / Node 22.23.3 / TypeScript 5.8.3
 - real-origin PWA/service-worker/offline-shell test passes in Chromium
@@ -24,6 +24,7 @@ Practice and mock-provider evidence remain explicitly separated from real AI/phy
 
 1. Confirm the organizer's exact build-week eligibility/rules for AI-generated code/assets. Do not backdate work.
 2. Choose the exact real vision model/endpoint. Accept its image privacy/retention terms and document availability/quota/cost behavior.
+   - Before *any paid qualification request*, verify a separate OpenRouter key with a hard non-resetting ≤US$0.50 total cap (including BYOK) and ZDR-only routing. The existing shared key does not qualify.
 3. Run `scripts/evaluate_provider.py` against the private labeled image set and satisfy every safety-weighted gate in `eval/README.md`.
 4. Use an exact reviewed product variant actually owned by the tester and an independently known supported surface. Read the real bottle and surface-care instructions.
 5. Test the deployed HTTPS PWA on the actual phone: permission grant/deny, camera capture, rotate, background/resume, track shutdown, file fallback, persistent storage, installation and offline shell.
