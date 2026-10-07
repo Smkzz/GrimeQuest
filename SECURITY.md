@@ -10,7 +10,7 @@ A small, single-process **private preview**, not an internet-scale public multi-
 - JSON-only bounded POST bodies, explicit boolean consent (numeric `1` is rejected), strict schemas and no reflected validation payloads.
 - Actual image decoding and content-type checks, pixel/byte/frame limits, metadata stripping, two concurrent decodes, no arbitrary file paths or client-supplied provider URL.
 - Escaping of untrusted inventory/model text, a restrictive served-app CSP, no inline served-app scripts, no frame embedding and no third-party frontend scripts.
-- Provider timeout/output limits, no redirects/retries or inherited proxy environment, bounded concurrent and hourly model calls.
+- Provider timeout/output limits, no redirects/retries or inherited proxy environment, bounded concurrency plus global hourly and daily provider-attempt ceilings.
 - HMAC-bound workflow and before-photo digest, purpose-specific tickets, one active comparison per encounter, idempotent cached completion and fixed rewards.
 - No chemical permissions derived from label text or prompt content. Unknown inputs fail closed. The catalog has explicit expiry.
 - Static-only service-worker allowlist; no private API/image caching; no app request-body logging.
@@ -23,7 +23,7 @@ The model can still misobserve a scene or miss a hazard. Prompt instructions are
 
 Resource accounting is in process memory and per-IP limits may aggregate users behind a proxy. Multi-worker/multi-instance deployment would break the intended global limits and result idempotency. Workflow tickets now use a persistent server-side signing secret when configured, so legitimate signed encounters survive ordinary process restarts. Comparison-result deduplication and quotas remain process-local, so a restart can forget prior completion-cache state even though the signed workflow remains valid. A public multi-user release still needs durable account-level quotas, external spend limits, observability with private-field redaction and a reviewed privacy model.
 
-Runtime dependencies were refreshed and pinned, project metadata was synchronized, Docker base images are digest-pinned, the container build runs `pip check`, and Railway completed a clean network install/build/start of that dependency set. The browser runtime has zero npm production dependencies. A dedicated vulnerability-advisory/container scan has **not** yet been completed, and there has been no independent penetration test. Resolve those gates before treating the prototype as a generally available cleaning-advice service.
+Runtime dependencies were refreshed and pinned, project metadata was synchronized, Docker base images are digest-pinned, the container build runs `pip check`, and Railway completed a clean network install/build/start of that dependency set. The browser runtime has zero npm production dependencies. A disposable OSV querybatch audit checked the exact 18 Python runtime pins plus TypeScript 5.8.3 and returned 0 known vulnerabilities across all 19 queries. A trustworthy OS-package/final-container image scan has **not** yet been completed, and there has been no independent penetration test. Resolve those gates before treating the prototype as a generally available cleaning-advice service.
 
 ## Reporting
 
