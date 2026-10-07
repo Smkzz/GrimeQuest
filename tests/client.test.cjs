@@ -67,7 +67,7 @@ test('native iPhone HEIC and HEIF input is normalized into JPEG',async()=>{
  const revoked=[],created=[];
  class ImageFixture {constructor(){this.width=320;this.height=240;}set src(v){this.srcValue=v;}async decode(){}}
  const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:(type,quality)=>{assert.equal(type,'image/jpeg');assert.equal(quality,0.85);return 'data:image/jpeg;base64,AA==';}};
- const g=harness({URL:{createObjectURL:()=>{created.push('blob:fixture');return 'blob:fixture';},revokeObjectURL:v=>revoked.push(v)},Image:ImageFixture,document:{createElement:tag=>{assert.equal(tag,'canvas');return canvas;}}});
+ const g=harness({URL:{createObjectURL:()=>{created.push('blob:fixture');return 'blob:fixture';},revokeObjectURL:v=>revoked.push(v)},Image:ImageFixture,document:{getElementById:()=>null,createElement:tag=>{assert.equal(tag,'canvas');return canvas;}}});
  for(const [type,name] of [['image/heic','iPhone.HEIC'],['image/heif','iPhone.heif'],['','iPhone.HEIC']]){
    const result=await g.normalizePhoto({type,name,size:10000});
    assert.equal(result,'data:image/jpeg;base64,AA==');
