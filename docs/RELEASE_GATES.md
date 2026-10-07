@@ -1,35 +1,54 @@
 # Release gates
 
-## Ready now
+## Software release candidate — qualified
 
-The source-folder application, self-contained practice preview, deterministic matching policy, client/server integration, tests and documentation can be reviewed and run locally. The practice UI is explicitly labeled and does not pretend to be the hackathon's real chore-completion demonstration.
+The current software architecture and automated implementation are ready for the remaining empirical gates.
 
-## Hosted repo-backed checkpoint
+Clean-room evidence:
 
-The full repo-backed Railway service is live over HTTPS at `grimequest-web-production.up.railway.app`, one replica in Amsterdam, with `/api/health` passing and a 0.5 vCPU / 0.5 GB ceiling. Docker bases are digest-pinned, generated PWA assets are built inside the image, and the refreshed Python dependency lock installs cleanly with `pip check`.
+- **369 Python/API/browser/evaluation tests passed**
+- **34 client tests passed**
+- **403 / 403 total; zero skips/warnings**
+- **97.55% combined Python coverage**
+- **1,680 client/server policy combinations agree**
+- Python 3.13.16 / Node 22.23.3 / TypeScript 5.8.3
+- real-origin PWA/service-worker/offline-shell test passes in Chromium
+- byte-identical generated rebuild
+- npm clean install: zero vulnerabilities
+- OSV: 32 exact package/version queries, zero known vulnerabilities
+- hosted HTTPS application protocol passed with deterministic observations
 
-A temporary deterministic vision fixture plus external Railway runner exercised the entire public-HTTPS live protocol successfully. Both temporary services were deleted afterward and live AI was disabled again. This qualifies networking, auth, schema/policy boundaries, signing, verification/idempotency and static PWA routes; it does **not** qualify visual model accuracy.
+Practice and mock-provider evidence remain explicitly separated from real AI/physical-cleaning evidence.
 
-Current-source local qualification: 354 Python/API/browser passes + 34 client passes = 388 passes, one environment-policy skip, approximately 98% combined Python coverage and byte-identical generated output.
+## Before the first real-model / physical demo
 
-Public demo access is implemented but remains disabled by default. It removes the shared-code UX only when the operator explicitly enables it; same-origin enforcement and hard hourly/daily limits remain active.
+1. Confirm the organizer's exact build-week eligibility/rules for AI-generated code/assets. Do not backdate work.
+2. Choose the exact real vision model/endpoint. Accept its image privacy/retention terms and document availability/quota/cost behavior.
+3. Run `scripts/evaluate_provider.py` against the private labeled image set and satisfy every safety-weighted gate in `eval/README.md`.
+4. Use an exact reviewed product variant actually owned by the tester and an independently known supported surface. Read the real bottle and surface-care instructions.
+5. Test the deployed HTTPS PWA on the actual phone: permission grant/deny, camera capture, rotate, background/resume, track shutdown, file fallback, persistent storage, installation and offline shell.
+6. Run controlled physical cases for clear, partial, unchanged/unverifiable outcomes. Keep abstentions/failures visible.
 
-## Before the first physical live demo
+## Before a general public live-image launch
 
-1. Confirm the organizer's exact build-week dates and rules for AI-generated code/assets. The supplied weekday window does not identify dates.
-2. Choose an authorized real vision endpoint/model and establish its image/JSON-schema protocol, privacy terms, costs, timeouts, availability and refusal behavior. Keep credentials server-side. For a free tier, document its daily/request limits and data terms rather than pretending it has production SLA/spend controls.
-3. Use the exact current supported product variant and a surface whose care instructions establish suitability. Have the planned real-use procedure reviewed appropriately; do not substitute an unreviewed local bottle. The prototype is not a qualified cleaning adviser.
-4. Serve over HTTPS and test the actual phone/browser: permission grant/deny, rotate, background/resume, camera track shutdown, image upload, persistent storage, installation, offline shell and failure recovery.
-5. Perform actual cleaning and test clear, partial, unchanged and uncomparable photos. Keep failures/abstentions visible. Repeat a known valid sequence without manually choosing practice outcomes or quietly replacing failed results.
+- Complete an inspectable OS-package/final-container vulnerability scan. Application-package OSV checks are clean, but that is not an OS image scan.
+- Independently review security and the narrow product/material rules at a level appropriate to the audience.
+- Perform actual screen-reader and target-device accessibility review.
+- Add the final service/operator privacy identity/contact and provider-specific processing/retention information.
+- For broad multi-user use, replace process-local quotas/result caches with durable controls appropriate to the expected traffic. The hackathon public-demo mode is intentionally bounded and is not an internet-scale account system.
+- Monitor provider cost/quota and abuse behavior under the intended launch load.
+- Continue catalog expansion only from exact manufacturer evidence; OCR/model output can never create permissions.
 
-## Before any public live launch
+## Submission switch
 
-Exact application-package advisory queries are now clean: OSV checked 18 pinned Python runtime packages plus TypeScript 5.8.3 with 0 known vulnerabilities. Complete a trustworthy OS-package/final-container image scan. The dependency baseline is refreshed, exact pins are synchronized, Docker bases are digest-pinned, and Railway clean-install/build plus `pip check` pass; none of that substitutes for the remaining image scan. Qualify specific model accuracy on independent labeled data, especially false clears and unsafe or unsupported material selections. Continue expanding the market-specific catalog only from exact manufacturer evidence; Finland coverage now includes three Kiilto consumer sprays in addition to the original two UK Method references. Never let OCR create permissions. Review accessibility with screen readers and actual mobile devices. Replace shared access-code controls with appropriate authentication, durable quotas and privacy/retention operations. Check operating cost and abuse resilience under load. Run hosted CI and independently review the exact deployed source and configuration.
+The repository intentionally remains private during final preparation. Make it public only when ready to submit, then verify:
 
-None of those external gates is inferred from the local automated test count.
+- license / README / privacy / safety render publicly;
+- no credentials or private evaluation images exist in history;
+- the demo URL is healthy;
+- the deployed source is the qualified release ref;
+- live AI is enabled only if the real-model and physical-device gates above have passed.
 
 ## Product validation after the hackathon
 
-Start with a small consented pilot, not more RPG features. Test the hypothesis that people return for **“Which of my bottles can I use for this target?”** even with monsters and XP disabled. Observe how often their actual products/surfaces are supported, how much setup they tolerate, whether recommendations reduce uncertainty, whether the chore gets completed, and where the model abstains or wrongly clears. Record false-match and false-clear rates separately.
-
-The next software investment should be a well-reviewed local product/material catalog and reliable capture, not leaderboards, room-cleanliness percentages or a marketplace. Familiar household inventories are a useful personalization feature; they are not yet a proven moat or validated business model.
+Test the underlying utility without relying on XP: **“Which of my products can I use on this target?”** Measure setup friction, supported-product coverage, model abstention, false-supported rate, false-clear rate and actual chore completion. Do not invest first in leaderboards, marketplaces or broad chemical coverage.
