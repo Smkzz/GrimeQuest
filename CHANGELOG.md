@@ -1,5 +1,12 @@
 # Changelog
 
+## Fixed Gemini 2.5 Flash Lite ZDR smoke — 2026-10-08
+
+- Under a narrow owner authorization, issued exactly three live, low-cost fixed-model image-analysis calls using a Railway-isolated test runner; all HTTP 200, model identity stable, structured output valid and ZDR routing required.
+- Two public reference-photo target observations abstained from unsupported product recommendations; different physical before/after images were marked non-comparable.
+- Immediate OpenRouter account-usage delta read 0; actual settled billing may differ. The trial does not qualify model accuracy or public privacy consent.
+- Production live AI remains off, the existing $0.50 dedicated-key requirement for full labeled evaluation remains in the actual runner, and all temporary qualification services were removed.
+
 ## ZDR evaluation safeguards — 2026-10-08
 
 - Require zero-data-retention routing and deny model-provider data collection.
