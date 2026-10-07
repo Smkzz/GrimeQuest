@@ -7,9 +7,9 @@
 
 | Check | Observed result |
 | --- | --- |
-| Python/API/policy/image/provider/browser/evaluation tests | **412 passed, 0 failed, 0 skipped** |
-| TypeScript-domain / storage / camera / service-worker Node tests | **34 passed, 0 failed** |
-| Total automated test cases | **446 / 446 passed** |
+| Python/API/policy/image/provider/browser/evaluation tests | **413 passed, 0 failed, 0 skipped** |
+| TypeScript-domain / storage / camera / service-worker Node tests | **36 passed, 0 failed** |
+| Total automated test cases | **449 / 449 passed** |
 | Client/server policy parity | **1,680 combinations agree** |
 | Strict TypeScript | **5.8.3 — pass** |
 | Clean-room Python | **3.13.16** |
@@ -26,7 +26,7 @@
 
 ## Clean-room qualification
 
-A disposable Railway service builds `Dockerfile.qualify` from the repository source. It uses the same digest-pinned Python 3.13 base family as production, adds pinned Node 22 plus system Chromium, performs a clean Python/npm install, runs `pip check`, compiles the PWA, runs strict TypeScript, all 34 Node/client tests, all 412 Python/API/browser/evaluation tests with coverage, and `scripts/verify_build.py`.
+A disposable Railway service builds `Dockerfile.qualify` from the repository source. It uses the same digest-pinned Python 3.13 base family as production, adds pinned Node 22 plus system Chromium, performs a clean Python/npm install, runs `pip check`, compiles the PWA, runs strict TypeScript, all 36 Node/client tests, all 413 Python/API/browser/evaluation tests with coverage, and `scripts/verify_build.py`.
 
 The accepted clean-room build emitted:
 
@@ -129,3 +129,11 @@ The same package cleanup is now in the production `Dockerfile` (commit `b80ca1c2
 After the original 446-test clean-room baseline, **three additional real (potentially billable) OpenRouter calls** were made in an isolated Railway probe using public Creative Commons photos. Fixed `google/gemini-2.5-flash-lite` with required ZDR/data-collection denial returned HTTP 200 and schema-valid JSON in 2009, 1336 and 1413 ms. Two target observations conservatively avoided unsupported product recommendations; a deliberately mismatched comparison returned `same_target=false, comparable=false`. See [full evidence and spending limitations](REAL_FIXED_ZDR_TRIAL_20261008.md).
 
 This separate exploratory run does not increase the automated test count; no full private labeled safety dataset or phone/physical cleaning trial has been qualified. A key with a US$10 hard limit was used under the owner's express small-trial waiver, with a three-call and US$0.25 observed-usage-delta stop. The immediate metadata check registered no change in reported usage; that is **not** a billing certification.
+
+## HEIC/HEIF physical-device support candidate — 2026-10-08
+
+An iPhone photo-picker issue was found: JPEG/PNG/WebP-only MIME validation rejected native HEIC/HEIF files before Safari could decode them. The source now accepts HEIC/HEIF on Safari 17+ (including extension-only empty MIME values), normalizes accepted images locally through canvas into JPEG, and presents clear JPEG-export fallback instructions when the browser cannot decode HEIC. SVG and files larger than 8 MB remain disallowed, and server-side JPEG decode/size checks remain unchanged. Both live-target and product-label input pickers offer the new formats.
+
+Clean-room candidate `94f2d60e1e3757c7e6797eded5c35a5eab9ebfb2` passed **413 Python/API/browser/evaluation tests + 36 Node/client tests = 449/449**, with 97.76% Python combined coverage, no skips, strict TypeScript 5.8.3 and a byte-identical generated PWA rebuild. New tests cover simulated native HEIC canvas decode, unsupported codec fallback, size/SVG rejection and both photo-picker accept lists.
+
+**No actual iPhone/Safari camera or HEIC hardware test was performed.** The [physical device acceptance checklist](PHONE_RELEASE_CHECKLIST.md) remains a blocking empirical release gate.
