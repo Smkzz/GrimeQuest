@@ -5,6 +5,7 @@ namespace GQ {
   let store=emptyStore();
   let quest: Quest | null=null;
   let health: Health | null=null;
+  let healthFailed=false;
   let busy=false;
   let camera: Camera;
   let capturePurpose: 'target'|'after'='target';
@@ -96,8 +97,28 @@ namespace GQ {
     const after=capturePurpose==='after';
     return `${back(after?'resume':'home')}${heading(after?'SAME TARGET. SAME LIGHT.':'ONE TARGET, ONE PHOTO.',after?'Show what changed.':'Find a little grime.',after?'Let the target dry and match the original framing. A changed angle is not a cleaning result.':'Keep people, documents and private details out of the frame.')}<div class="split"><section class="capture-panel"><div class="camera-window" id="camera-host">${captureImage?picture(captureImage,'Selected image preview'):`<div class="camera-placeholder">${icon('camera')}<h2>Your camera is off.</h2><p>Open it below, or choose an existing photo.</p></div>`}</div>${after&&quest?`<details class="reference-photo" open><summary>Original view to match</summary>${picture(quest.before,'Before reference for manual alignment')}</details>`:''}<div class="camera-controls">${button(icon('camera')+'Open camera','open-camera','secondary')}${button('Take photo','take-photo','secondary')}<label class="btn secondary file-button">${icon('upload')}Choose photo<input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label></div></section><section class="panel"><h2>${after?'Compare, don’t assume.':'A deliberate photo check.'}</h2><p>${after?'Both images will be sent to the configured vision provider. The result may be clear, partial or unverifiable.':'A vision model will propose a visible target and material. You will still need to confirm the surface.'}</p><p class="hint">Destination: ${e(health?.provider_host||'Not configured')}. Provider retention terms apply.</p>${check('photo-consent',`I approve sending ${after?'both photos':'this photo'} to the configured AI provider for this analysis.`)}${after?check('procedure-done','I completed the actual product-label procedure; this photo shows the dry target.'):''}${button(after?'Analyze before / after':'Analyze target','analyze-photo','primary wide',captureImage?'':'disabled')}<p class="micro">Full-resolution JPEG, PNG, WebP and supported HEIC/HEIF photos are resized and compressed on this device before upload. No silent uploads or automatic retries.</p></section></div>`;
   }
+  export function labelReadGate(ready:boolean|null, publicAccess:boolean, hasCode:boolean, liveMode:boolean, front:boolean, back:boolean, failed=false):{enabled:boolean;code:string;message:string}{
+    if(ready===null)return {enabled:false,code:failed?'offline':'checking',message:failed?'Could not reach the AI service. Check your connection, or enter product details manually.':'Checking whether AI label reading is available. Your photos stay on your device.'};
+    if(!ready)return {enabled:false,code:'disabled',message:'AI label reading is switched off on this GrimeQuest deployment. Your photos are working, but the AI service is not available for this release. This is not a phone setting. You can add this product manually below.'};
+    if(!publicAccess && !hasCode)return {enabled:false,code:'code',message:'AI reading is available only to private testers. Enter the operator-provided access code. It stays in this app session; your photos are not sent without consent.'};
+    if(!liveMode)return {enabled:false,code:'mode',message:'AI reading is available in private testing, but Practice mode does not make paid AI calls. Enable Live mode explicitly; model charges may apply.'};
+    if(!front||!back)return {enabled:false,code:'photos',message:'Select both the front and the directions/warnings label photos before reading.'};
+    return {enabled:true,code:'ready',message:'Both photos are ready. Tick the consent box before reading. The AI transcription may contain errors and does not approve any cleaning product.'};
+  }
+  function labelGate():{enabled:boolean;code:string;message:string}{
+    return labelReadGate(health?.live_ready??null,health?.access_mode==='public_rate_limited',getAccessCode().length>=24,mode==='live',!!productFront,!!productBack,healthFailed);
+  }
+  function refreshProductView():void {
+    if(screen!=='product-scan')return;
+    const name=val('product-name'),note=val('product-note'),consent=checked('product-consent');
+    render(false);
+    const n=root.querySelector<HTMLInputElement>('#product-name'),t=root.querySelector<HTMLTextAreaElement>('#product-note'),c=root.querySelector<HTMLInputElement>('input[name="product-consent"]');
+    if(n)n.value=name;if(t)t.value=note;if(c)c.checked=consent;
+  }
+
   function productScanView():string {
-    return `${back('inventory','Arsenal')}${heading('READ THE BOTTLE. DON’T GUESS.','Scan your product.','Front plus directions label. The extracted text stays unreviewed until you check it.')}<div class="split"><section class="panel"><div class="label-captures">${[['front','Front label',productFront],['back','Directions & warnings',productBack]].map(([id,label,src])=>`<label class="label-capture"><span>${label}</span>${src?picture(src,'Product '+label):icon('camera')}<span class="btn secondary">Choose / photograph</span><input id="product-${id}" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label>`).join('')}</div>${check('product-consent','I approve sending these two product photos to the configured vision provider.')}${button('Read both labels','analyze-product','primary wide',productFront&&productBack&&health?.live_ready?'':'disabled')}<p class="hint">Live label analysis requires server configuration. You can also add a product manually without sending any photos.</p></section><section class="panel"><h2>${observation?'Review the transcription.':'Or record it yourself.'}</h2><p>${observation?'AI text extraction may omit or misread warnings. Read the original bottle.':'Manual notes are stored only on this device and do not grant recommendation permission.'}</p><div class="field"><label for="product-name">Product name</label><input id="product-name" maxlength="240" value="${e(observation?.name||'')}" placeholder="Exact name on your bottle"></div><div class="field"><label for="product-note">Label text / note (optional, unreviewed)</label><textarea id="product-note" maxlength="6000" rows="5" placeholder="Do not include personal information">${e(observation?.label_text||'')}</textarea></div>${observation&&!observation.label_readable?'<div class="notice warning">Label was not readable. No missing text has been treated as verified.</div>':''}${button('Save as unreviewed product','save-product','secondary wide')}<p class="micro">To use a reviewed entry, return to Arsenal and manually select the exact catalog variant. Scanning never expands compatibility rules.</p></section></div>`;
+    const gate=labelGate();
+    return `${back('inventory','Arsenal')}${heading('READ THE BOTTLE. DON’T GUESS.','Scan your product.','Front plus directions label. The extracted text stays unreviewed until you check it.')}<div class="split"><section class="panel"><div class="label-captures">${[['front','Front label',productFront],['back','Directions & warnings',productBack]].map(([id,label,src])=>`<label class="label-capture"><span>${label}</span>${src?picture(src,'Product '+label):icon('camera')}<span class="btn secondary">Choose / photograph</span><input id="product-${id}" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label>`).join('')}</div>${check('product-consent','I approve sending these two product photos to the configured vision provider.')}<div class="label-ai-status" id="label-read-status" role="status" aria-live="polite"><h2>AI label reader</h2><p>${e(gate.message)}</p><p class="label-count">${Number(!!productFront)+Number(!!productBack)} of 2 photos selected</p></div>${gate.code==='code'?`<div class="label-private-code"><label for="label-private-code">Private tester access code</label><input type="password" id="label-private-code" maxlength="160" autocomplete="off" placeholder="Code provided by operator">${button('Save access code','save-label-code','secondary')}</div>`:''}${gate.code==='mode'?button('Enable Live AI for label reading','enable-label-live','secondary'):''}${gate.code==='disabled'||gate.code==='offline'?button('Recheck AI availability','recheck-label-ai','secondary'):''}${button('Read both labels','analyze-product','primary wide',gate.enabled?'aria-describedby="label-read-status"':'disabled aria-describedby="label-read-status"')}<p class="hint">You can add the product name and label details manually below without uploading images. AI reading is separate from photo capture.</p></section><section class="panel"><h2>${observation?'Review the transcription.':'Or record it yourself.'}</h2><p>${observation?'AI text extraction may omit or misread warnings. Read the original bottle.':'Manual notes are stored only on this device and do not grant recommendation permission.'}</p><div class="field"><label for="product-name">Product name</label><input id="product-name" maxlength="240" value="${e(observation?.name||'')}" placeholder="Exact name on your bottle"></div><div class="field"><label for="product-note">Label text / note (optional, unreviewed)</label><textarea id="product-note" maxlength="6000" rows="5" placeholder="Do not include personal information">${e(observation?.label_text||'')}</textarea></div>${observation&&!observation.label_readable?'<div class="notice warning">Label was not readable. No missing text has been treated as verified.</div>':''}${button('Save as unreviewed product','save-product','secondary wide')}<p class="micro">To use a reviewed entry, return to Arsenal and manually select the exact catalog variant. Scanning never expands compatibility rules.</p></section></div>`;
   }
   function render(focus=true):void {
     camera?.stop();
@@ -249,8 +270,25 @@ namespace GQ {
         }
         case 'remove-product':store={...store,inventory:store.inventory.filter(i=>i.id!==id)};persist();render(false);break;
         case 'scan-product':case 'manual-product':productFront='';productBack='';observation=null;go('product-scan');break;
+        case 'save-label-code': {
+          const code=val('label-private-code');
+          if(code.length<24)throw new Error('Enter the operator-provided access code (at least 24 characters).');
+          if(!setAccessCode(code))throw new Error('Session storage is unavailable.');
+          refreshProductView();toast('Private code saved for this app session. No photos have been sent.');break;
+        }
+        case 'enable-label-live': {
+          requireLive();if(store.active)throw new Error('Resolve the unfinished cleaning task first.');
+          mode='live';quest=null;refreshProductView();toast('Live AI mode enabled. Reading still requires your consent.');break;
+        }
+        case 'recheck-label-ai': {
+          if(location.protocol==='file:')throw new Error('Standalone preview has no AI server.');
+          const response=await fetch('/api/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(4000)});
+          if(!response.ok)throw new Error('Could not reach GrimeQuest server.');
+          const h=await response.json();if(typeof h.live_ready!=='boolean'||typeof h.version!=='string')throw new Error('Invalid AI status response.');
+          health=h;healthFailed=false;refreshProductView();break;
+        }
         case 'analyze-product': {
-          requireLive();if(!productFront||!productBack||!checked('product-consent')) throw new Error('Choose both labels and approve sending them first.');
+          requireLive();if(mode!=='live')throw new Error('Enable Live AI explicitly before label reading.');if(!productFront||!productBack||!checked('product-consent')) throw new Error('Choose both labels and approve sending them first.');
           await work(async()=>{const r=await api<{observation:{name:string;label_text:string;label_readable:boolean}}>('analyze-product',{front_image:productFront,back_image:productBack,consent:true});const o=r.observation;if(!o||typeof o.name!=='string'||o.name.length>240||typeof o.label_text!=='string'||o.label_text.length>6000||typeof o.label_readable!=='boolean') throw new Error('Label response was invalid.');observation=o;render();});break;
         }
         case 'save-product': {
@@ -288,8 +326,8 @@ namespace GQ {
     window.addEventListener('offline',()=>toast('You are offline. Practice, saved arsenal and journal remain available. Live analysis does not.'));
     if(location.protocol!=='file:') {
       fetch('/api/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(4000)}).then(async r=>{
-        if(!r.ok)return;const h=await r.json();if(typeof h.live_ready==='boolean'&&typeof h.version==='string'){health=h;if(screen==='settings' && !(document.activeElement instanceof HTMLInputElement))render(false);}
-      }).catch(()=>{/* Static/offline preview deliberately has no backend. */});
+        if(!r.ok)return;const h=await r.json();if(typeof h.live_ready==='boolean'&&typeof h.version==='string'){health=h;healthFailed=false;if(screen==='product-scan')refreshProductView();else if(screen==='settings' && !(document.activeElement instanceof HTMLInputElement))render(false);}
+      }).catch(()=>{health=null;healthFailed=true;if(screen==='product-scan')refreshProductView();});
       // Service-worker registration and safe-update notices live in update-client.js.
     }
   }

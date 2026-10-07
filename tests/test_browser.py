@@ -242,3 +242,42 @@ def test_export_payload_has_no_photos_or_access_code(page):
     assert data['format']=='grimequest-journal-v1' and len(data['history'])==1
     assert 'data:image' not in text and ACCESS not in text
     assert page.evaluate('window.__exportName')=='grimequest-journal.json'
+
+def test_disabled_label_reader_explains_release_gate_and_manual_entry(page,before,after):
+    errors=mount(page)
+    click(page,'inventory')
+    click(page,'scan-product')
+    expect(page.locator('#label-read-status')).to_contain_text('switched off')
+    for field,data in [('product-front',before),('product-back',after)]:
+        page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
+        page.wait_for_timeout(130)
+    expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
+    expect(page.locator('[data-action="analyze-product"]')).to_be_disabled()
+    page.locator('[name="product-consent"]').check()
+    expect(page.locator('[data-action="analyze-product"]')).to_be_disabled()
+    page.locator('#product-name').fill('Manually entered spray')
+    page.locator('#product-note').fill('From exact original label')
+    click(page,'save-product')
+    assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
+    assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Manually entered spray'
+    assert not errors
+
+
+def test_private_label_reader_needs_code_and_live_opt_in_without_losing_photos(page,client,before,after):
+    errors=mount(page,client)
+    click(page,'inventory')
+    click(page,'scan-product')
+    expect(page.locator('#label-read-status')).to_contain_text('private testers')
+    page.locator('#label-private-code').fill(ACCESS)
+    click(page,'save-label-code')
+    expect(page.locator('#label-read-status')).to_contain_text('Practice mode')
+    page.locator('#product-name').fill('Already drafted')
+    for field,data in [('product-front',before),('product-back',after)]:
+        page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
+        page.wait_for_timeout(130)
+    click(page,'enable-label-live')
+    expect(page.locator('#product-name')).to_have_value('Already drafted')
+    expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
+    expect(page.locator('[data-action="analyze-product"]')).to_be_enabled()
+    assert not errors
+

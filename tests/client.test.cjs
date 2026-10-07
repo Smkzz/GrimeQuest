@@ -241,4 +241,15 @@ test('offline recovery does not unregister or delete anything',async()=>{
  assert.equal(touched,0);assert.match(nodes['refresh-status'].textContent,/Connect to the internet/);
  assert.equal(nodes['refresh-now'].disabled,false);
 });
-
+test('AI product label read gate reports precise reasons and protects practice mode',()=>{
+ const g=G.labelReadGate;
+ assert.equal(g(null,false,false,false,true,true).code,'checking');
+ assert.equal(g(null,false,false,false,true,true,true).code,'offline');
+ const disabled=g(false,false,false,false,true,true);
+ assert.equal(disabled.enabled,false);assert.match(disabled.message,/switched off/);
+ assert.equal(g(true,false,false,true,true,true).code,'code');
+ assert.equal(g(true,false,true,false,true,true).code,'mode');
+ assert.equal(g(true,false,true,true,false,true).code,'photos');
+ assert.equal(g(true,false,true,true,true,true).code,'ready');
+ assert.equal(g(true,true,false,true,true,true).enabled,true);
+});
