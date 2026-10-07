@@ -1,6 +1,6 @@
 # Bounded paid vision qualification — operator runbook
 
-**State (2026-10-08): blocked pending a dedicated OpenRouter key. No paid inference has been made.**
+**State (2026-10-08):** An **owner-authorized isolated three-request trial** using the existing key passed fixed-model ZDR routing and structured JSON with Gemini 2.5 Flash Lite; see [trial evidence](REAL_FIXED_ZDR_TRIAL_20261008.md). The full 54+ case release evaluator remains blocked by the original dedicated-key hard-cap requirement. Those are distinct evidence levels.
 
 The owner authorized at most **€1 total** for fixed-model real-vision qualification, **only if** both provider-enforced spending limits and Zero Data Retention (ZDR) routing are verified before any paid request.
 
@@ -63,4 +63,4 @@ The reference documentation is:
 7. Complete target-phone, camera, safety and actual cleaning trials.
 8. Only after qualification and owner approval configure production `GQ_PROVIDER_BASE`, `GQ_PROVIDER_MODEL`, a private access code, and subsequently consider public demo mode.
 
-**No paid request is authorized when the existing larger-limit key is the only available credential.**
+**For the full repeatable release evaluation**, a dedicated provider-side hard-capped key is still required by the current `scripts/evaluate_provider.py`. The owner explicitly waived the earlier €0.50 threshold **for a three-request exploratory trial only**. That experiment did not modify production authorization or safety rules, and is not evidence that a €1 provider-enforced cap exists on the shared key.
