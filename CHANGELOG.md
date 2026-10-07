@@ -1,5 +1,12 @@
 # Changelog
 
+## Runtime image hardening — 2026-10-08
+
+- Removed unused pip/build-time Python packages after installing, checking and import-testing the runtime dependencies; production Dockerfile canary passed.
+- Trivy 0.74.0 whole-rootfs HIGH/CRITICAL scan of the equivalent remediated runtime passed. The Trivy executable is not shipped and was excluded from its own audit.
+- Verified OpenRouter key, but declined to enable live AI: Qwen free unavailable, one successful free-router observation, another routing 404, fixed Gemma ZDR-required 404. No paid inference.
+- Repository remains private; public practice mode stays available and safe-fail-closed.
+
 ## Exact-pair vision-evaluation hardening — 2026-10-07
 
 - Removed the false-supported evaluation case where a known surface and known soil were incorrectly combined despite no reviewed product covering that exact pair.
