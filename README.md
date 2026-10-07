@@ -61,6 +61,8 @@ A phone's `localhost` is the phone, not your computer. Real phone-camera use nee
 
 ## Configure live analysis deliberately
 
+**Budget/ZDR qualification update (2026-10-08):** Paid OpenRouter evaluation now fails closed unless a dedicated key has a provider-enforced, **non-resetting ≤US$0.50** total cap including BYOK. OpenRouter image calls require `provider.zdr=true`, `provider.data_collection="deny"`, and `require_parameters=true`. The existing shared key's cap was too high; **no paid inference was made**. See [bounded paid-vision runbook](docs/PAID_VISION_PRECHECK.md).
+
 Live mode requires a **vision-capable Chat Completions-compatible endpoint** supporting image inputs and strict JSON-schema responses. Endpoint/model compatibility has not been established against a real service in this release. There is no hard-coded paid model and no automatic fallback to a simulation.
 
 The adapter posts to `<GQ_PROVIDER_BASE>/chat/completions`, requests strict JSON-schema structured output, caps output at 1,800 tokens, and validates the response again against strict Pydantic schemas. On OpenRouter it also requires routing only to endpoints that support every requested parameter. Provider-specific unsupported parameters, refusals or incomplete output fail without issuing a cleaning result.
