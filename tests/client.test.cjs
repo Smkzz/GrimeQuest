@@ -164,3 +164,32 @@ test('8+ MB source does not bypass supported file-type or minimum dimension chec
  assert.equal(allocated,1);assert.equal(revoked,1);
 });
 
+test('large photo uses supported size-bounded bitmap decoding and promptly releases bitmap',async()=>{
+ let closed=0,created=0;const sizes=[];
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=>{
+  sizes.push([canvas.width,canvas.height]);return 'data:image/jpeg;base64,AA==';
+ }};
+ const g=harness({
+  createImageBitmap:async(file,options)=>{assert.equal(file.size,25000000);assert.equal(options.resizeWidth,1600);assert.equal(options.resizeQuality,'high');
+   return {width:1600,height:1200,close:()=>closed++};},
+  URL:{createObjectURL:()=>{created++;return 'blob:should-not-happen';},revokeObjectURL:()=>{}},
+  document:{createElement:()=>canvas}
+ });
+ assert.equal(await g.normalizePhoto({type:'image/jpeg',name:'large.jpg',size:25000000}),'data:image/jpeg;base64,AA==');
+ assert.equal(closed,1);assert.equal(created,0);assert.deepEqual(sizes,[[1600,1200]]);
+});
+
+test('bitmap decoder rejecting HEIC falls back to native Safari image-element decoding',async()=>{
+ let bitmapCalls=0,revoked=0;
+ class HeicImage{constructor(){this.width=6048;this.height=8064;}set src(v){}async decode(){}}
+ const canvas={width:0,height:0,getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/jpeg;base64,AA=='};
+ const g=harness({
+  createImageBitmap:async()=>{bitmapCalls++;throw Error('codec unavailable here');},Image:HeicImage,
+  URL:{createObjectURL:()=> 'blob:heic',revokeObjectURL:()=>revoked++},
+  document:{createElement:()=>canvas}
+ });
+ assert.equal(await g.normalizePhoto({type:'image/heic',name:'portrait.heic',size:17000000}),'data:image/jpeg;base64,AA==');
+ assert.equal(bitmapCalls,1);assert.equal(revoked,1);
+ assert.equal(canvas.width,1200);assert.equal(canvas.height,1600);
+});
+

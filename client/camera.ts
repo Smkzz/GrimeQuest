@@ -72,6 +72,19 @@ namespace GQ {
       throw new Error('Choose a JPEG, PNG, WebP or supported HEIC/HEIF photo. SVG is not supported.');
     if(file.size>MAX_SOURCE_FILE_BYTES)
       throw new Error('This image file is over 100 MB. Use a normal JPEG or HEIC photo instead of a RAW export.');
+    // Prefer the browser's size-bounded decoder for full-resolution images.
+    // It can avoid allocating the entire 48+ MP decoded bitmap in JS/canvas.
+    // Safari's HEIC support can differ between bitmap and <img> decoders,
+    // so a decode failure falls back to the native image-element path.
+    if(file.size>=4_000_000 && typeof createImageBitmap==='function'){
+      let bitmap:ImageBitmap|null=null;
+      try {bitmap=await createImageBitmap(file,{resizeWidth:MAX_UPLOAD_EDGE,resizeQuality:'high'});}
+      catch {/* Use the native image-element decoder as a fallback. */}
+      if(bitmap){
+        try {return fromPixels(bitmap,bitmap.width,bitmap.height);}
+        finally {bitmap.close();}
+      }
+    }
     const url=URL.createObjectURL(file);
     try {
       const image=new Image();image.src=url;

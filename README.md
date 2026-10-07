@@ -54,7 +54,7 @@ A phone's `localhost` is the phone, not your computer. Real phone-camera use nee
 | --- | --- |
 | Mobile interface | Responsive quest, inventory, care-check, capture, comparison, journal and settings screens |
 | Practice mode | Three explicitly illustrated scenarios: grease, fingerprints, and an unsupported material |
-| Camera and photos | Permission-on-click, native-resolution JPEG/PNG/WebP and Safari 17+ HEIC/HEIF file input (24/48+ MP accepted); local 1600px-long-edge JPEG conversion with adaptive compression below server's 2 MB upload limit, 100 MB source file guard, HEIC fallback guidance, track cleanup and explicit per-request upload consent |
+| Camera and photos | Permission-on-click, native-resolution JPEG/PNG/WebP and Safari 17+ HEIC/HEIF file input (24/48+ MP accepted); browser-assisted downsampling on supported devices followed by local 1600px-long-edge JPEG conversion with adaptive compression below server's 2 MB upload limit, 100 MB source file guard, HEIC fallback guidance, track cleanup and explicit per-request upload consent |
 | Inventory | Local product notes; front/back label analysis; manually linked exact catalog variants |
 | Matching | Separate deterministic policy with exclusions, hazard gates, five owner confirmations and catalog expiry |
 | Comparison | Clear / partial / unverifiable; one 300-XP clear per encounter; practice/live separation |
