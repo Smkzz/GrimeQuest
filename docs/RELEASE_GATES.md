@@ -20,6 +20,8 @@ Clean-room evidence:
 
 Practice and mock-provider evidence remain explicitly separated from real AI/physical-cleaning evidence. The candidate-space evaluator now derives exact surface–soil combinations from the reviewed catalog instead of using a cross-product of independently supported fields.
 
+A subsequent **exploratory Gemini 2.5 Flash Lite** fixed-model test produced three valid live ZDR-required observations (including a correctly unverifiable comparison). This is not an independent 54+ case accuracy validation; see [evidence](REAL_FIXED_ZDR_TRIAL_20261008.md). Production live AI remains off.
+
 ## Before the first real-model / physical demo
 
 1. Confirm the organizer's exact build-week eligibility/rules for AI-generated code/assets. Do not backdate work.
