@@ -9,5 +9,5 @@ playwright==1.57.0
 pluggy==1.6.0
 pyee==13.0.1
 pygments==2.20.0
-pytest==9.0.2
+pytest==9.1.1
 pytest-cov==7.0.0
