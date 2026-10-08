@@ -174,6 +174,8 @@ namespace GQ {
 
   function productScanView():string {
     const suggestion=barcodeCandidate?.found?barcodeCandidate:null;
+    const widerSearchUrl='https://www.google.com/search?q='+encodeURIComponent(productSearchTerm+' product');
+    const widerBarcodeUrl='https://www.google.com/search?q='+encodeURIComponent(barcodeValue);
     const searchPanel=productSearchStatus==='results' && productSearchResults.length
       ? `<div class='product-search-results' role='status' aria-live='polite'>
           <p><b>Found ${productSearchResults.length} possible products.</b> These are unverified community suggestions across countries and categories.</p>
@@ -185,14 +187,14 @@ namespace GQ {
           <p class='micro'>Select a suggestion to see the source; then check the exact bottle before saving.</p>
         </div>`
       :productSearchStatus==='empty'
-        ? "<div class='notice soft' role='status'>No matching entries in these community databases. You can still type the name on your bottle and save it.</div>"
+        ? `<div class='notice soft' role='status'>No matching community records. You can still type the name from your bottle or <a href='${e(widerSearchUrl)}' target='_blank' rel='noopener noreferrer' referrerpolicy='no-referrer'>search the wider web ↗</a> to verify it yourself. The web search opens only if you click.</div>`
         :productSearchStatus==='unavailable'
-          ? "<div class='notice soft' role='status'>Global product search is temporarily unavailable. Manual product entry works without any database.</div>"
+          ? `<div class='notice soft' role='status'>Community search is unavailable. Type the product name yourself or <a href='${e(widerSearchUrl)}' target='_blank' rel='noopener noreferrer' referrerpolicy='no-referrer'>search the wider web ↗</a> in a separate tab.</div>`
           : "";
     const status=barcodeStatus==='found'&&suggestion
       ? `<div class='notice soft' role='status'><b>Community listing found</b><p>${e(suggestion.name)} ${suggestion.brand?'· '+e(suggestion.brand):''} ${suggestion.quantity?'· '+e(suggestion.quantity):''}</p><p>Unverified. Confirm the exact name and variant on your actual bottle. Never infer cleaner safety from barcode data.</p><a href='${e(suggestion.source_url)}' target='_blank' rel='noopener noreferrer'>${e(suggestion.source)} source ↗</a></div>`
       :barcodeStatus==='missing'
-        ? "<div class='notice soft' role='status'>No community record found for this barcode. Type the product name below. You can still save it and complete camera quests.</div>"
+        ? `<div class='notice soft' role='status'>No community record for this GTIN. Type the product name below, or <a href='${e(widerBarcodeUrl)}' target='_blank' rel='noopener noreferrer' referrerpolicy='no-referrer'>search the wider web by barcode ↗</a> (opens only if you click).</div>`
         :barcodeStatus==='unavailable'
           ? "<div class='notice soft' role='status'>The community lookup is temporarily unavailable. You can type the product name and keep playing without an online database.</div>"
           :barcodeStatus==='detected'
