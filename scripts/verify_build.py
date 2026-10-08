@@ -26,9 +26,13 @@ def main():
     assert manifest['display']=='standalone' and manifest['start_url']=='/'
     for icon in manifest['icons']:assert (ROOT/'web'/icon['src'].lstrip('/')).is_file()
     sw=(ROOT/'web/sw.js').read_text()
-    assert '/api/' in sw and 'addAll(PATHS)' in sw
-    # Automatic takeover only after successful precache, never mid-cleaning reload.
-    assert "cache.addAll(PATHS)).then(() => self.skipWaiting())" in sw
+    assert '/api/' in sw and 'async function precacheShell()' in sw
+    # Serially cache all assets to respect the 24-connection Railway admission
+    # cap. Only activate a complete shell; keep old version on failed install.
+    assert 'await cache.add(path)' in sw
+    assert 'await self.skipWaiting()' in sw
+    assert 'await caches.delete(CACHE)' in sw
+    assert "event.waitUntil(precacheShell())" in sw
     assert "event.data.type === 'GRIMEQUEST_ACTIVATE_UPDATE'" in sw
     for name in ('update.html', 'update.js', 'update.css'):
         assert '"/'+name+'"' not in sw
