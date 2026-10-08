@@ -58,10 +58,10 @@ def _provider_code(status: int, body: bytes) -> str:
             details = error.get("details", [])
             if isinstance(details, list):
                 for entry in details[:8]:
-                    if isinstance(entry, dict) and entry.get("reason") in _KNOWN_PROVIDER_REASONS:
+                    if isinstance(entry, dict) and isinstance(entry.get("reason"), str) and entry["reason"] in _KNOWN_PROVIDER_REASONS:
                         reason = entry["reason"]
                         break
-            if not reason and error.get("status") in _KNOWN_PROVIDER_REASONS:
+            if not reason and isinstance(error.get("status"), str) and error["status"] in _KNOWN_PROVIDER_REASONS:
                 reason = error["status"]
     except (ValueError, TypeError):
         pass
