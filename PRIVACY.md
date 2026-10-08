@@ -10,6 +10,6 @@ The source application contains no analytics, ads, tracking pixels or account SD
 
 **At the selected provider:** explicitly approved live requests send the normalized photo(s) via the operator's configured endpoint. Provider retention, use and regional-processing policies are external to this application. The UI shows the configured provider hostname. Read the actual provider terms before enabling live use. EXIF removal does not remove a face, address or private document visible in pixels. No automatic redaction is promised.
 
-Practice illustrations never need a provider call. The service worker caches only named public app-shell assets, not images supplied by a person, labels, API responses or secrets.
+Guided Camera Quests are local: their before/after images are processed only on-device, and visible change is user-reported rather than inferred by a model. Neither guided camera quests nor practice illustrations need a provider call. The service worker caches only named public app-shell assets, not images supplied by a person, labels, API responses or secrets.
 
 Deletion in Settings removes the app's local history, inventory and tab access code. It does not recall provider submissions, delete browser downloads or remove physical cleaner residues. A public service would need its own jurisdiction-appropriate policies, operator identity, retention controls and consent review; those are not supplied by this prototype.

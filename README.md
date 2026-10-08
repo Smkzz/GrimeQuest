@@ -18,6 +18,14 @@ Identify one visible mess, confirm its material, choose a product from your own 
 **v0.1.0 is a working, externally clean-room-qualified prototype, not a publicly qualified chemical-advice service.** The shipped default is an explicitly simulated practice mode. The live application protocol is qualified with deterministic observations, but no real vision model or physical cleaning trial has yet passed the release gate. See [test evidence](docs/TEST_REPORT.md) and [release gates](docs/RELEASE_GATES.md).
 
 
+## Zero-setup real camera play
+
+1. Open GrimeQuest on a phone and choose **Start camera quest**. No registration, API key or code.
+2. Take a before photo, confirm the actual surface and visible soil, and choose a method you independently know is permitted. The app is not certifying any unknown product.
+3. Review the five care checks, perform the actual task following the current product/surface instructions, then take a comparable after photo when dry.
+4. Report what you can see. Results appear as **SELF-REPORTED**, earn only guided XP, and are not presented as model verification or chemical-safety approval. Identical before/after photos are rejected for clear results.
+5. If the operator has activated and verified the fixed ZDR model within its preflight and call budgets, the server automatically offers consent-based **AI Beta**. Players are never shown server configuration. If AI Beta is unavailable or rate-limited, the real camera quest still works.
+
 ## Try it immediately
 
 The full repo-backed application is deployed over HTTPS at:
