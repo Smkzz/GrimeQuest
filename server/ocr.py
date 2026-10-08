@@ -1,8 +1,9 @@
 """Bounded, privacy-preserving Finnish/English label OCR.
 
-Product labels are visually complex. Sparse-text page segmentation, optional
-contrast rescue, and word-level confidence stop background artwork becoming a
-claimed product name. This does not verify warning completeness or safe use.
+Product labels are visually complex. A single preprocessed confidence-aware
+pass per photo stays within the server's CPU allowance. Timeouts return an
+uncertain, editable draft instead of aborting the whole game. No OCR output
+verifies warning completeness or chemical safety.
 """
 from __future__ import annotations
 
@@ -148,16 +149,19 @@ def _name(reading: _Reading) -> str | None:
     return None
 
 
-def _enhance(jpeg: bytes) -> bytes:
-    """Locally improve contrast only if the standard pass proves insufficient."""
+def _prepare(jpeg: bytes) -> tuple[bytes, int]:
+    """One bounded grayscale/contrast pass, never repeated or persisted."""
     try:
         with Image.open(BytesIO(jpeg)) as image:
             if image.format != "JPEG" or image.width * image.height > 3_000_000:
                 raise LabelOcrUnavailable("Label photo dimensions are unsupported.")
-            gray = ImageOps.autocontrast(image.convert("L"), cutoff=1)
-            buf = BytesIO()
-            gray.save(buf, "PNG", optimize=False)
-            return buf.getvalue()
+            # 1600-pixel full-resolution uploads are unnecessarily costly to
+            # OCR on the 0.5 vCPU host. For labels, frame the print close-up.
+            image.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+            contrast = ImageOps.autocontrast(image.convert("L"), cutoff=1)
+            out = BytesIO()
+            contrast.save(out, "PNG", optimize=False)
+            return out.getvalue(), contrast.height
     except (OSError, ValueError) as exc:
         raise LabelOcrUnavailable("Label photo could not be processed.") from exc
 
@@ -167,13 +171,16 @@ def _run(image: bytes, *, psm: str, height: int) -> _Reading:
         result = subprocess.run(
             ["tesseract", "stdin", "stdout", "-l", "fin+eng", "--psm", psm, "tsv"],
             input=image, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            timeout=6.5, check=False, env=_worker_env()
+            timeout=5.0, check=False, env=_worker_env()
         )
         if result.returncode != 0 or len(result.stdout) > 250_000:
             return _empty(height)
         return _parse_tsv(result.stdout, height)
-    except (OSError, subprocess.SubprocessError) as exc:
-        raise LabelOcrUnavailable("Label reading timed out or failed. Retake a clear photo or enter the text manually.") from exc
+    except (OSError, subprocess.SubprocessError):
+        # The engine may stall on a graphic-heavy bottle under low CPU.
+        # subprocess.run kills/reaps on timeout. A missed label is better than
+        # a 503 response: the UI asks the player to correct the draft.
+        return _empty(height)
 
 
 def _read(data_url: str, *, directions: bool = False) -> _Reading:
@@ -196,19 +203,11 @@ def _read(data_url: str, *, directions: bool = False) -> _Reading:
     except OSError as exc:
         raise LabelOcrUnavailable("Label photo is invalid.") from exc
 
-    # Sparse text works better on bottles with graphics, curved labels and
-    # differently sized lettering than a single uniform-text-block assumption.
-    primary = _run(jpeg, psm="11", height=height)
-    if primary.sufficient(directions) and (directions or _name(primary)):
-        return primary
-    # Retry a contrast-enhanced view when quality/name is poor. This is bounded
-    # to at most two 6.5s subprocesses per label, not a model API retry.
-    backup = _run(_enhance(jpeg), psm="6" if directions else "11", height=height)
-    if _name(backup) and not _name(primary) and not directions and backup.confidence >= 72:
-        return backup
-    if backup.sufficient(directions) and not primary.sufficient(directions):
-        return backup
-    return backup if (backup.letters >= primary.letters and backup.confidence > primary.confidence + 7) else primary
+    # One Tesseract call PER PHOTO. No hidden second 6.5-second retry.
+    # Dense directions work better with --psm 6; graphic fronts use sparse 11.
+    # A timeout returns an empty reading, never a paid/cloud fallback or 503.
+    prepared, height = _prepare(jpeg)
+    return _run(prepared, psm="6" if directions else "11", height=height)
 
 
 def recognize_product(front_image: str, back_image: str) -> ProductObservation:
