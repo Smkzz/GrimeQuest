@@ -139,7 +139,7 @@ def test_rate_limit_blocks_remote_requests_without_stopping_manual_gameplay():
             return unknown(barcode)
     m=importlib.import_module("server.app")
     with TestClient(m.create_app(Settings(),barcode_lookup=Index())) as client:
-        client.app.state.barcode_requests.extend([time.monotonic()]*8)
+        client.app.state.barcode_requests.extend([time.monotonic()]*12)
         code=ean("641123456789")
         r=client.post("/api/product-lookup",json={"barcode":code},headers=ORIGIN)
         assert r.status_code==429

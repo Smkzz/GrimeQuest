@@ -32,7 +32,7 @@ namespace GQ {
     encounter_id: string; status: ResultStatus; xp: number; reason: string;
     provenance: 'practice_fixture' | 'model_observation' | 'deterministic_guard' | 'self_attested'; receipt?: string;
   }
-  export type ProductCategory = 'general' | 'beauty' | 'food' | 'petfood';
+  export type ProductCategory = 'general' | 'beauty' | 'food' | 'petfood' | 'upc' | 'ean' | 'web';
   export interface ProductCandidate {
     barcode: string; found: boolean; name: string; brand: string; quantity: string;
     category: ProductCategory; source: string; source_url: string;

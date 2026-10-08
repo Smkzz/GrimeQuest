@@ -69,6 +69,8 @@ COPY scripts/barcode_smoke.py ./barcode_smoke.py
 RUN python barcode_smoke.py && rm barcode_smoke.py
 COPY scripts/global_search_smoke.py ./global_search_smoke.py
 RUN python global_search_smoke.py && rm global_search_smoke.py
+COPY scripts/extended_lookup_smoke.py ./extended_lookup_smoke.py
+RUN python extended_lookup_smoke.py && rm extended_lookup_smoke.py
 COPY run.py ./
 
 USER 10001:10001
