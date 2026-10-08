@@ -180,3 +180,23 @@ def test_public_beta_spend_guard_validates_nonresetting_total_limit():
     assert validate_openrouter_key_limit(valid, maximum_usd=10)['verified']
     for invalid in ({**valid,'limit':11},{**valid,'limit_reset':'daily'},{**valid,'include_byok_in_limit':False}):
         with pytest.raises(ProviderFailure):validate_openrouter_key_limit(invalid,maximum_usd=10)
+def test_public_beta_key_read_only_preflight_accepts_documented_optional_role_field():
+    import asyncio
+    import httpx
+    from server.provider import verify_openrouter_beta_spend_cap
+    def handler(request):
+        return httpx.Response(200,json={'data':{'limit':10.0,'limit_remaining':5.0,
+                          'limit_reset':None,'include_byok_in_limit':True}})
+    result=asyncio.run(verify_openrouter_beta_spend_cap('fake-key',transport=httpx.MockTransport(handler)))
+    assert result['verified'] is True and result['limit_usd']==10.0
+
+def test_public_beta_key_preflight_still_rejects_resettable_or_byok_uncapped_keys():
+    import asyncio
+    import httpx
+    from server.provider import verify_openrouter_beta_spend_cap,ProviderFailure
+    for patch in ({'limit_reset':'daily'},{'include_byok_in_limit':False},{'is_management_key':True}):
+        payload={'limit':10.0,'limit_remaining':5.0,'limit_reset':None,'include_byok_in_limit':True,**patch}
+        transport=httpx.MockTransport(lambda request:httpx.Response(200,json={'data':payload}))
+        with pytest.raises(ProviderFailure):
+            asyncio.run(verify_openrouter_beta_spend_cap('fake-key',transport=transport))
+
