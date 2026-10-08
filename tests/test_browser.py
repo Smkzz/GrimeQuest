@@ -220,20 +220,6 @@ def test_keyboard_focus_and_image_descriptions(page):
     assert page.locator('select:not([id])').count()==0
     page.keyboard.press('Tab');assert page.evaluate('document.activeElement.tagName') in ['SELECT','BUTTON','A']
 
-def test_label_scan_is_wired_and_never_auto_authorized(page,client,vision,before,after):
-    setup_live(page,client);click(page,'inventory');click(page,'scan-product')
-    for field,data in [('product-front',before),('product-back',after)]:
-        page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
-        page.wait_for_timeout(150)
-    page.locator('[name="product-ai-consent"]').check();click(page,'analyze-product')
-    expect(page.locator('#product-name')).to_have_value('Unreviewed bottle')
-    click(page,'save-product')
-    expect(page.locator('#toast')).to_contain_text('confirm before saving')
-    page.locator('[name="label-review-confirm"]').check()
-    click(page,'save-product')
-    assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
-    assert vision.calls==['product']
-
 def test_export_payload_has_no_photos_or_access_code(page):
     mount(page);practice_to_clean(page);click(page,'practice-compare');click(page,'journal')
     page.evaluate('''() => {
@@ -247,44 +233,79 @@ def test_export_payload_has_no_photos_or_access_code(page):
     assert 'data:image' not in text and ACCESS not in text
     assert page.evaluate('window.__exportName')=='grimequest-journal.json'
 
-def test_disabled_label_reader_explains_release_gate_and_manual_entry(page,before,after):
+def test_barcode_manual_product_never_needs_ocr_or_a_server(page):
     errors=mount(page)
     click(page,'inventory')
-    click(page,'scan-product')
-    expect(page.locator('#label-read-status')).to_contain_text('Google Cloud Vision')
-    for field,data in [('product-front',before),('product-back',after)]:
-        page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
-        page.wait_for_timeout(130)
-    expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
-    expect(page.locator('[data-action="analyze-product"]')).to_have_count(0)
-    expect(page.locator('[data-action="focus-manual-product"]')).to_be_visible()
-    click(page,'focus-manual-product')
-    assert page.evaluate('document.activeElement.id')=='product-name'
-    page.locator('#product-name').fill('Manually entered spray')
-    page.locator('#product-note').fill('From exact original label')
+    click(page,'manual-product')
+    expect(page.locator('h1')).to_contain_text('Find your bottle')
+    expect(page.locator('main')).to_contain_text('NO LABEL OCR')
+    assert page.locator('[data-action="read-label-ocr"]').count()==0
+    assert page.locator('[name="product-consent"]').count()==0
+    page.locator('#product-name').fill('Actual name from my bottle')
+    page.locator('#product-note').fill('Read the manufacturer label first')
     click(page,'save-product')
-    assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
-    assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Manually entered spray'
+    item=page.evaluate('GQ.readStore().inventory.at(-1)')
+    assert item['name']=='Actual name from my bottle'
+    assert item['catalogId'] is None
+    assert 'barcode' not in item
     assert not errors
 
 
-def test_private_label_reader_needs_code_and_live_opt_in_without_losing_photos(page,client,before,after):
-    errors=mount(page,client)
-    click(page,'inventory')
-    click(page,'scan-product')
-    page.locator('.private-test-controls summary').click()
-    page.locator('#label-private-code').fill(ACCESS)
-    click(page,'save-label-code')
-    expect(page.locator('[data-action="enable-label-live"]')).to_be_visible()
-    page.locator('#product-name').fill('Already drafted')
-    for field,data in [('product-front',before),('product-back',after)]:
-        page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
-        page.wait_for_timeout(130)
-    click(page,'enable-label-live')
-    expect(page.locator('#product-name')).to_have_value('Already drafted')
-    expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
-    expect(page.locator('[data-action="analyze-product"]')).to_be_enabled()
-    assert not errors
+def test_ean_barcode_lookup_suggests_only_unreviewed_product(page):
+    import importlib
+    from fastapi.testclient import TestClient
+    from server.barcodes import BarcodeSuggestion
+    from server.config import Settings
+    seen=[]
+    class MockIndex:
+        async def lookup(self,barcode):
+            seen.append(barcode)
+            return BarcodeSuggestion(barcode,True,'Kiilto Koti','Kiilto','600 ml')
+    m=importlib.import_module('server.app')
+    with TestClient(m.create_app(Settings(),barcode_lookup=MockIndex())) as client:
+        errors=mount(page,client)
+        click(page,'inventory');click(page,'scan-product')
+        page.locator('#product-code').fill('4006381333931')
+        click(page,'lookup-barcode')
+        expect(page.locator('main')).to_contain_text('Community listing found')
+        expect(page.locator('#product-name')).to_have_value('Kiilto Koti')
+        expect(page.locator('main')).to_contain_text('600 ml')
+        assert seen==['4006381333931']
+        click(page,'save-product')
+        expect(page.locator('#toast')).to_contain_text('Confirm the suggested name')
+        page.locator('[name="barcode-review"]').check()
+        click(page,'save-product')
+        item=page.evaluate('GQ.readStore().inventory.at(-1)')
+        assert item['barcode']=='4006381333931'
+        assert item['catalogId'] is None
+        assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
+        assert not errors
+
+
+def test_missing_barcode_data_keeps_manual_gameplay(page):
+    import importlib
+    from fastapi.testclient import TestClient
+    from server.barcodes import unknown
+    from server.config import Settings
+    class EmptyIndex:
+        async def lookup(self,barcode):
+            return unknown(barcode)
+    m=importlib.import_module('server.app')
+    with TestClient(m.create_app(Settings(),barcode_lookup=EmptyIndex())) as client:
+        errors=mount(page,client)
+        click(page,'inventory');click(page,'scan-product')
+        page.locator('#product-code').fill('4006381333932')
+        click(page,'lookup-barcode')
+        expect(page.locator('#toast')).to_contain_text('check digit')
+        page.locator('#product-code').fill('4006381333931')
+        click(page,'lookup-barcode')
+        expect(page.locator('main')).to_contain_text('No community record found')
+        page.locator('#product-name').fill('Not indexed yet')
+        click(page,'save-product')
+        assert page.evaluate("GQ.readStore().inventory.at(-1).name")=='Not indexed yet'
+        assert page.evaluate("GQ.readStore().inventory.at(-1).barcode")=='4006381333931'
+        assert not errors
+
 
 def test_zero_setup_guided_camera_full_game_without_ai_or_server_config(page,client,vision,before,after):
     errors=mount(page,client)
@@ -358,131 +379,48 @@ def test_ai_target_photo_can_be_reused_in_private_guided_quest(page,client,befor
     assert page.evaluate('GQ.readStore().history.length')==0
     assert not errors
 
-def test_cloud_label_reader_requires_google_specific_consent_and_no_openrouter(page,vision,before,after):
-    """A server-held Vision connection needs one distinct user approval."""
-    from fastapi.testclient import TestClient
-    from server.config import Settings
-    from server.models import ProductObservation
-    from server.app import create_app
-
-    class MockGoogle:
-        ready=True
-        calls=[]
-        async def read(self,front,back):
-            self.calls.append((front.startswith('data:image/jpeg;base64,'),
-                               back.startswith('data:image/jpeg;base64,')))
-            return ProductObservation(name="Kiilto Koti",label_readable=True,
-                label_text="FRONT: KIILTO KOTI\nDIRECTIONS: Lue käyttöohje",warnings_observed=[])
-
-    reader=MockGoogle()
-    with TestClient(create_app(Settings(google_vision_enabled=True),label_reader=reader)) as public:
-        errors=mount(page,public)
-        click(page,'inventory');click(page,'scan-product')
-        expect(page.locator('#label-read-status')).to_contain_text('Google Cloud Vision is available')
-        for field,data in [('product-front',before),('product-back',after)]:
-            page.locator('#'+field).set_input_files({
-                'name':'label.jpg','mimeType':'image/jpeg',
-                'buffer':base64.b64decode(data.split(',')[1]),
-            })
-            page.wait_for_timeout(130)
-        expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
-        expect(page.locator('main')).to_contain_text('I consent to GrimeQuest sending')
-        click(page,'read-label-ocr')
-        expect(page.locator('#toast')).to_contain_text('consent box')
-        assert not reader.calls
-        page.locator('[name="product-consent"]').check()
-        click(page,'read-label-ocr')
-        expect(page.locator('#product-name')).to_have_value('Kiilto Koti')
-        expect(page.locator('#product-note')).to_contain_text('Lue käyttöohje')
-        assert reader.calls==[(True,True)]
-        assert vision.calls==[]
-        click(page,'save-product')
-        expect(page.locator('#toast')).to_contain_text('confirm before saving')
-        page.locator('[name="label-review-confirm"]').check()
-        click(page,'save-product')
-        assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
-        assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
-        assert not errors
+def _barcode_photo(code):
+    """Generate an EAN-13 raster without invoking a third-party OCR engine."""
+    from io import BytesIO
+    from PIL import Image,ImageDraw
+    left=["0001101","0011001","0010011","0111101","0100011",
+          "0110001","0101111","0111011","0110111","0001011"]
+    odd=["0100111","0110011","0011011","0100001","0011101",
+         "0111001","0000101","0010001","0001001","0010111"]
+    right=["1110010","1100110","1101100","1000010","1011100",
+           "1001110","1010000","1000100","1001000","1110100"]
+    patterns=["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG",
+              "LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"]
+    assert len(code)==13 and code.isdigit()
+    bits="101"
+    for d,p in zip(code[1:7],patterns[int(code[0])]):
+        bits+=(left if p=="L" else odd)[int(d)]
+    bits+="01010"
+    for d in code[7:]:
+        bits+=right[int(d)]
+    bits+="101"
+    unit=6;quiet=20
+    width=(len(bits)+quiet*2)*unit
+    image=Image.new('RGB',(width,280),'white')
+    draw=ImageDraw.Draw(image)
+    for i,value in enumerate(bits):
+        if value=="1":
+            x=(quiet+i)*unit
+            draw.rectangle((x,12,x+unit-1,229),fill='black')
+    output=BytesIO()
+    image.save(output,'PNG')
+    return output.getvalue()
 
 
-def test_google_vision_noisy_label_name_never_silently_saved(page,vision,before,after):
-    """Regression: | MTT must never be mistaken for a product name."""
-    from fastapi.testclient import TestClient
-    from server.app import create_app
-    from server.config import Settings
-    from server.models import ProductObservation
-
-    class BadGoogle:
-        ready=True
-        calls=0
-        async def read(self,front,back):
-            self.calls+=1
-            return ProductObservation(name='Product name unclear — enter manually',
-                label_readable=False,
-                label_text='FRONT LABEL — GOOGLE CLOUD VISION\n| MTT\nLSANYTOL | VS',
-                warnings_observed=[])
-    reader=BadGoogle()
-    with TestClient(create_app(Settings(google_vision_enabled=True),label_reader=reader)) as public:
-        errors=mount(page,public)
-        click(page,'inventory');click(page,'scan-product')
-        for field,data in [('product-front',before),('product-back',after)]:
-            page.locator('#'+field).set_input_files({
-                'name':'label.jpg','mimeType':'image/jpeg',
-                'buffer':base64.b64decode(data.split(',')[1]),
-            })
-            page.wait_for_timeout(130)
-        page.locator('[name="product-consent"]').check()
-        click(page,'read-label-ocr')
-        expect(page.locator('#product-name')).to_have_value('')
-        expect(page.locator('main')).to_contain_text('Low-confidence label scan')
-        click(page,'save-product')
-        expect(page.locator('#toast')).to_contain_text('Enter the exact product name')
-        page.locator('#product-name').fill('Corrected from actual bottle')
-        click(page,'save-product')
-        expect(page.locator('#toast')).to_contain_text('confirm before saving')
-        page.locator('[name="label-review-confirm"]').check()
-        click(page,'save-product')
-        assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Corrected from actual bottle'
-        assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
-        assert reader.calls==1
-        assert vision.calls==[]
-        assert not errors
-
-
-def test_cloud_vision_upstream_failure_keeps_photos_and_opens_manual_edit(page,vision,before,after):
-    """Provider errors must never create a blocked gameplay path."""
-    from fastapi.testclient import TestClient
-    from server.app import create_app
-    from server.config import Settings
-    from server.cloud_vision import CloudVisionUnavailable
-
-    class UnavailableGoogle:
-        ready=True
-        calls=0
-        async def read(self,front,back):
-            self.calls+=1
-            raise CloudVisionUnavailable("Google label recognition is unavailable.")
-    reader=UnavailableGoogle()
-    with TestClient(create_app(Settings(google_vision_enabled=True),label_reader=reader)) as public:
-        errors=mount(page,public)
-        click(page,'inventory');click(page,'scan-product')
-        for field,data in [('product-front',before),('product-back',after)]:
-            page.locator('#'+field).set_input_files({
-                'name':'label.jpg','mimeType':'image/jpeg',
-                'buffer':base64.b64decode(data.split(',')[1]),
-            })
-            page.wait_for_timeout(130)
-        page.locator('[name="product-consent"]').check()
-        click(page,'read-label-ocr')
-        expect(page.locator('#label-read-status')).to_contain_text('could not process')
-        expect(page.locator('[data-action="focus-manual-product"]')).to_be_visible()
-        expect(page.locator('img[alt="Product Front label"]')).to_be_visible()
-        expect(page.locator('img[alt="Product Directions & warnings"]')).to_be_visible()
-        expect(page.locator('#product-name')).to_be_focused()
-        page.locator('#product-name').fill('Name checked from bottle')
-        page.locator('#product-note').fill('Manual directions checked by owner')
-        click(page,'save-product')
-        assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Name checked from bottle'
-        assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
-        assert reader.calls==1 and vision.calls==[]
-        assert not errors
+def test_software_barcode_reader_can_decode_photograph_without_upload(page):
+    """ZXing is self-hosted, and decoding happens locally in the browser."""
+    errors=mount(page)
+    page.add_script_tag(path=str(ROOT/'web/vendor/zxing-0.21.3.min.js'))
+    click(page,'inventory');click(page,'scan-product')
+    page.locator('#barcode-photo').set_input_files({
+        'name':'ean13.png','mimeType':'image/png',
+        'buffer':_barcode_photo('4006381333931')
+    })
+    expect(page.locator('#product-code')).to_have_value('4006381333931')
+    expect(page.locator('main')).to_contain_text('Barcode detected locally')
+    assert not errors
