@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import Settings
 from .images import normalize_image, InvalidImage
-from .ocr import available as ocr_available, recognize_product, LabelOcrUnavailable
+from .cloud_vision import CloudVisionReader, CloudVisionUnavailable
 from .models import ImageRequest, ProductRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
 from .policy import CATALOG, PRODUCTS, POLICY_VERSION, match_product, adjudicate
 from .provider import VisionProvider, ProviderFailure, verify_openrouter_zdr_model, verify_openrouter_beta_spend_cap
@@ -78,8 +78,8 @@ class Boundary:
                 allowed_origins = {self.settings.app_origin.rstrip("/")}
             if h.get("origin") not in allowed_origins or h.get("sec-fetch-site") == "cross-site":
                 return await reject(403, "ORIGIN", "Same-origin requests are required.")
-            # Same-origin, JSON and upload bounds still apply to public OCR.
-            # Unlike paid AI, local Tesseract must not require provider keys.
+            # Same-origin, JSON and upload bounds apply to Cloud Vision OCR.
+            # The operator owns its API key; players never supply credentials.
             local_ocr = scope["path"] == "/api/read-labels"
             if not local_ocr and not self.settings.ready:
                 return await reject(503, "LIVE_NOT_CONFIGURED", "AI analysis is unavailable; camera quests and text-only OCR remain usable.")
@@ -197,7 +197,8 @@ class Budget:
             self.active -= 1
 
 
-def create_app(settings: Settings | None = None, provider=None, tickets: Tickets | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, provider=None, tickets: Tickets | None = None,
+               label_reader: CloudVisionReader | None = None) -> FastAPI:
     settings = (settings or Settings.from_env()).validate()
     app = FastAPI(
         title="GrimeQuest",
@@ -212,6 +213,11 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     vision = provider or VisionProvider(settings.provider_base, settings.provider_model, settings.provider_key)
     beta = BetaPreflight(settings, provider is not None)
     app.state.beta = beta
+    cloud_labels = label_reader if label_reader is not None else CloudVisionReader(
+        settings.google_vision_api_key, settings.google_vision_project_id
+    )
+    cloud_labels_enabled = settings.google_vision_enabled and cloud_labels.ready
+    app.state.cloud_labels = cloud_labels
 
     @app.on_event('startup')
     async def preflight_public_beta():
@@ -227,6 +233,10 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     ocr_slots = asyncio.Semaphore(1)
     ocr_events: deque[float] = deque()
     app.state.ocr_calls = ocr_events
+    # These limits are conservative demo throttles, NOT an external hard
+    # monetary budget. Set project quotas and billing controls in Google Cloud.
+    OCR_HOURLY_SCANS = 6
+    OCR_DAILY_SCANS = 12
 
     async def decode(value: str):
         # Pixel decoding is bounded independently of the paid model-call budget.
@@ -249,8 +259,10 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     async def ticket_error(request: Request, exc):
         return JSONResponse({"error": {"code": "TICKET", "message": str(exc)}}, status_code=409)
 
-    @app.exception_handler(LabelOcrUnavailable)
+    @app.exception_handler(CloudVisionUnavailable)
     async def ocr_error(request: Request, exc):
+        # Sanitized upstream exceptions; never return keys, photo bytes or
+        # Google's raw response to the client.
         return JSONResponse({"error": {"code": "OCR", "message": str(exc)}}, status_code=503)
 
     @app.exception_handler(ProviderFailure)
@@ -268,7 +280,8 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
                 "source_sha": os.getenv("RAILWAY_GIT_COMMIT_SHA", ""),
                 "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID", ""),
                 "replica_region": os.getenv("RAILWAY_REPLICA_REGION", ""),
-                "real_world_validation": "not_performed", "label_ocr_ready": ocr_available()}
+                "real_world_validation": "not_performed", "label_ocr_ready": cloud_labels_enabled,
+                "label_ocr_processor": "google_cloud_vision" if cloud_labels_enabled else "disabled"}
 
     @app.get("/api/catalog")
     async def catalog():
@@ -292,28 +305,27 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
 
     @app.post("/api/read-labels")
     async def read_labels(body: ProductRequest, request: Request):
-        """Automatic Finnish/English OCR; no third-party AI, no stored images."""
-        if not ocr_available():
-            raise HTTPException(503, "Automatic label reading is unavailable. Enter the text manually.")
-        # One process at a time on the 0.5 GB / 0.5 vCPU Railway instance.
-        # This is separate from the AI model-call budget.
+        """One consented EU Cloud Vision batch for the two normalized images."""
+        if not cloud_labels_enabled:
+            raise HTTPException(503, "Automatic label reading is unavailable. Enter the label manually.")
         now = time.monotonic()
-        while ocr_events and ocr_events[0] < now - 3600:
+        while ocr_events and ocr_events[0] < now - 86400:
             ocr_events.popleft()
-        if len(ocr_events) >= 36 or ocr_slots.locked():
-            raise HTTPException(429, "Label reader is busy. Try again or enter the label manually.")
+        hourly = sum(t >= now - 3600 for t in ocr_events)
+        if len(ocr_events) >= OCR_DAILY_SCANS or hourly >= OCR_HOURLY_SCANS or ocr_slots.locked():
+            raise HTTPException(429, "Automatic reading capacity reached. Enter the label manually.")
+        # All request validation and same-origin/consent guards ran before this.
         async with ocr_slots:
-            ocr_events.append(now)
-            front = await decode(body.front_image)
-            back = await decode(body.back_image)
-            observation = await asyncio.to_thread(recognize_product, front.data_url, back.data_url)
+            front, back = await asyncio.gather(decode(body.front_image), decode(body.back_image))
+            ocr_events.append(time.monotonic())
+            observation = await cloud_labels.read(front.data_url, back.data_url)
         return {
             "observation": observation,
             "review_status": "unreviewed",
             "recommendation_permission": False,
-            "extraction": "server_local_tesseract",
-            "provider_calls": 0,
-            "notice": "Recognized text may be wrong or incomplete. Compare every line and warning with the actual bottle. OCR never approves a cleaner.",
+            "extraction": "google_cloud_vision",
+            "provider_calls": 1,  # One batch with two billable OCR image units.
+            "notice": "Google Cloud Vision text may be wrong or incomplete. Compare the name, directions and every warning with the original bottle. OCR never approves a cleaner.",
         }
 
     @app.post("/api/analyze-product")

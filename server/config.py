@@ -14,12 +14,21 @@ class Settings:
     max_calls_day: int = 200
     public_live: bool = False
     allow_local_provider: bool = False
+    google_vision_enabled: bool = False
+    google_vision_api_key: str = ""
+    google_vision_project_id: str = ""
 
     @property
     def ready(self) -> bool:
         return bool(self.provider_base and self.provider_model and (self.public_live or len(self.access_code) >= 24))
 
     def validate(self):
+        # Cloud OCR is operator opt-in and never configured by players.
+        # A missing key/project leaves OCR off, without taking down practice.
+        if self.google_vision_api_key and len(self.google_vision_api_key) > 256:
+            raise ValueError("Cloud Vision key has invalid length")
+        if self.google_vision_project_id and len(self.google_vision_project_id) > 65:
+            raise ValueError("Cloud Vision project ID is too long")
         if not 1 <= self.max_calls_hour <= 1000:
             raise ValueError("GQ_MAX_CALLS_HOUR must be 1..1000")
         if not 1 <= self.max_calls_day <= 10000:
@@ -51,4 +60,7 @@ class Settings:
                    max_calls_hour=int(os.getenv("GQ_MAX_CALLS_HOUR", "40")),
                    max_calls_day=int(os.getenv("GQ_MAX_CALLS_DAY", "200")),
                    public_live=os.getenv("GQ_PUBLIC_LIVE", "0") == "1",
-                   allow_local_provider=os.getenv("GQ_ALLOW_LOCAL_PROVIDER", "0") == "1").validate()
+                   allow_local_provider=os.getenv("GQ_ALLOW_LOCAL_PROVIDER", "0") == "1",
+                   google_vision_enabled=os.getenv("GQ_GOOGLE_VISION_ENABLED", "0") == "1",
+                   google_vision_api_key=os.getenv("GQ_GOOGLE_VISION_API_KEY", ""),
+                   google_vision_project_id=os.getenv("GQ_GOOGLE_VISION_PROJECT_ID", "")).validate()

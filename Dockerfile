@@ -30,13 +30,8 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY requirements.lock ./
-# Same-host OCR: Finnish and English Tesseract language packs. There are no
-# third-party model requests or provider charges. One OCR process at a time.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      tesseract-ocr tesseract-ocr-eng tesseract-ocr-fin fonts-dejavu-core \
-    && rm -rf /var/lib/apt/lists/* \
-    && tesseract --list-langs 2>&1 | grep -qx fin \
-    && tesseract --list-langs 2>&1 | grep -qx eng
+# Cloud Vision is a remote, consented service. No local OCR engine/language
+# data installed, no OCR runtime subprocess and no extra Python dependencies.
 # The official base bundles pip and build-time utilities; these are not needed to
 # serve GrimeQuest. Remove them only AFTER resolving and checking app dependencies.
 # The exact removal procedure passed a fail-closed Trivy rootfs audit.
@@ -55,9 +50,10 @@ COPY --from=frontend-build /src/web ./web
 # Import the exact server module after both backend and static app are present.
 # This sanity check makes no network or paid vision calls.
 RUN python -c "from server.app import app; from server.config import Settings; assert app is not None and not Settings().ready"
-COPY scripts/ocr_smoke.py ./ocr_smoke.py
-# Real, no-network Finnish/English OCR smoke against synthetic images.
-RUN python ocr_smoke.py && rm ocr_smoke.py
+COPY scripts/cloud_vision_smoke.py ./cloud_vision_smoke.py
+# Exact REST request/response contract with mocked transport: no credential,
+# network request or charge occurs during image qualification.
+RUN python cloud_vision_smoke.py && rm cloud_vision_smoke.py
 COPY run.py ./
 
 USER 10001:10001
