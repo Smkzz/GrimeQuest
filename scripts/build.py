@@ -62,7 +62,7 @@ def main():
         raise SystemExit('TypeScript compiler unavailable. Install build dependencies with npm ci, or run the prebuilt web/ without rebuilding.')
     subprocess.run([tsc,'-p','tsconfig.json'],cwd=ROOT,check=True)
     create_art()
-    manifest={"id":"/","name":"GrimeQuest · Small chores, real wins","short_name":"GrimeQuest","description":"Point at the grime, clean it, and score XP.","start_url":"/","scope":"/","display":"standalone","background_color":"#f7f8f2","theme_color":"#173d32","lang":"en","icons":[{"src":"assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},{"src":"assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},{"src":"assets/icon-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}
+    manifest={"id":"/","name":"GrimeQuest · Small chores, real wins","short_name":"GrimeQuest","description":"Your mess becomes a little monster. Snap, clean, defeat it.","start_url":"/","scope":"/","display":"standalone","background_color":"#f7f8f2","theme_color":"#173d32","lang":"en","icons":[{"src":"assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},{"src":"assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},{"src":"assets/icon-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}
     (WEB/'manifest.webmanifest').write_text(json.dumps(manifest,indent=2)+'\n')
     files=sorted(p for p in WEB.rglob('*') if p.is_file() and p.name!='sw.js')
     digest=hashlib.sha256(b''.join(p.relative_to(WEB).as_posix().encode()+p.read_bytes() for p in files)).hexdigest()[:16]
@@ -126,6 +126,8 @@ self.addEventListener('fetch', event => {
         data='data:image/svg+xml;base64,'+base64.b64encode(asset.read_bytes()).decode()
         js=js.replace('assets/'+asset.name,data)
     html=html.replace('<link rel="stylesheet" href="styles.css">','<style>'+css+'</style>')
+    # Inline the public-game skin in the standalone artifact and browser harness too.
+    html=html.replace('<link rel="stylesheet" href="game.css">','<style>'+(WEB/'game.css').read_text()+'</style>')
     html=html.replace('<script defer src="vendor/qr-creator.js"></script>','').replace('<script defer src="vendor/zxing-0.21.3.min.js"></script>','').replace('<script defer src="install.js"></script>','').replace('<script defer src="update-client.js"></script>','')
     html=html.replace('<script defer src="app.js"></script>','<script>'+js.replace('</script','<\\/script')+'</script>')
     html='\n'.join(line for line in html.splitlines() if '<link rel="manifest"' not in line and '<link rel="icon"' not in line and '<link rel="apple-touch-icon"' not in line)
