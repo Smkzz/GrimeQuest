@@ -26,6 +26,10 @@ Identify one visible mess, confirm its material, choose a product from your own 
 4. Report what you can see. Results appear as **SELF-REPORTED**, earn only guided XP, and are not presented as model verification or chemical-safety approval. Identical before/after photos are rejected for clear results.
 5. If the operator has activated and verified the fixed ZDR model within its preflight and call budgets, the server automatically offers consent-based **AI Beta**. Players are never shown server configuration. If AI Beta is unavailable or rate-limited, the real camera quest still works.
 
+## Compact Vision responses for dense labels
+
+Google's original full OCR response included word and character bounding boxes and exceeded the previous 1.5 MB JSON cap on a real iPhone cleaning-bottle scan, producing HTTP 503. GrimeQuest now asks the EU Vision API for a **partial response** containing only combined recognized text, optional text descriptions, per-page confidence and error codes. Geometry/symbols are not requested. This reduces transferred response data without lowering camera image resolution, altering recognition features or adding a paid retry. The 1.5 MB response cap and explicit review of every warning remain. Provider errors no longer need to be hidden behind the generic over-large response message.
+
 ## Automatic Google Cloud Vision label recognition
 
 The previous on-server Tesseract engine was abandoned after real iPhone label scans produced gibberish and timeouts on a 0.5-vCPU instance. **Cloud Vision** is the only automatic label OCR route in production. The operator configures a Google Cloud project, enables the Cloud Vision API, restricts its server-side key to that API, reviews processing/privacy terms and sets project quota/billing limits. **Players never touch an API key, cloud console or server setting.**

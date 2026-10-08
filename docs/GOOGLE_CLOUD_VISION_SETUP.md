@@ -33,6 +33,10 @@ For **HTTP 400/401/403**, inspect API enablement, Google Cloud project/billing a
 
 For **HTTP 429**, inspect Google Cloud Vision quotas. For **NETWORK_TIMEOUT/NETWORK_OR_PARSE**, investigate Google connectivity. For **PASS_HTTP_200**, run a consented real iPhone label test and assess actual transcription accuracy. The health endpoint signals configuration, not proven OCR accuracy.
 
+## Dense-label response size
+
+Google Vision can return large nested structured OCR data containing per-character symbol positions, which GrimeQuest does not use. The backend now requests only the Google API's standard `fields` partial response selector for recognized text, confidence and errors. The API key remains in the private HTTPS header, **never in the query string**. If an upstream response still exceeds GrimeQuest's bounded JSON cap, the UI fails safely to manual entry rather than allocating unlimited memory. A real bottle scan should confirm text fidelity and response sizing; synthetic protocol checks cannot prove actual label accuracy.
+
 ## Privacy, security and rollback
 
 - Exactly two normalized, metadata-stripped JPEGs are sent in memory to the fixed EU region Google Cloud Vision endpoint after per-scan consent. GrimeQuest does not persist original label images, OCR transcripts or API keys in files or logs.
