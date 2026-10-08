@@ -412,18 +412,34 @@ def _barcode_photo(code):
     return output.getvalue()
 
 
-def test_software_barcode_reader_can_decode_photograph_without_upload(page):
-    """ZXing is self-hosted, and decoding happens locally in the browser."""
-    errors=mount(page)
-    page.add_script_tag(path=str(ROOT/'web/vendor/zxing-0.21.3.min.js'))
-    click(page,'inventory');click(page,'scan-product')
-    page.locator('#barcode-photo').set_input_files({
-        'name':'ean13.png','mimeType':'image/png',
-        'buffer':_barcode_photo('4006381333931')
-    })
-    expect(page.locator('#product-code')).to_have_value('4006381333931')
-    expect(page.locator('main')).to_contain_text('Barcode detected locally')
-    assert not errors
+def test_software_barcode_reader_auto_looks_up_photo_without_second_tap(page):
+    """A locally decoded photo automatically performs a bounded GTIN lookup."""
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    from server.config import Settings
+    from server.barcodes import BarcodeSuggestion
+
+    seen = []
+    class Index:
+        async def lookup(self,barcode):
+            seen.append(barcode)
+            return BarcodeSuggestion(barcode,True,'Example Cleaner 500 ml','Example','500 ml')
+
+    with TestClient(create_app(Settings(),barcode_lookup=Index())) as client:
+        errors=mount(page,client)
+        page.add_script_tag(path=str(ROOT/'web/vendor/zxing-0.21.3.min.js'))
+        click(page,'inventory');click(page,'scan-product')
+        page.locator('#product-note').fill('My original note')
+        page.locator('#barcode-photo').set_input_files({
+            'name':'ean13.png','mimeType':'image/png',
+            'buffer':_barcode_photo('4006381333931')
+        })
+        expect(page.locator('#product-code')).to_have_value('4006381333931')
+        expect(page.locator('main')).to_contain_text('Possible product match')
+        expect(page.locator('#product-name')).to_have_value('Example Cleaner 500 ml')
+        expect(page.locator('#product-note')).to_have_value('My original note')
+        assert seen==['4006381333931']
+        assert not errors
 
 
 def test_worldwide_name_search_selects_unreviewed_beauty_variant_without_ocr(page):
