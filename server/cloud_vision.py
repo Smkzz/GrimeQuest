@@ -21,6 +21,19 @@ from .models import ProductObservation
 
 NAME_UNREADABLE = "Product name unclear — enter manually"
 VISION_HOST = "https://eu-vision.googleapis.com"
+# Google Vision's default OCR response contains millions of bytes of nested
+# coordinates, symbols and individual word polygons for busy packaging.
+# We only use the combined text, per-page confidence and per-image error.
+# Google's standard partial-response fields parameter removes unused data
+# BEFORE it crosses the network. Keep the textAnnotations description fallback
+# for TEXT_DETECTION responses that don't include fullTextAnnotation.
+CLOUD_VISION_FIELDS = (
+    "responses("
+    "fullTextAnnotation(text,pages(confidence)),"
+    "textAnnotations(description),"
+    "error(code)"
+    ")"
+)
 _STOP_WORDS = frozenset({
     "WARNING", "CAUTION", "DANGER", "VAROITUS", "KÄYTTÖOHJE", "KAYTTOOHJE",
     "DIRECTIONS", "INSTRUCTIONS", "INGREDIENTS", "INNEHÅLL", "AINEKSET",
@@ -206,6 +219,7 @@ class CloudVisionReader:
                 async with client.stream(
                     "POST",
                     self.endpoint,
+                    params={"fields": CLOUD_VISION_FIELDS},
                     headers={"x-goog-api-key": self._key, "content-type": "application/json"},
                     json=request
                 ) as response:
@@ -225,7 +239,10 @@ class CloudVisionReader:
                     async for part in response.aiter_bytes():
                         received.extend(part)
                         if len(received) > 1_500_000:
-                            raise CloudVisionUnavailable("The recognition response was too large.")
+                            raise CloudVisionUnavailable(
+                                "Google Vision returned more text data than GrimeQuest can safely process. Enter details manually.",
+                                "RESPONSE_TOO_LARGE",
+                            )
             data = json.loads(received)
             entries = data.get("responses") if isinstance(data, dict) else None
             if not isinstance(entries, list) or len(entries) != 2 or any(
