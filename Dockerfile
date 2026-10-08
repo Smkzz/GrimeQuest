@@ -30,6 +30,13 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY requirements.lock ./
+# Same-host OCR: Finnish and English Tesseract language packs. There are no
+# third-party model requests or provider charges. One OCR process at a time.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      tesseract-ocr tesseract-ocr-eng tesseract-ocr-fin \
+    && rm -rf /var/lib/apt/lists/* \
+    && tesseract --list-langs 2>&1 | grep -qx fin \
+    && tesseract --list-langs 2>&1 | grep -qx eng
 # The official base bundles pip and build-time utilities; these are not needed to
 # serve GrimeQuest. Remove them only AFTER resolving and checking app dependencies.
 # The exact removal procedure passed a fail-closed Trivy rootfs audit.
