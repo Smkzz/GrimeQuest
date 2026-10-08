@@ -372,7 +372,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
                 return cached[1]
             while barcode_events and barcode_events[0] < now - 60:
                 barcode_events.popleft()
-            if len(barcode_events) >= 8:
+            if len(barcode_events) >= 12:
                 raise HTTPException(429, "Community lookup is temporarily busy. Enter the product name manually.")
             barcode_events.append(now)
         suggestion = await product_index.lookup(gtin)
