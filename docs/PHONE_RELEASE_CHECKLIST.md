@@ -41,3 +41,11 @@ Camera analysis requires a separately authorized, private live configuration. Th
 Record results in a private test sheet, not the public GitHub repository. Include only case IDs, device/browser details, app commit, timestamp, outcome and sanitized technical errors; do not attach unredacted photos.
 
 **Go/no-go:** the release remains `NOT_READY_FOR_GENERAL_PUBLIC_LIVE_AI` if any real-model false clear or false supported recommendation, missing privacy consent, camera leakage, image-decoding crash, or absent provider/privacy owner detail remains. The owner keeps the repo private until explicit final publication approval.
+
+## Real-world OCR qualification (must be performed on the phone)
+
+1. On glossy and curved cleaning bottles, try close-up front and warnings photos with bright, even light, avoiding glare and background clutter. Repeat with Finnish and English print, 24/48 MP photos and portrait/rotated text.
+2. Compare every recognized line to the actual bottle. **Garbled text such as `| MTT` or `LSANYTOL | VS` must never silently populate the product-name field.** If OCR is uncertain, the app must explain what happened and ask to retake or manually correct.
+3. Saving an OCR transcription must require the user to confirm the text, including warnings, against the bottle. Without review, no product entry should be saved. Neither a successful OCR call nor that review may expand cleaning-product compatibility rules.
+4. Verify both photos remain on the device until explicit OCR upload consent; server OCR does not send images to an external model or write picture/transcript files. When the service is busy or offline, manual entry stays available.
+5. Measure word/name transcription accuracy and the rate of incorrect *apparently successful* scans on a small consented set of actual labels. Synthetic OCR smoke tests alone do not qualify real bottle accuracy.
