@@ -82,7 +82,7 @@ with TestClient(create_app(Settings(), barcode_lookup=reader)) as client:
     assert candidate["category"]=="beauty"
     assert candidate["source"]=="Open Beauty Facts"
     assert candidate["recommendation_permission"] is False
-    assert len(calls)==len(PLATFORMS)+2
+    assert len(calls)==len(PLATFORMS)+len(PLATFORMS)
     print("GQ_GLOBAL_CROSS_CATEGORY_BARCODE_SMOKE_PASS")
 
 print("GQ_GLOBAL_NO_PHOTOS_NO_PAID_PROVIDER_SMOKE_PASS")

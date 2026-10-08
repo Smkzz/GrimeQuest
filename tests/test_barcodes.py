@@ -160,7 +160,9 @@ def test_barcode_lookup_falls_through_worldwide_categories():
         return httpx.Response(200,json={"status":0})
     finder=BarcodeLookup(transport=httpx.MockTransport(responder))
     match=asyncio.run(finder.lookup(VALID)).public()
-    assert hosts==["world.openproductsfacts.org","world.openbeautyfacts.org"]
+    assert hosts[0]=="world.openproductsfacts.org"
+    assert set(hosts[1:])=={"world.openbeautyfacts.org",
+                           "world.openfoodfacts.org","world.openpetfoodfacts.org"}
     assert match["source"]=="Open Beauty Facts"
     assert match["category"]=="beauty"
     assert match["source_url"]=="https://world.openbeautyfacts.org/product/"+VALID
