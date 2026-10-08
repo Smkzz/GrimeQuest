@@ -33,6 +33,15 @@ COPY server ./server
 COPY scripts ./scripts
 COPY tests ./tests
 COPY web ./web
+# Reproduce the production Dockerfile's exact bundled ZXing browser scanner.
+# Without this step, clean-room PWA tests incorrectly fail on a missing vendor asset.
+RUN npm pack @zxing/library@0.21.3 --pack-destination /tmp --silent \
+    && mkdir -p /tmp/zxing-package web/vendor \
+    && tar -xzf /tmp/zxing-library-0.21.3.tgz -C /tmp/zxing-package package/umd/index.min.js package/LICENSE \
+    && cp /tmp/zxing-package/package/umd/index.min.js web/vendor/zxing-0.21.3.min.js \
+    && cp /tmp/zxing-package/package/LICENSE web/vendor/zxing.LICENSE.txt \
+    && test -s web/vendor/zxing-0.21.3.min.js \
+    && node --check web/vendor/zxing-0.21.3.min.js
 COPY eval ./eval
 COPY run.py ./
 

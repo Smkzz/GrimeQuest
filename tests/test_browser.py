@@ -68,9 +68,9 @@ def test_mystery_surface_never_unlocks_product(page):
     # No click may equip a product or reveal a prepare/start action.
     for card in page.locator('[data-action="choose-product"]').all():
         card.click()
-        expect(page.locator('#toast')).to_contain_text('not supported')
+        expect(page.locator('#toast')).to_contain_text('cannot verify this material')
         assert page.locator('[data-action="prepare"]').count()==0
-    expect(page.locator('main')).to_contain_text('not supported')
+    expect(page.locator('main')).to_contain_text('No reviewed product match')
     assert page.evaluate('GQ.stats(GQ.readStore(),"practice").xp')==0
 
 def test_finland_catalog_brand_and_exact_variant_visible(page):
@@ -120,18 +120,17 @@ def setup_live(page,client):
     click(page,'home');click(page,'find');return errors
 
 
-def test_large_phone_camera_product_photo_is_downsampled_locally_without_upload(page,client):
-    # Regresses the formerly rejected >12 MP camera import; no live AI call.
+def test_large_phone_camera_photo_is_downsampled_in_guided_mode_without_upload(page,client):
+    # The retired front/back label-OCR form must not be required to play.
     mount(page,client)
-    click(page,'inventory')
-    click(page,'scan-product')
+    click(page,'guided-first')
     data=make_image('white',size=(4032,3024))
     assert 4032*3024>12_000_000
-    page.locator('#product-front').set_input_files({
-        'name':'high-resolution-product.jpg','mimeType':'image/jpeg',
+    page.locator('#photo-file').set_input_files({
+        'name':'high-resolution-target.jpg','mimeType':'image/jpeg',
         'buffer':base64.b64decode(data.split(',')[1]),
     })
-    thumb=page.locator('img[alt="Product Front label"]')
+    thumb=page.locator('img[alt="Selected image preview"]')
     expect(thumb).to_be_visible()
     assert thumb.evaluate('(img)=>img.naturalWidth===1600 && img.naturalHeight===1200')
     assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
@@ -143,10 +142,12 @@ def test_photo_pickers_offer_native_heic_and_heif(page,client):
     assert 'image/heic' in accept and 'image/heif' in accept
     assert 'image/jpeg' in accept and 'image/png' in accept
     click(page,'inventory');click(page,'scan-product')
-    for item in ('product-front','product-back'):
-        accepted=page.locator('#'+item).get_attribute('accept')
-        assert 'image/heic' in accepted and 'image/heif' in accepted
-        assert 'image/jpeg' in accepted
+    # Product discovery uses one local barcode photo, not the retired OCR labels.
+    assert page.locator('#product-front').count()==0
+    assert page.locator('#product-back').count()==0
+    accepted=page.locator('#barcode-photo').get_attribute('accept')
+    assert 'image/heic' in accepted and 'image/heif' in accepted
+    assert 'image/jpeg' in accepted
 
 
 def upload(page,selector,data_url):
@@ -238,7 +239,7 @@ def test_barcode_manual_product_never_needs_ocr_or_a_server(page):
     click(page,'inventory')
     click(page,'manual-product')
     expect(page.locator('h1')).to_contain_text('Find your bottle')
-    expect(page.locator('main')).to_contain_text('NO LABEL OCR')
+    expect(page.locator('main')).to_contain_text('NO PHOTO OCR')
     assert page.locator('[data-action="read-label-ocr"]').count()==0
     assert page.locator('[name="product-consent"]').count()==0
     page.locator('#product-name').fill('Actual name from my bottle')
@@ -267,7 +268,7 @@ def test_ean_barcode_lookup_suggests_only_unreviewed_product(page):
         click(page,'inventory');click(page,'scan-product')
         page.locator('#product-code').fill('4006381333931')
         click(page,'lookup-barcode')
-        expect(page.locator('main')).to_contain_text('Community listing found')
+        expect(page.locator('main')).to_contain_text('Possible product match')
         expect(page.locator('#product-name')).to_have_value('Kiilto Koti')
         expect(page.locator('main')).to_contain_text('600 ml')
         assert seen==['4006381333931']
@@ -299,11 +300,62 @@ def test_missing_barcode_data_keeps_manual_gameplay(page):
         expect(page.locator('#toast')).to_contain_text('check digit')
         page.locator('#product-code').fill('4006381333931')
         click(page,'lookup-barcode')
-        expect(page.locator('main')).to_contain_text('No community record found')
+        expect(page.locator('main')).to_contain_text('No exact match from our available sources')
         page.locator('#product-name').fill('Not indexed yet')
         click(page,'save-product')
         assert page.evaluate("GQ.readStore().inventory.at(-1).name")=='Not indexed yet'
         assert page.evaluate("GQ.readStore().inventory.at(-1).barcode")=='4006381333931'
+        assert not errors
+
+
+@pytest.mark.parametrize('width,height',[(390,844),(320,740)])
+def test_mobile_guided_journey_stays_usable_through_result(page,client,before,after,width,height):
+    page.set_viewport_size({'width':width,'height':height})
+    errors=mount(page,client)
+    expect(page.locator('.mode-banner')).to_contain_text('Camera quest')
+    expect(page.locator('[data-action="guided-first"]').first).to_be_visible()
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    click(page,'guided-first')
+    assert page.locator('[data-action="take-photo"]').is_disabled()
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('#surface').select_option('wood')
+    page.locator('#soil').select_option('light_grime')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('[data-action="choose-guided-method"]').first).to_be_visible()
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    click(page,'choose-guided-method')
+    care_checks(page)
+    click(page,'start-cleaning')
+    click(page,'capture-after')
+    assert page.locator('[data-action="take-photo"]').is_disabled()
+    upload(page,'#photo-file',after)
+    page.locator('[name="guided-same-target"]').check()
+    page.locator('[name="guided-dry"]').check()
+    page.locator('#guided-outcome').select_option('clear')
+    click(page,'guided-compare')
+    expect(page.locator('main')).to_contain_text('SELF-REPORTED VISIBLE CHANGE')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    click(page,'journal')
+    expect(page.locator('main')).to_contain_text('SELF-REPORTED')
+    assert not errors
+
+
+def test_optional_ai_public_beta_does_not_interrupt_default_guided_play(page,settings,vision):
+    from dataclasses import replace
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    public=replace(settings,public_live=True,access_code='',max_calls_day=45)
+    with TestClient(create_app(public,vision)) as client:
+        errors=mount(page,client)
+        expect(page.locator('.mode-banner')).to_contain_text('Camera quest')
+        click(page,'guided-first')
+        expect(page.locator('h1')).to_contain_text('Choose your before photo')
+        assert vision.calls==[]
         assert not errors
 
 
@@ -320,8 +372,7 @@ def test_zero_setup_guided_camera_full_game_without_ai_or_server_config(page,cli
     page.locator('[name="guided-safe-scene"]').check()
     click(page,'confirm-target')
     click(page,'choose-guided-method')
-    expect(page.locator('main')).to_contain_text('Your own checked approach')
-    click(page,'prepare')
+    expect(page.locator('main')).to_contain_text('Your own checked method')
     care_checks(page)
     click(page,'start-cleaning')
     page.wait_for_selector('[data-action="capture-after"]')
@@ -359,9 +410,8 @@ def test_previously_restricted_surface_completes_guided_camera_quest(page,client
     page.locator('[name="surface-confirm"]').check()
     page.locator('[name="guided-safe-scene"]').check()
     click(page,'confirm-target')
-    expect(page.locator('[data-action="choose-guided-method"]')).to_be_visible()
+    expect(page.locator('[data-action="choose-guided-method"]').first).to_be_visible()
     click(page,'choose-guided-method')
-    click(page,'prepare')
     care_checks(page)
     click(page,'start-cleaning')
     click(page,'capture-after')
@@ -393,7 +443,6 @@ def test_other_known_material_requires_description_and_can_complete_guided(page,
     click(page,'confirm-target')
     expect(page.locator('main')).to_contain_text('Painted wall')
     click(page,'choose-guided-method')
-    click(page,'prepare')
     care_checks(page)
     click(page,'start-cleaning')
     click(page,'capture-after')
@@ -425,8 +474,6 @@ def test_saved_arsenal_product_can_be_user_selected_without_becoming_app_approve
     expect(page.locator('button.product-card.unknown')).to_have_count(1)
     page.locator('button.product-card.unknown').click()
     expect(page.locator('main')).to_contain_text('My personally checked cleaner')
-    expect(page.locator('main')).to_contain_text('not a GrimeQuest chemical recommendation')
-    click(page,'prepare')
     expect(page.locator('main')).to_contain_text('GrimeQuest has not approved')
     assert page.evaluate("GQ.readStore().history.length")==0
     assert not errors
@@ -442,13 +489,13 @@ def test_guided_quest_refuses_unsupported_material_and_duplicate_clear(page,clie
     page.locator('[name="guided-safe-scene"]').check()
     click(page,'confirm-target')
     assert page.locator('[data-action="choose-guided-method"]').count()==0
-    page.locator('[data-action="confirm-back"]').click()
+    page.locator('[data-action="confirm-back"]').first.click()
     page.locator('#surface').select_option('uncoated_glass')
     page.locator('#soil').select_option('fingerprints')
     page.locator('[name="surface-confirm"]').check()
     page.locator('[name="guided-safe-scene"]').check()
     click(page,'confirm-target')
-    click(page,'choose-guided-method');click(page,'prepare')
+    click(page,'choose-guided-method')
     care_checks(page);click(page,'start-cleaning');click(page,'capture-after')
     upload(page,'#photo-file',before)
     page.locator('[name="guided-same-target"]').check()
@@ -473,9 +520,8 @@ def test_live_non_catalog_material_can_continue_privately_without_model_approval
     expect(page.locator('[data-action="switch-to-guided"]')).to_be_visible()
     click(page,'switch-to-guided')
     expect(page.locator('.mode-banner')).to_contain_text('Self-reported')
-    expect(page.locator('[data-action="choose-guided-method"]')).to_be_visible()
+    expect(page.locator('[data-action="choose-guided-method"]').first).to_be_visible()
     click(page,'choose-guided-method')
-    click(page,'prepare')
     care_checks(page)
     click(page,'start-cleaning')
     assert page.evaluate("GQ.readStore().active") is not None
@@ -625,7 +671,7 @@ def test_global_name_search_in_unicode_with_no_record_has_manual_path(page):
         click(page,'inventory');click(page,'scan-product')
         page.locator('#product-search').fill('洗衣粉')
         click(page,'search-product-name')
-        expect(page.locator('main')).to_contain_text('No matching entries')
+        expect(page.locator('main')).to_contain_text('No matching community records')
         assert queries==['洗衣粉']
         page.locator('#product-name').fill('洗衣粉 Brand')
         click(page,'save-product')

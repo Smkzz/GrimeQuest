@@ -52,8 +52,10 @@
     gate.hidden = false;
     document.getElementById('install-heading')?.setAttribute('tabindex', '-1');
     document.getElementById('install-heading')?.focus({ preventScroll: true });
-    document.getElementById('install-desktop')?.addEventListener('click', hideGate);
-    document.getElementById('install-copy')?.addEventListener('click', async () => {
+    const escapeButton = document.getElementById('install-desktop');
+    if (escapeButton) escapeButton.onclick = hideGate;
+    const copyButton = document.getElementById('install-copy');
+    if (copyButton) copyButton.onclick = async () => {
       const status = document.getElementById('install-copy-status');
       try {
         await navigator.clipboard.writeText(phoneUrl);
@@ -61,7 +63,7 @@
       } catch (_) {
         if (status) status.textContent = 'Select and copy the address above.';
       }
-    });
+    };
   }
 
   function revealPhoneSteps() {
@@ -86,9 +88,12 @@
     saveFlag('gq_install_tip_dismissed');
   }
 
-  function presentPhone() {
-    if (readonlyStore('gq_install_tip_dismissed')) return;
+  let phonePresented = false;
+  function presentPhone(force = false) {
+    if (!force && readonlyStore('gq_install_tip_dismissed')) return;
     tip.hidden = false;
+    if (phonePresented) return;
+    phonePresented = true;
     const cta = document.getElementById('install-cta');
     const dismiss = document.getElementById('install-dismiss');
     dismiss?.addEventListener('click', hideTip);
@@ -114,8 +119,17 @@
     });
   }
 
-  if (webOrigin && !standalone()) {
-    if (phoneOrTablet) presentPhone();
-    else if (!readonlyStore('gq_desktop_play')) presentDesktop();
-  }
+  // Do not block the desktop game with an installation gate on first load.
+  // Judges and players must be able to start a quest immediately on any device.
+  window.addEventListener('grimequest:show-install', () => {
+    if (!webOrigin) return;
+    if (phoneOrTablet) {
+      presentPhone(true);
+      revealPhoneSteps();
+    } else {
+      presentDesktop();
+    }
+  });
+  // Never obscure the first camera-quest CTA with an unsolicited install card.
+  // The optional Install / share control opens this guide on demand.
 })();

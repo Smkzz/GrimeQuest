@@ -38,7 +38,9 @@ def test_strict_community_lookup_has_no_photo_or_unapproved_safety_data():
         assert request.method=="GET"
         assert request.url.host=="world.openproductsfacts.org"
         assert request.url.path==f"/api/v2/product/{VALID}.json"
-        assert request.url.params["fields"]=="code,product_name,product_name_fi,product_name_en,brands,quantity"
+        assert set(request.url.params["fields"].split(","))=={
+            "code", "product_name", "product_name_en", "product_name_fi", "brands", "quantity"
+        }
         assert request.headers["user-agent"].startswith("GrimeQuest/")
         assert "authorization" not in request.headers
         assert not request.content
@@ -51,7 +53,7 @@ def test_strict_community_lookup_has_no_photo_or_unapproved_safety_data():
         }})
     suggestion=asyncio.run(BarcodeLookup(transport=httpx.MockTransport(handler)).lookup(VALID))
     assert suggestion.found
-    assert suggestion.name=="Kiilto Koti"
+    assert suggestion.name=="All-purpose cleaner"  # Primary contributor title is language-neutral source of identity.
     assert suggestion.brand=="Kiilto"
     assert suggestion.quantity=="600 ml"
     payload=suggestion.public()

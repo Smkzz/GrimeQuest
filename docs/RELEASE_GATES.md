@@ -12,7 +12,7 @@ Clean-room evidence:
 
 - **413 Python/API/browser/evaluation tests passed**
 - **36 client tests passed**
-- **449 / 449 total; zero skips/warnings**
+- **449 / 449 total in the historical October 7 baseline; newer commits require a new full-suite run**
 - **97.76% combined Python coverage**
 - **1,680 client/server policy combinations agree**
 - Python 3.13.16 / Node 22.23.3 / TypeScript 5.8.3
