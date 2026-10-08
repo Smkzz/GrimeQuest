@@ -445,3 +445,24 @@ test('manual GTIN entry works without any barcode camera capability',()=>{
  }]}));
 });
 
+test('real self-hosted ZXing library decodes a generated EAN-13 barcode without network or camera',()=>{
+ const Z=require('../web/vendor/zxing-0.21.3.min.js');
+ assert.equal(typeof Z.BrowserMultiFormatReader,'function');
+ assert.equal(typeof Z.MultiFormatWriter,'function');
+ assert.equal(typeof Z.RGBLuminanceSource,'function');
+ const barcode='4006381333931';
+ const writer=new Z.MultiFormatWriter();
+ const matrix=writer.encode(barcode,Z.BarcodeFormat.EAN_13,840,200);
+ const width=matrix.getWidth(),height=matrix.getHeight();
+ const luminance=new Uint8ClampedArray(width*height);
+ for(let y=0;y<height;y++){
+   for(let x=0;x<width;x++)luminance[y*width+x]=matrix.get(x,y)?0:255;
+ }
+ const reader=new Z.MultiFormatReader();
+ const bits=new Z.BinaryBitmap(new Z.HybridBinarizer(
+   new Z.RGBLuminanceSource(luminance,width,height)));
+ const decoded=reader.decode(bits);
+ assert.equal(decoded.getText(),barcode);
+ assert.equal(G.validGTIN(decoded.getText()),true);
+});
+
