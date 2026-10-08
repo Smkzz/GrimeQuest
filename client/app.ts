@@ -694,6 +694,12 @@ namespace GQ {
   }
   export function boot():void {
     root=document.getElementById('app')!;if(!root) return;
+    // Archived interface runs only in the isolated legacy contract harness.
+    // Real users always enter the camera-first casual game.
+    if(!(window as Window & {__GQ_ARCHIVE_TEST__?:boolean}).__GQ_ARCHIVE_TEST__){
+      new CasualGame(root).start();
+      return;
+    }
     store=readStore();camera=new Camera();render(false);
     root.addEventListener('click',ev=>{const target=(ev.target as Element).closest<HTMLElement>('[data-action]');if(target){ev.preventDefault();void action(target.dataset.action||'',target.dataset.id);}});
     root.addEventListener('change',ev=>{

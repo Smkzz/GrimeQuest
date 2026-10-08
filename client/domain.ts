@@ -40,8 +40,16 @@ namespace GQ {
       Object.prototype.hasOwnProperty.call(soilNames,soil) && soil!=='unknown' &&
       hazards.length===1 && hazards[0]==='none';
   }
-  export type QuestEvent = {type:'confirm';surface:Surface;soil:Soil} | {type:'equip'; productId:string} | {type:'equip-guided'} | {type:'start'} | {type:'result';result:Result;after:string} | {type:'retry'};
+  export type QuestEvent = {type:'confirm';surface:Surface;soil:Soil} | {type:'equip'; productId:string} | {type:'equip-guided'} | {type:'begin-casual'} | {type:'start'} | {type:'result';result:Result;after:string} | {type:'retry'};
   export function transition(q: Quest, event: QuestEvent): Quest {
+    // Casual camera quests are a diary of a player's own cleaning actions,
+    // NOT permission to use a cleaner or a surface-compatibility verdict.
+    // This deliberately bypasses the chemical catalog without modifying it.
+    if(event.type==='begin-casual' && q.mode==='guided' && q.phase==='identified') {
+      if(!q.before.startsWith('data:image/jpeg;base64,') || q.before.length<100)
+        throw new Error('Take a real before photo to start your cleaning quest.');
+      return {...q,phase:'cleaning',productId:undefined};
+    }
     if(event.type==='confirm' && q.phase==='identified') {
       if(!q.analysis.visible_soil || q.analysis.image_quality!=='usable') throw new Error('A usable before photo and visible target are required.');
       return {...q,phase:'confirmed',surface:event.surface,soil:event.soil};

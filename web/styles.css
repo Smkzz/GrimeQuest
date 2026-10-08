@@ -116,3 +116,87 @@
 
 /* Keep the custom-material field out of the tab order until Other is chosen. */
 .other-material-field[hidden]{display:none!important}
+
+
+/* Casual GrimeQuest — the public camera-first experience. */
+.quick-app{max-width:660px;min-height:100dvh;margin:0 auto;padding:14px clamp(15px,4vw,34px) 24px;display:flex;flex-direction:column;gap:0;background:radial-gradient(ellipse at 95% 8%,#edfad8 0,transparent 34%),var(--cream)}
+.quick-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0 21px}
+.quick-brand{border:0;background:none;color:#173d32;font-size:clamp(17px,4.5vw,23px);font-weight:850;letter-spacing:-1px;padding:9px 4px;white-space:nowrap}
+.quick-brand span{color:#7dab3c}
+.quick-header nav{display:flex;gap:5px;align-items:center}
+.quick-header nav button{border:0;background:transparent;color:#58705e;font-weight:700;font-size:13px;border-radius:12px;padding:12px 13px;min-height:44px}
+.quick-header nav button.active,.quick-header nav button:hover{background:#e8f2db;color:#173d32}
+.quick-app main{flex:1;display:flex;flex-direction:column;padding-bottom:22px;gap:17px}
+.quick-hero{text-align:center;padding:23px 10px 14px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.quick-eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;color:#729749;line-height:1.6;text-align:center}
+.quick-hero h1,.quick-step h1,.quick-victory h1{font-size:clamp(34px,8vw,53px);letter-spacing:-1.8px;line-height:1.08;font-weight:880;text-align:center}
+.quick-hero h1 em{font-style:normal;color:#759e37}
+.quick-hero>p:not(.quick-eyebrow),.quick-step>p:not(.quick-eyebrow),.quick-victory>p:not(.quick-eyebrow){font-size:clamp(15px,3.8vw,18px);line-height:1.5;max-width:420px;text-align:center}
+.quick-note{font-size:12px!important;color:#687a65!important;text-align:center;max-width:470px;margin:0 auto}
+.quick-mascot{display:grid;place-items:center;width:118px;height:118px;border-radius:40% 40% 43% 43%;background:linear-gradient(145deg,#dcf5ad,#9ccb64);border:5px solid #effadd;color:#1d4a30;box-shadow:0 18px 40px #66943d30;font-size:68px;line-height:1;transform:rotate(-7deg)}
+.quick-mascot.small{width:90px;height:90px;font-size:50px;border-width:3px;border-radius:40%}
+.quick-btn,.quick-file{width:100%;border:0;background:#1a4d38;color:white;text-align:center;font-size:17px;font-weight:760;letter-spacing:-.25px;border-radius:19px;min-height:60px;padding:15px 18px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 5px 12px #184c341c;cursor:pointer;transition:transform .12s ease,background .12s ease}
+.quick-btn:hover:not(:disabled),.quick-file:hover{background:#245f42;transform:translateY(-1px)}
+.quick-btn:active:not(:disabled),.quick-file:active{transform:scale(.986)}
+.quick-btn:disabled{opacity:.42;box-shadow:none;cursor:not-allowed}
+.quick-btn.quick-secondary,.quick-file{background:#eaf1e3;color:#204331;border:1px solid #cfddc6;box-shadow:none}
+.quick-btn.quick-secondary:hover,.quick-file:hover{background:#dcebd4;color:#204331}
+.quick-hero>.quick-btn{max-width:370px;font-size:19px;margin:8px 0 0}
+.quick-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:white;border:1px solid #e0e8d7;border-radius:20px;padding:15px 8px;box-shadow:var(--shadow)}
+.quick-stats>div{display:flex;align-items:center;flex-direction:column;text-align:center;gap:1px;border-right:1px solid #e8eee1}
+.quick-stats>div:last-child{border:0}
+.quick-stats strong{font-size:clamp(22px,6vw,31px);color:#20442d;font-variant-numeric:tabular-nums}
+.quick-stats span{font-size:11px;color:#687a64;font-weight:690;line-height:1.3}
+.quick-how{display:grid;gap:11px;background:#fff;border:1px solid #e4eadd;border-radius:21px;padding:20px;line-height:1.6}
+.quick-how>b{font-size:18px;color:#224232}
+.quick-how>div{display:flex;gap:13px;align-items:center;font-size:15px}
+.quick-how>div>span{width:33px;height:33px;border-radius:50%;background:#dff4c7;color:#254a32;font-weight:840;display:grid;place-items:center;flex-shrink:0}
+.quick-how p{font-size:13px}
+.quick-step{display:flex;flex-direction:column;align-items:center;gap:10px;margin:12px 0 5px}
+.quick-camera{height:auto;aspect-ratio:4/3;border-radius:23px;overflow:hidden;background:#dce8d1;box-shadow:inset 0 0 0 1px #b9cfb2;display:grid;place-items:center;position:relative;isolation:isolate}
+.quick-camera video,.quick-image{display:block;width:100%;height:100%;object-fit:cover}
+.quick-camera .quick-image{aspect-ratio:4/3}
+.quick-placeholder{display:flex;align-items:center;flex-direction:column;justify-content:center;gap:7px;text-align:center;padding:14px}
+.quick-placeholder>span{font-size:73px;line-height:1;color:#729c4e}
+.quick-placeholder>b{font-size:21px}
+.quick-placeholder>small{font-size:14px;color:#708068}
+.quick-camera-actions{display:flex;flex-direction:column;gap:8px}
+.quick-camera-actions .quick-btn,.quick-camera-actions .quick-file{min-height:55px}
+.quick-file input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.quick-file:focus-within{outline:3px solid #687cda;outline-offset:3px}
+.quick-next,.quick-bottom{display:flex;flex-direction:column;gap:8px}
+.quick-bottom{margin-top:8px}
+.quick-before-ref{border:1px solid #dce6d0;background:white;border-radius:15px;padding:8px 14px}
+.quick-before-ref summary{font-weight:750;cursor:pointer}
+.quick-before-ref .quick-image{height:160px;width:100%;margin-top:8px;object-fit:cover;border-radius:10px}
+.quick-before-preview{overflow:hidden;position:relative;border-radius:22px;max-height:340px;background:#dce8d1}
+.quick-before-preview .quick-image{max-height:340px;aspect-ratio:4/3}
+.quick-before-preview>span{position:absolute;top:13px;left:13px;background:#193b2dc9;color:#fff;font-size:12px;padding:6px 12px;border-radius:30px;letter-spacing:.1em}
+.quick-clean-cta{display:flex;flex-direction:column;align-items:center;text-align:center;gap:17px;background:white;border:1px solid #dde8d2;border-radius:22px;padding:25px 20px}
+.quick-clean-cta p{font-size:15px;max-width:430px}
+.quick-safety{font-size:13px;line-height:1.7;background:#f1f4e9;padding:14px;border-radius:12px;color:#5b6f5b}
+.quick-victory{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;margin-top:15px}
+.quick-victory .quick-mascot{background:linear-gradient(145deg,#fff6c9,#e6d877);color:#4c6338;transform:rotate(4deg)}
+.quick-xp{font-size:48px;line-height:1.1;color:#34774c;letter-spacing:-2px}
+.quick-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.quick-comparison figure{margin:0;background:white;border:1px solid #e2e9db;border-radius:16px;overflow:hidden;min-width:0}
+.quick-comparison .quick-image{height:160px;aspect-ratio:4/3}
+.quick-comparison figcaption{font-size:11px;letter-spacing:.09em;color:#5b735c;font-weight:800;text-align:center;padding:10px}
+.quick-level{text-align:center;font-weight:800;color:#315b37}
+.quick-wins{display:grid;gap:8px}
+.quick-wins article{border:1px solid #e0e9db;background:white;border-radius:16px;display:flex;gap:12px;align-items:center;padding:16px}
+.quick-wins article>span{font-size:25px;color:#70aa44}
+.quick-wins article>div{display:flex;flex:1;flex-direction:column;min-width:0}
+.quick-wins article b{font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.quick-wins article small{font-size:11px;color:#718371}
+.quick-wins article>strong{white-space:nowrap;color:#4a8049;font-size:14px}
+.quick-empty{text-align:center;padding:34px 0}
+.quick-warning,.quick-message{padding:14px 16px;background:#fff3e9;border:1px solid #e9d8c3;border-radius:14px;font-size:13px;line-height:1.6}
+.quick-warning .quick-btn{margin-top:8px;min-height:44px;font-size:13px}
+.quick-message{background:#e8f3df;border-color:#c8dfb6}
+.quick-footer{text-align:center;margin-top:auto;padding:16px 6px;border-top:1px solid #dfe9d7;color:#6e7e6a;font-size:11px}
+.quick-footer a{color:#315c42}
+@media(max-width:400px){.quick-header nav button{font-size:12px;padding:10px 8px}.quick-app{padding:10px 13px 20px}.quick-hero{padding-top:10px}.quick-mascot{width:101px;height:101px;font-size:58px}.quick-comparison .quick-image{height:130px}}
+@media(prefers-reduced-motion:reduce){.quick-btn,.quick-file{transition:none}}
+
+.quick-install-link{border:0;background:none;padding:4px;color:#315c42;text-decoration:underline;text-underline-offset:3px;font-size:11px;font-weight:700}

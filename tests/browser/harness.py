@@ -19,7 +19,7 @@ if(!crypto.randomUUID)crypto.randomUUID=()=>[...crypto.getRandomValues(new Uint8
 window.fetch=async(path,options={})=>{if(typeof path!=='string'||!path.startsWith('/api/'))throw Error('Test bridge only accepts relative API paths');const r=await window.__testFetch(path,options);return new Response(r.body,{status:r.status,headers:r.headers})};
 '''
 
-def mount(page,client=None,initial=None):
+def mount(page,client=None,initial=None,casual=False):
     errors=[]
     page.on('pageerror',lambda err:errors.append(str(err)))
     def fetch_bridge(path,options):
@@ -29,10 +29,10 @@ def mount(page,client=None,initial=None):
         response=client.request(options.get('method','GET'),path,headers=headers,content=options.get('body'))
         return {'status':response.status_code,'headers':dict(response.headers),'body':response.text}
     page.expose_function('__testFetch',fetch_bridge)
-    state='' if initial is None else 'Object.assign(window.__testStorage.local,'+json.dumps(initial)+');'
+    state=('window.__GQ_ARCHIVE_TEST__='+('false' if casual else 'true')+';') + ('' if initial is None else 'Object.assign(window.__testStorage.local,'+json.dumps(initial)+');')
     html=(ROOT/'preview.html').read_text().replace('<head>','<head><script>'+SHIM+state+'</script>',1)
     page.set_content(html,wait_until='domcontentloaded')
-    page.wait_for_selector('[data-action="practice-first"]')
+    page.wait_for_selector('[data-quick="start"]' if casual else '[data-action="practice-first"]')
     page.wait_for_timeout(100)
     return errors
 
