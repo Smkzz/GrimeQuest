@@ -47,9 +47,10 @@ with TestClient(app) as client:
     assert len(calls) == 1, "Safe cache must prevent duplicate upstream request"
     print("GQ_BARCODE_LOOKUP_SMOKE_PASS")
 
-with TestClient(create_app(Settings(), barcode_lookup=BarcodeLookup(
-        transport=httpx.MockTransport(lambda _: httpx.Response(
-            200, json={"status": 0})))))) as client:
+missing_index = BarcodeLookup(transport=httpx.MockTransport(
+    lambda _: httpx.Response(200, json={"status": 0})
+))
+with TestClient(create_app(Settings(), barcode_lookup=missing_index)) as client:
     fallback = client.post("/api/product-lookup",
                            json={"barcode": EAN},
                            headers={"origin": "http://testserver"})
