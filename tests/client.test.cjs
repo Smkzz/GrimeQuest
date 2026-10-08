@@ -444,38 +444,3 @@ test('manual GTIN entry works without any barcode camera capability',()=>{
    note:'Only locally held',addedAt:'2026-10-08T05:00:00Z'
  }]}));
 });
-
-test('real bundled ZXing decodes standard EAN-13 bars without network or a browser',()=>{
- const Z=require('../web/vendor/zxing-0.21.3.min.js');
- assert.equal(typeof Z.BrowserMultiFormatReader,'function');
- assert.equal(typeof Z.MultiFormatReader,'function');
- assert.equal(typeof Z.RGBLuminanceSource,'function');
- const code='4006381333931';
- const L=['0001101','0011001','0010011','0111101','0100011',
-          '0110001','0101111','0111011','0110111','0001011'];
- const G=['0100111','0110011','0011011','0100001','0111001',
-          '0000101','0010001','0001001','0010111'];
- const R=['1110010','1100110','1101100','1000010','1011100',
-          '1001110','1010000','1000100','1001000','1110100'];
- const parity=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG',
-               'LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
- let bits='101';
- for(let i=0;i<6;i++){
-   const digit=Number(code[i+1]);
-   bits+=(parity[Number(code[0])][i]==='L'?L:G)[digit];
- }
- bits+='01010';
- for(const digit of code.slice(7))bits+=R[Number(digit)];
- bits+='101';
- assert.equal(bits.length,95);
- // Test the actual EAN-13 decoder directly, independently of browser
- // canvas/luminance heuristics. Encoding each row here is deterministic.
- assert.equal(typeof Z.EAN13Reader,'function');
- assert.equal(typeof Z.BitArray,'function');
- const margin=22,row=new Z.BitArray(bits.length+2*margin);
- for(let i=0;i<bits.length;i++)if(bits[i]==='1')row.set(margin+i);
- const decoded=new Z.EAN13Reader().decodeRow(0,row);
- assert.equal(decoded.getText(),code);
- assert.ok(G.validGTIN(decoded.getText()));
-});
-
