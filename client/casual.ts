@@ -169,7 +169,7 @@ namespace GQ {
         this.nav() + (storageWarning ? '<p class="quick-warning">' + escapeHTML(storageWarning) + '</p>' : '') +
         '<main id="quick-main">' + content + '</main>' +
         (this.message ? '<p class="quick-message" role="status">' + escapeHTML(this.message) + '</p>' : '') +
-        '<footer class="quick-footer">Small chores. Real wins. · <a href="/privacy.html">Privacy</a> · <a href="/safety.html">Safety</a></footer></div>';
+        '<footer class="quick-footer">Small chores. Real wins. · <button type="button" class="quick-install-link" data-quick="install">Install / share</button> · <a href="/privacy.html">Privacy</a> · <a href="/safety.html">Safety</a></footer></div>';
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
