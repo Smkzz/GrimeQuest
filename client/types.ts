@@ -32,6 +32,16 @@ namespace GQ {
     encounter_id: string; status: ResultStatus; xp: number; reason: string;
     provenance: 'practice_fixture' | 'model_observation' | 'deterministic_guard' | 'self_attested'; receipt?: string;
   }
+  export type ProductCategory = 'general' | 'beauty' | 'food' | 'petfood';
+  export interface ProductCandidate {
+    barcode: string; found: boolean; name: string; brand: string; quantity: string;
+    category: ProductCategory; source: string; source_url: string;
+    review_status: 'unreviewed'; recommendation_permission: false;
+  }
+  export interface ProductSearchResponse {
+    results: ProductCandidate[]; source: 'Open Facts';
+    review_status: 'unreviewed'; recommendation_permission: false;
+  }
   export interface InventoryItem {id: string; name: string; catalogId: string | null; note: string; addedAt: string; barcode?: string}
   export interface HistoryItem {
     id: string; name: string; room: string; mode: Mode; status: ResultStatus;
