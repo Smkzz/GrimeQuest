@@ -94,7 +94,15 @@ namespace GQ {
     const publicAccess=health?.access_mode==='public_rate_limited';
     return `${heading('MAKE IT YOURS','A little setup. A lot of clarity.','No account, no analytics, and no paid calls in practice mode.')}<div class="settings-grid"><section class="panel"><h2>Choose your mode</h2><p>Practice is a deterministic walkthrough. Live mode needs a configured vision server${publicAccess?' and available demo capacity.':' and a private access code.'}</p><div class="segmented" role="group" aria-label="Application mode">${button('Practice','mode-practice',mode==='practice'?'primary':'secondary')}${button('Live camera','mode-live',mode==='live'?'primary':'secondary')}</div><div class="server-status"><span class="status-dot ${health?.live_ready?'ready':''}"></span>${health?.live_ready?'Vision adapter configured':'Live vision not configured'}</div><p class="hint">${health?.live_ready?`Destination: ${e(health.provider_host)}<br>Model: ${e(health.provider_model)}<br>Limits: ${health.max_calls_hour}/hour · ${health.max_calls_day}/day per server.${health.source_sha?`<br>Release: ${e(health.source_sha.slice(0,8))}`:''} Provider fees may apply.`:'The app never silently substitutes a practice result for a live analysis. Start the Python server and configure a compatible vision model to enable live mode.'}</p>${publicAccess?`<div class="notice soft">${icon('shield')}<p><b>Public demo access.</b> No shared code is required. Same-origin checks and the server’s hourly/daily ceilings still apply.</p></div><p class="micro">Provider credentials remain server-side. When capacity is exhausted, live analysis fails closed instead of falling back to a simulated result.</p>`:`<label class="field"><span>Private access code</span><input id="access-code" type="password" autocomplete="off" placeholder="Server-configured code, 24+ characters" maxlength="160" value="${e(getAccessCode())}"></label>${button('Save access code','save-code','secondary')}<p class="micro">Held in this browser tab’s session storage, not exported. API-provider keys belong only on the server.</p>`}</section><section class="panel"><h2>Privacy by default</h2><div class="settings-fact">${icon('camera')}<p><b>Photos are temporary.</b> Kept in memory for the current quest. Closing or reloading the page discards them.</p></div><div class="settings-fact">${icon('shield')}<p><b>You decide when to send.</b> Live analysis sends re-encoded photos through your server to its configured provider. Its retention policy still applies.</p></div><div class="settings-fact">${icon('book')}<p><b>Your device remembers.</b> Inventory notes, quest history and an interrupted-task warning are stored locally. Do not put personal information in label notes.</p></div><p class="hint">Avoid photographing people, addresses, documents or other private information. EXIF is stripped; visible personal information is not automatically removed.</p><p class="legal-links"><a href="/privacy.html">Full privacy notice →</a></p></section><section class="panel"><h2>Care is a hard rule.</h2><p>Only confirmed ordinary glass and sound glazed ceramic are supported. No strong acids, bleach, drain cleaners, solvents, mould, body fluids, hot appliances or chemical mixtures.</p><p>No camera claim of disinfection. No “percent clean.” No speed bonuses. An app cannot physically prevent someone from using the wrong product.</p><p>When in doubt, stop and consult the surface/product manufacturer. If an exposure occurs, stop using the app and contact local poison/emergency services.</p><a href="https://www.cdc.gov/hygiene/about/when-and-how-to-clean-and-disinfect-your-home.html" target="_blank" rel="noopener noreferrer">CDC: label-directed household cleaning ↗</a><p class="legal-links"><a href="/safety.html">Full safety boundaries →</a></p></section><section class="panel"><h2>This device</h2><p>To install, use your browser’s install option or Add to Home Screen. Installation availability depends on the browser.</p><p>Offline support covers the app shell, arsenal, journal and practice examples. Live AI analysis requires a network connection.</p><p class="legal-links"><a href="/update.html">Refresh or repair this installation →</a></p>${store.active?`${check('resolve-check','I have stopped the previous task and checked the actual label before doing anything else.')}${button('Clear interrupted-task warning','clear-active','secondary')}`:''}<details><summary>Delete my local data</summary><p>This removes this app’s inventory, history, access code and interrupted-task warning. It does not remove physical cleaner residues.</p>${check('delete-confirm','I understand this permanently deletes local GrimeQuest data.')}${button('Delete local data','delete-data','danger')}</details></section></div>`;
   }
+  function guidedCaptureView():string {
+    const after=capturePurpose==='after';
+    const choice=after?`<div class='field'><label for='guided-outcome'>What do your two photos show?</label><select id='guided-outcome'><option value='unverifiable'>Unsure / not comparable</option><option value='partial'>Some visible grime remains</option><option value='clear'>I see no remaining visible grime</option></select></div>`:'';
+    const confirm=after?`${check('guided-same-target','Both photos show the exact same target from a comparable angle and lighting.')}${check('guided-dry','The target is dry and any product-label procedure is complete.')}`:`${check('guided-before-confirm','This photo shows a real visible target without people, documents, or private information.')}`;
+    const submit=after?button('Record my own visual comparison','guided-compare','primary wide',captureImage?'':'disabled'):button('Describe this target','guided-identify','primary wide',captureImage?'':'disabled');
+    return `${back(after?'resume':'home')}${heading('REAL CAMERA QUEST · NO AI',after?'Compare your photos.':'Choose your before photo.',after?'Take the same photo again once your label-directed work is finished and the target is dry.':'Take a picture of one visible mess. You decide what the material and soil actually are; GrimeQuest does not identify them by AI in this mode.')}<div class='split'><section class='capture-panel'><div class='camera-window' id='camera-host'>${captureImage?picture(captureImage,'Selected image preview'):`<div class='camera-placeholder'>${icon('camera')}<h2>Your camera is off.</h2><p>Open it or choose a photo.</p></div>`}</div>${after&&quest?`<details class='reference-photo' open><summary>Original before photo</summary>${picture(quest.before,'Before photo to compare against')}</details>`:''}<div class='camera-controls'>${button(icon('camera')+'Open camera','open-camera','secondary')}${button('Take photo','take-photo','secondary')}<label class='btn secondary file-button'>${icon('upload')}Choose photo<input id='photo-file' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif' capture='environment'></label></div></section><section class='panel'><h2>${after?'You decide what changed.':'One target, one photo.'}</h2><p>${after?'The game cannot verify hygiene or whether the chore was completed. Your choice is a self-report, not an AI result.':'No account, API key, server configuration, or photo upload is needed.'}</p>${choice}${confirm}${submit}<p class='micro'>Images are processed locally, kept only during this quest, and never sent to a model in guided mode. Game XP is self-reported, not measured cleanliness.</p></section></div>`;
+  }
   function captureView():string {
+    if(mode==='guided')return guidedCaptureView();
     const after=capturePurpose==='after';
     return `${back(after?'resume':'home')}${heading(after?'SAME TARGET. SAME LIGHT.':'ONE TARGET, ONE PHOTO.',after?'Show what changed.':'Find a little grime.',after?'Let the target dry and match the original framing. A changed angle is not a cleaning result.':'Keep people, documents and private details out of the frame.')}<div class="split"><section class="capture-panel"><div class="camera-window" id="camera-host">${captureImage?picture(captureImage,'Selected image preview'):`<div class="camera-placeholder">${icon('camera')}<h2>Your camera is off.</h2><p>Open it below, or choose an existing photo.</p></div>`}</div>${after&&quest?`<details class="reference-photo" open><summary>Original view to match</summary>${picture(quest.before,'Before reference for manual alignment')}</details>`:''}<div class="camera-controls">${button(icon('camera')+'Open camera','open-camera','secondary')}${button('Take photo','take-photo','secondary')}<label class="btn secondary file-button">${icon('upload')}Choose photo<input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label></div></section><section class="panel"><h2>${after?'Compare, don’t assume.':'A deliberate photo check.'}</h2><p>${after?'Both images will be sent to the configured vision provider. The result may be clear, partial or unverifiable.':'A vision model will propose a visible target and material. You will still need to confirm the surface.'}</p><p class="hint">Destination: ${e(health?.provider_host||'Not configured')}. Provider retention terms apply.</p>${check('photo-consent',`I approve sending ${after?'both photos':'this photo'} to the configured AI provider for this analysis.`)}${after?check('procedure-done','I completed the actual product-label procedure; this photo shows the dry target.'):''}${button(after?'Analyze before / after':'Analyze target','analyze-photo','primary wide',captureImage?'':'disabled')}<p class="micro">Full-resolution JPEG, PNG, WebP and supported HEIC/HEIF photos are resized and compressed on this device before upload. No silent uploads or automatic retries.</p></section></div>`;
   }
@@ -191,27 +199,39 @@ namespace GQ {
       switch(name) {
         case 'how': toast('Identify one target → confirm its material → choose an evidence-backed product → do the real task → compare photos. Practice simulates those steps.');break;
         case 'practice-first':newPractice('kitchen');break;
+        case 'guided-first':if(store.active)throw new Error('Review the interrupted cleaning task before starting a new one.');mode='guided';quest=null;capturePurpose='target';captureImage='';go('capture');break;
         case 'scenario':newPractice(id||'');break;
         case 'resume':resume();break;
         case 'confirm-back': if(quest){quest={...quest,phase:'identified',productId:undefined};go('confirm');}break;
         case 'loadout-back':if(quest?.phase==='cleaning'){toast('The selected product is locked while cleaning. Do not switch products mid-task.',true);}else go('loadout');break;
         case 'confirm-target': {
           if(!quest) break;
+          if(quest.mode==='guided'&&!checked('guided-safe-scene'))throw new Error('Confirm this is an ordinary, undamaged, cool target without electrical or chemical hazards.');
           const surface=val('surface'),soil=val('soil');
           if(!checked('surface-confirm')) throw new Error('Confirm the material check, or choose “I’m not sure.”');
           if(!isSurface(surface)||!isSoil(soil)) throw new Error('Unsupported target selection.');
           quest=transition(quest,{type:'confirm',surface,soil});go('loadout');break;
         }
         case 'choose-product': if(quest){quest=transition(quest,{type:'equip',productId:id||''});render(false);toast('Conditional match found. Check the current bottle and surface instructions before use.');}break;
+        case 'choose-guided-method':if(quest?.mode==='guided'){quest=transition(quest,{type:'equip-guided'});render(false);toast('Your own method was selected by you, not recommended or assessed by GrimeQuest.');}break;
         case 'prepare':go('clean');break;
         case 'start-cleaning': {
           if(!quest?.productId) break;
           if(quest.mode==='live' && !store.inventory.some(i=>i.catalogId===quest?.productId)) throw new Error('That reviewed product is no longer in your arsenal. Add or select the bottle you actually own.');
           const a:Attestations={exact_product:checked('exact_product'),label_allows_target:checked('label_allows_target'),surface_care_allows:checked('surface_care_allows'),no_other_product:checked('no_other_product'),cool_and_safe:checked('cool_and_safe')};
           if(!Object.values(a).every(Boolean)) throw new Error('Complete all five care checks before continuing.');
-          const current=matchProduct(quest.surface,quest.soil,quest.productId,a,quest.analysis.hazards);
-          if(current.status!=='eligible') throw new Error(current.reason);
+          if(quest.mode==='guided' && quest.productId===GUIDED_METHOD_ID){
+            if(!guidedTargetSupported(quest.surface,quest.soil,quest.analysis.hazards))throw new Error('This material, soil or hazard is outside guided-play scope.');
+          }else{
+            const current=matchProduct(quest.surface,quest.soil,quest.productId,a,quest.analysis.hazards);
+            if(current.status!=='eligible')throw new Error(current.reason);
+          }
           if(quest.mode==='practice'){quest=transition(quest,{type:'start'});go('clean');break;}
+          if(quest.mode==='guided'){
+            quest=transition(quest,{type:'start'});
+            store={...store,active:{product:quest.productId===GUIDED_METHOD_ID?'User-chosen cleaning method':products.find(p=>p.id===quest?.productId)?.name||'User-selected product',startedAt:new Date().toISOString()}};
+            persist();go('clean');break;
+          }
           const q=quest;
           await work(async()=>{
             const r=await api<{encounter_id:string;encounter_ticket:string;match:Match}>('start',{target_ticket:q.targetTicket,surface:q.surface,soil:q.soil,product_id:q.productId,attestations:a});
@@ -219,6 +239,25 @@ namespace GQ {
             quest=transition({...q,id:r.encounter_id,encounterTicket:r.encounter_ticket},{type:'start'});
             store={...store,active:{product:products.find(p=>p.id===q.productId)?.name||'Selected product',startedAt:new Date().toISOString()}};persist();go('clean');
           });break;
+        }
+        case 'guided-identify': {
+          if(mode!=='guided'||capturePurpose!=='target'||!captureImage||!checked('guided-before-confirm'))throw new Error('Choose a before photo and confirm it is suitable for a private guided quest.');
+          const image=captureImage;
+          quest={id:crypto.randomUUID(),mode:'guided',phase:'identified',name:'Your cleaning quest',room:'Your home',surface:'unknown',soil:'unknown',before:image,
+            analysis:{object_name:'User-described target',surface:'unknown',soil:'unknown',visible_soil:true,image_quality:'usable',material_certainty:'unknown',hazards:['none'],target_box:{x:0,y:0,width:1,height:1}}};
+          captureImage='';go('confirm');break;
+        }
+        case 'guided-compare': {
+          if(mode!=='guided'||!quest||quest.mode!=='guided'||quest.phase!=='cleaning'||capturePurpose!=='after'||!captureImage)throw new Error('A valid guided after-photo is required.');
+          if(!checked('guided-same-target')||!checked('guided-dry'))throw new Error('Confirm matching photos, completed instructions and a dry target before reporting a result.');
+          if(quest.before===captureImage)throw new Error('Before and after photos are identical. Take a new photo; do not claim a clear result.');
+          const outcome=val('guided-outcome') as ResultStatus;
+          if(!['clear','partial','unverifiable'].includes(outcome))throw new Error('Choose a valid comparison outcome.');
+          const report:Result={encounter_id:quest.id,status:outcome,xp:outcome==='clear'?300:0,provenance:'self_attested',
+            reason:outcome==='clear'?'You reported that the same dry target now shows no visible grime. This is self-reported, not AI analysis, hygiene or disinfection.':
+              outcome==='partial'?'You reported some visible grime remains. Do not add or change cleaners to chase points.':
+              'You reported an uncertain or non-comparable view. No result is inferred.'};
+          quest=transition(quest,{type:'result',result:report,after:captureImage});store=recordResult(store,quest);persist();captureImage='';go('result');break;
         }
         case 'practice-compare': {
           if(!quest||quest.mode!=='practice') break;
@@ -231,6 +270,7 @@ namespace GQ {
         case 'retry':if(quest){quest=transition(quest,{type:'retry'});go('clean');}break;
         case 'finish':quest=null;captureImage='';productFront='';productBack='';observation=null;go('home');break;
         case 'abandon':quest=null;captureImage='';productFront='';productBack='';observation=null;go(store.active?'settings':'home');break;
+        case 'mode-guided': if(store.active)throw new Error('Review the unfinished cleaning task before changing modes.');mode='guided';quest=null;render();break;
         case 'mode-practice': if(store.active) throw new Error('Review the unfinished live task first.');mode='practice';quest=null;render();break;
         case 'mode-live':requireLive();if(store.active) throw new Error('Review or resume the unfinished live task before changing mode.');mode='live';quest=null;render();break;
         case 'save-code': if(!setAccessCode(val('access-code'))) throw new Error('Session storage is unavailable.');toast('Private access code saved for this tab.');break;
