@@ -33,7 +33,7 @@ COPY requirements.lock ./
 # Same-host OCR: Finnish and English Tesseract language packs. There are no
 # third-party model requests or provider charges. One OCR process at a time.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      tesseract-ocr tesseract-ocr-eng tesseract-ocr-fin \
+      tesseract-ocr tesseract-ocr-eng tesseract-ocr-fin fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/* \
     && tesseract --list-langs 2>&1 | grep -qx fin \
     && tesseract --list-langs 2>&1 | grep -qx eng
@@ -55,6 +55,9 @@ COPY --from=frontend-build /src/web ./web
 # Import the exact server module after both backend and static app are present.
 # This sanity check makes no network or paid vision calls.
 RUN python -c "from server.app import app; from server.config import Settings; assert app is not None and not Settings().ready"
+COPY scripts/ocr_smoke.py ./ocr_smoke.py
+# Real, no-network Finnish/English OCR smoke against synthetic images.
+RUN python ocr_smoke.py && rm ocr_smoke.py
 COPY run.py ./
 
 USER 10001:10001
