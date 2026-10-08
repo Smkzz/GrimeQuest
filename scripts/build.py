@@ -73,10 +73,37 @@ def main():
     sw="""// Generated app-shell-only cache. NEVER cache API responses, uploads or photos.
 const CACHE = 'grimequest-__DIGEST__';
 const PATHS = __PATHS__;
+// Uvicorn has a finite 24-connection admission cap. cache.addAll(PATHS)
+// burst-loaded 28+ shell assets and caused transient HTTP 503 during PWA
+// recovery. Load ONE file at a time and retry a transient failed fetch twice.
+async function precacheShell() {
+  const cache = await caches.open(CACHE);
+  try {
+    for (const path of PATHS) {
+      let failure = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await cache.add(path);
+          failure = null;
+          break;
+        } catch (error) {
+          failure = error;
+          if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+        }
+      }
+      if (failure) throw failure;
+    }
+    // Only a *complete* shell can replace the old active worker.
+    await self.skipWaiting();
+  } catch (error) {
+    // A failed installation must not leave a corrupt partial new cache.
+    // Previous complete caches, local inventory and journal are untouched.
+    await caches.delete(CACHE);
+    throw error;
+  }
+}
 self.addEventListener('install', event => {
-  // Prepare the ENTIRE replacement shell first. Only then release the old
-  // worker's waiting hold. Existing pages are NOT reloaded mid-quest.
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PATHS)).then(() => self.skipWaiting()));
+  event.waitUntil(precacheShell());
 });
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'GRIMEQUEST_ACTIVATE_UPDATE') {

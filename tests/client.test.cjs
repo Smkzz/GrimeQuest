@@ -90,17 +90,62 @@ test('camera stops tracks after late permission resolution',async()=>{
 });
 test('camera captures only after ready preview',()=>assert.throws(()=>new G.Camera().capture(),/not ready/));
 
-test('service worker only handles allowlisted app shell requests',async()=>{
- const listeners={};const cacheNames=['other-app','grimequest-old'];let added=[],deleted=[],claimed=0,matches=0,skip=0,precacheReady=false;
- const context={URL,console,self:{location:{origin:'https://app.example'},clients:{claim:async()=>claimed++},skipWaiting:async()=>{assert.equal(precacheReady,true,'activation waits for full offline-shell precache');skip++;},addEventListener:(n,fn)=>listeners[n]=fn},caches:{open:async()=>({addAll:async paths=>{added=paths;precacheReady=true;},match:async()=>{matches++;return 'cached'}}),keys:async()=>cacheNames,delete:async k=>{deleted.push(k)}},fetch:()=>{throw Error('Unexpected network')}};
+test('service worker installs app shell serially and never bursts all assets in parallel',async()=>{
+ const listeners={};const cacheNames=['other-app','grimequest-old'];
+ let added=[],deleted=[],claimed=0,matches=0,skip=0;
+ const revision=(fs.readFileSync('web/sw.js','utf8').match(/const CACHE = '(grimequest-[0-9a-f]{16})';/)||[])[1];
+ assert.ok(revision,'generated revision required');
+ const context={URL,console,setTimeout:(fn)=>fn(),self:{location:{origin:'https://app.example'},
+  clients:{claim:async()=>claimed++},
+  skipWaiting:async()=>{assert.ok(added.includes('/app.js')&&added.includes('/styles.css'),
+    'activation only after complete shell');skip++;},
+  addEventListener:(name,fn)=>listeners[name]=fn},
+  caches:{open:async()=>({
+    add:async path=>{added.push(path);await Promise.resolve();},
+    match:async()=>{matches++;return 'cached';}
+  }),keys:async()=>cacheNames,delete:async k=>deleted.push(k)},
+  fetch:()=>{throw Error('Unexpected network')}};
  vm.createContext(context);vm.runInContext(fs.readFileSync('web/sw.js','utf8'),context);
- let pending;listeners.install({waitUntil:p=>pending=p});await pending;assert.equal(skip,1);assert.ok(added.includes('/app.js'));
- assert.ok(added.includes('/update-client.js'));assert.ok(!added.some(p=>p.startsWith('/api/')));
- assert.ok(!added.some(p=>['/update.html','/update.js','/update.css'].includes(p)));
- listeners.message({data:{type:'GRIMEQUEST_ACTIVATE_UPDATE'},waitUntil:p=>pending=p});await pending;assert.equal(skip,2);
- listeners.activate({waitUntil:p=>pending=p});await pending;assert.deepEqual(deleted,['grimequest-old']);assert.equal(claimed,1);
- for(const [url,method] of [['https://app.example/api/health','GET'],['https://app.example/api/verify','POST'],['https://app.example/update.html','GET'],['https://app.example/update.js','GET'],['https://app.example/update.css','GET'],['https://evil.example/app.js','GET'],['https://app.example/app.js?private=1','GET'],['https://app.example/user-photo.jpg','GET']])listeners.fetch({request:{url,method},respondWith:()=>assert.fail('Private request cached')});
- listeners.fetch({request:{url:'https://app.example/app.js',method:'GET'},respondWith:p=>pending=p});assert.equal(await pending,'cached');assert.equal(matches,1);
+ let pending;
+ listeners.install({waitUntil:p=>pending=p});await pending;
+ assert.equal(skip,1);assert.ok(added.includes('/app.js'));
+ assert.ok(added.includes('/update-client.js'));
+ assert.ok(added.length>=20,'shell install should exercise real asset count');
+ assert.ok(!added.some(p=>p.startsWith('/api/')||['/update.html','/update.js','/update.css'].includes(p)));
+ listeners.message({data:{type:'GRIMEQUEST_ACTIVATE_UPDATE'},waitUntil:p=>pending=p});await pending;
+ assert.equal(skip,2);
+ listeners.activate({waitUntil:p=>pending=p});await pending;
+ assert.deepEqual(deleted,['grimequest-old']);assert.equal(claimed,1);
+ for(const [url,method] of [['https://app.example/api/health','GET'],
+ ['https://app.example/api/verify','POST'],['https://app.example/update.html','GET'],
+ ['https://app.example/update.js','GET'],['https://app.example/update.css','GET'],
+ ['https://evil.example/app.js','GET'],['https://app.example/app.js?private=1','GET'],
+ ['https://app.example/user-photo.jpg','GET']]){
+  listeners.fetch({request:{url,method},respondWith:()=>assert.fail('Private request cached')});
+ }
+ listeners.fetch({request:{url:'https://app.example/app.js',method:'GET'},respondWith:p=>pending=p});
+ assert.equal(await pending,'cached');assert.equal(matches,1);
+});
+
+test('service worker preserves older complete shell when latest asset repeatedly returns 503',async()=>{
+ const listeners={},deleted=[],attempts={};let skip=0;
+ const source=fs.readFileSync('web/sw.js','utf8');
+ const revision=(source.match(/const CACHE = '(grimequest-[0-9a-f]{16})';/)||[])[1];
+ const mock={
+  URL,console,setTimeout:fn=>fn(),
+  self:{location:{origin:'https://app.example'},addEventListener:(n,fn)=>listeners[n]=fn,
+    clients:{claim:async()=>{}},skipWaiting:async()=>skip++},
+  caches:{open:async()=>({add:async path=>{
+    attempts[path]=(attempts[path]||0)+1;
+    if(path==='/app.js')throw Error('HTTP 503');
+  }}),keys:async()=>['grimequest-old'],delete:async key=>deleted.push(key)}
+ };
+ vm.createContext(mock);vm.runInContext(source,mock);
+ let promise;listeners.install({waitUntil:p=>promise=p});
+ await assert.rejects(promise,/HTTP 503/);
+ assert.equal(attempts['/app.js'],3,'at most two retries per failed asset');
+ assert.equal(skip,0,'failed shell may never replace working app');
+ assert.deepEqual(deleted,[revision],'only incomplete new revision is removed');
 });
 
 test('native 48 MP phone photo over previous size caps is accepted and reduced to server dimensions',async()=>{
@@ -214,33 +259,84 @@ test('app update check never reloads mid-quest and offers an explicit refresh',a
  nodes['app-update-now'].events.click();assert.deepEqual(navigations,['/update.html']);
 });
 
-test('stale shell recovery deletes only GrimeQuest caches, preserves saved data, and bypasses old worker URL filter',async()=>{
- const nodes={'refresh-now':{disabled:false,events:{},addEventListener(k,fn){this.events[k]=fn;}},'refresh-status':{textContent:''}};
- const removed=[],deleted=[],navigations=[],locals=new Map([['grimequest.v1','saved inventory'],['notes','personal']]);
- const ctx={console,URL,navigator:{onLine:true,serviceWorker:{getRegistration:async path=>{
-  assert.equal(path,'/');return {scope:'https://app.example/',unregister:async()=>{removed.push('root');return true;}};}},},
- location:{origin:'https://app.example',replace:u=>navigations.push(u)},
- window:{caches:true,location:{replace:u=>navigations.push(u)}},
- caches:{keys:async()=>['another-app','grimequest-old','grimequest-previous'],delete:async name=>{deleted.push(name);return true;}},
- localStorage:{getItem:k=>locals.get(k),setItem:()=>assert.fail('recovery must not change localStorage'),removeItem:()=>assert.fail('recovery must not erase user records')},
- Date:{now:()=>1234},document:{getElementById:id=>nodes[id]}};
+function simulatePwaRecovery({online=true,server503=false,cacheReady=true}={}){
+ const revision='grimequest-0123456789abcdef';
+ const calls={fetch:0,register:0,update:0,delete:0,navigate:[],sleep:0};
+ const button={disabled:false,events:{},addEventListener(name,fn){this.events[name]=fn;}};
+ const status={textContent:''};
+ const nodes={'refresh-now':button,'refresh-status':status};
+ const reg={active:{state:'activated'},installing:null,waiting:null,
+  update:async()=>{calls.update++;}};
+ const mockCaches={
+  keys:async()=>cacheReady?['grimequest-old',revision]:['grimequest-old'],
+  open:async name=>{
+   assert.equal(name,revision);
+   return{match:async path=>{
+    assert.ok(['/','/app.js','/styles.css','/update-client.js'].includes(path));
+    return{ok:true};
+   }};
+  },
+  delete:async()=>{calls.delete++;assert.fail('Recovery must never erase old shell');}
+ };
+ const ctx={
+  console,URL,Date:{now:()=>1234},AbortSignal:{timeout:ms=>{assert.equal(ms,5000);return {};}},
+  setTimeout:callback=>{calls.sleep++;callback();},
+  navigator:{onLine:online,serviceWorker:{
+   getRegistration:async scope=>{assert.equal(scope,'/');calls.register++;return reg;},
+   register:async()=>assert.fail('A registered worker already exists')
+  }},
+  location:{origin:'https://app.example'},
+  window:{caches:mockCaches,location:{replace:path=>calls.navigate.push(path)}},
+  caches:mockCaches,
+  fetch:async path=>{
+   calls.fetch++;assert.ok(path.startsWith('/sw.js?refresh_check='));
+   if(server503)return{ok:false,status:503};
+   return{ok:true,text:async()=>"const CACHE = '"+revision+"';"};
+  },
+  document:{getElementById:id=>nodes[id]}
+ };
  vm.runInNewContext(fs.readFileSync('web/update.js','utf8'),ctx);
- await nodes['refresh-now'].events.click();
- assert.deepEqual(removed,['root']);assert.deepEqual(deleted.sort(),['grimequest-old','grimequest-previous']);
- assert.deepEqual(navigations,['/?app_refresh=1234']);
- assert.equal(locals.get('grimequest.v1'),'saved inventory');
- assert.equal(nodes['refresh-now'].disabled,true);
+ return{button,status,calls,reg};
+}
+
+test('safe refresh uses complete new offline shell without losing the old cache',async()=>{
+ const {button,status,calls}=simulatePwaRecovery();
+ await button.events.click();
+ assert.deepEqual(calls.navigate,['/']);
+ assert.equal(calls.delete,0);assert.equal(calls.update,1);
+ assert.equal(calls.fetch,1);
+ assert.equal(button.disabled,true);
+ assert.match(status.textContent,/Updated files ready/);
 });
 
-test('offline recovery does not unregister or delete anything',async()=>{
- const nodes={'refresh-now':{disabled:false,events:{},addEventListener(k,fn){this.events[k]=fn;}},'refresh-status':{textContent:''}};
- let touched=0;
- const ctx={console,navigator:{onLine:false,serviceWorker:{getRegistration:async()=>{touched++;}}},location:{origin:'https://app.example'},window:{},document:{getElementById:id=>nodes[id]}};
- vm.runInNewContext(fs.readFileSync('web/update.js','utf8'),ctx);
- await nodes['refresh-now'].events.click();
- assert.equal(touched,0);assert.match(nodes['refresh-status'].textContent,/Connect to the internet/);
- assert.equal(nodes['refresh-now'].disabled,false);
+test('a temporarily 503-ing server never causes destructive PWA reset',async()=>{
+ const {button,status,calls}=simulatePwaRecovery({server503:true});
+ await button.events.click();
+ assert.equal(calls.fetch,3,'gentle bounded retries');
+ assert.equal(calls.update,0,'do not touch registration if network is down');
+ assert.equal(calls.delete,0);assert.deepEqual(calls.navigate,[]);
+ assert.equal(button.disabled,false);
+ assert.match(status.textContent,/server is temporarily unavailable/i);
 });
+
+test('incomplete new shell leaves previous worker and cache intact',async()=>{
+ const {button,status,calls}=simulatePwaRecovery({cacheReady:false});
+ await button.events.click();
+ assert.equal(calls.update,1);assert.equal(calls.delete,0);
+ assert.deepEqual(calls.navigate,[]);
+ assert.equal(button.disabled,false);
+ assert.match(status.textContent,/previous offline version is preserved/);
+});
+
+test('offline safe refresh does not modify registration or caches',async()=>{
+ const {button,status,calls}=simulatePwaRecovery({online:false});
+ await button.events.click();
+ assert.equal(calls.fetch,0);assert.equal(calls.update,0);
+ assert.equal(calls.delete,0);assert.deepEqual(calls.navigate,[]);
+ assert.equal(button.disabled,false);
+ assert.match(status.textContent,/Connect to the internet/);
+});
+
 test('AI product label read gate reports precise reasons and protects practice mode',()=>{
  const g=G.labelReadGate;
  assert.equal(g(null,false,false,false,true,true).code,'checking');
