@@ -114,6 +114,7 @@ def test_interrupted_live_task_blocks_new_quest(page):
 
 def setup_live(page,client):
     errors=mount(page,client);click(page,'settings')
+    page.locator('#private-test-controls summary').click()
     page.locator('#access-code').fill(ACCESS);click(page,'save-code');click(page,'mode-live')
     click(page,'inventory');click(page,'add-catalog','method-kitchen-clementine-uk-828')
     click(page,'home');click(page,'find');return errors
