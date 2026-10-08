@@ -322,7 +322,13 @@ namespace GQ {
   }
   async function findBarcodeProduct(code:string):Promise<void> {
     if(!validGTIN(code))throw new Error('Barcode digits are incomplete or the check digit is wrong. Enter the digits printed below the bars.');
-    barcodeValue=code;
+    // A new scan must never inherit a previous product's reviewed checkbox/name.
+    if(barcodeCandidate?.found) {
+      const name=root.querySelector<HTMLInputElement>('#product-name');
+      if(name && name.value===barcodeCandidate.name)name.value='';
+    }
+    barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
+    refreshProductView();
     await work(async()=>{
       let result:ProductCandidate;
       try {
