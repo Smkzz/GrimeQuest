@@ -540,8 +540,7 @@ namespace GQ {
           try {
             await barcodeScanner.start(video,code=>{
               if(screen!=='product-scan')return;
-              barcodeCameraActive=false;barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
-              refreshProductView();
+              barcodeCameraActive=false;
               void findBarcodeProduct(code);
             });
           }catch(error) {
@@ -652,8 +651,6 @@ namespace GQ {
         barcodeCameraActive=false;barcodeScanner.stop();
         const code=await barcodeScanner.fromPhoto(file);
         if(generation!==uploadGeneration || screen!=='product-scan')return;
-        barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
-        refreshProductView();
         await findBarcodeProduct(code);
         return;
       }
