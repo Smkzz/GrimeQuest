@@ -308,6 +308,58 @@ def test_missing_barcode_data_keeps_manual_gameplay(page):
         assert not errors
 
 
+@pytest.mark.parametrize('width,height',[(390,844),(320,740)])
+def test_mobile_guided_journey_stays_usable_through_result(page,client,before,after,width,height):
+    page.set_viewport_size({'width':width,'height':height})
+    errors=mount(page,client)
+    expect(page.locator('.mode-banner')).to_contain_text('Camera quest')
+    expect(page.locator('[data-action="guided-first"]').first).to_be_visible()
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    click(page,'guided-first')
+    assert page.locator('[data-action="take-photo"]').is_disabled()
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('#surface').select_option('wood')
+    page.locator('#soil').select_option('light_grime')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('[data-action="choose-guided-method"]').first).to_be_visible()
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    click(page,'choose-guided-method')
+    click(page,'prepare')
+    care_checks(page)
+    click(page,'start-cleaning')
+    click(page,'capture-after')
+    assert page.locator('[data-action="take-photo"]').is_disabled()
+    upload(page,'#photo-file',after)
+    page.locator('[name="guided-same-target"]').check()
+    page.locator('[name="guided-dry"]').check()
+    page.locator('#guided-outcome').select_option('clear')
+    click(page,'guided-compare')
+    expect(page.locator('main')).to_contain_text('SELF-REPORTED VISIBLE CHANGE')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    click(page,'journal')
+    expect(page.locator('main')).to_contain_text('SELF-REPORTED')
+    assert not errors
+
+
+def test_optional_ai_public_beta_does_not_interrupt_default_guided_play(page,settings,vision):
+    from dataclasses import replace
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    public=replace(settings,public_live=True,access_code='',max_calls_day=45)
+    with TestClient(create_app(public,vision)) as client:
+        errors=mount(page,client)
+        expect(page.locator('.mode-banner')).to_contain_text('Camera quest')
+        click(page,'guided-first')
+        expect(page.locator('h1')).to_contain_text('Choose your before photo')
+        assert vision.calls==[]
+        assert not errors
+
+
 def test_zero_setup_guided_camera_full_game_without_ai_or_server_config(page,client,vision,before,after):
     errors=mount(page,client)
     assert page.locator('[data-action="guided-first"]').count() > 0
