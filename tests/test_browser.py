@@ -818,3 +818,49 @@ def test_casual_offline_journey_does_not_call_api(page,before,after):
     page.locator('[data-quick="claim"]').click()
     assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
     assert not errors
+
+
+def test_casual_not_clean_yet_goes_back_without_xp(page,before,after):
+    mount(page,casual=True)
+    page.locator('[data-quick="start"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'before.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(before.split(',')[1])
+    })
+    expect(page.locator('[data-quick="before-ready"]')).to_be_visible()
+    page.locator('[data-quick="before-ready"]').click()
+    page.locator('[data-quick="after"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'after.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(after.split(',')[1])
+    })
+    expect(page.locator('[data-quick="back-clean"]')).to_be_visible()
+    page.locator('[data-quick="back-clean"]').click()
+    expect(page.locator('h1')).to_contain_text('Time to clean!')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
+    page.locator('[data-quick="after"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'after.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(after.split(',')[1])
+    })
+    page.locator('[data-quick="claim"]').click()
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+
+
+def test_casual_delete_progress_clears_old_credentials_with_confirmation(page):
+    existing={'grimequest.v1':json.dumps({
+        'version':1,'history':[{
+            'id':'prior','name':'One win','room':'home','mode':'guided','status':'clear',
+            'xp':300,'date':'2026-10-08T12:00:00Z'
+        }],'inventory':[], 'active':None
+    })}
+    mount(page,initial=existing,casual=True)
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    page.evaluate("() => sessionStorage.setItem('grimequest.access','previous-private-code')")
+    page.locator('[data-quick="settings"]').click()
+    page.locator('[data-quick="reset-arm"]').click()
+    expect(page.locator('[data-quick="reset-confirm"]')).to_be_visible()
+    page.locator('[data-quick="reset-confirm"]').click()
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
+    assert page.evaluate("sessionStorage.getItem('grimequest.access')")==''
+    expect(page.locator('h1')).to_contain_text('A little mess.')
