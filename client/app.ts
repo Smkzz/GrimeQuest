@@ -367,9 +367,20 @@ namespace GQ {
     document.addEventListener('visibilitychange',()=>{if(document.hidden)camera.stop();});
     window.addEventListener('offline',()=>toast('You are offline. Practice, saved arsenal and journal remain available. Live analysis does not.'));
     if(location.protocol!=='file:') {
-      fetch('/api/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(4000)}).then(async r=>{
-        if(!r.ok)return;const h=await r.json();if(typeof h.live_ready==='boolean'&&typeof h.version==='string'){health=h;healthFailed=false;if(h.live_ready && h.access_mode==='public_rate_limited' && screen==='home' && mode==='guided' && !quest && !store.active)mode='live';if(screen==='product-scan')refreshProductView();else if((screen==='settings' && !(document.activeElement instanceof HTMLInputElement)) || screen==='home')render(false);}
-      }).catch(()=>{health=null;healthFailed=true;if(screen==='product-scan')refreshProductView();});
+      const pollHealth=(attempt:number):void=>{
+        fetch('/api/health',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(5000)}).then(async r=>{
+          if(!r.ok)throw new Error('Server health unavailable');
+          const h:Health=await r.json();
+          if(typeof h.live_ready!=='boolean'||typeof h.version!=='string')throw new Error('Invalid server health state');
+          health=h;healthFailed=false;
+          if(h.live_ready && h.access_mode==='public_rate_limited' && screen==='home' && mode==='guided' && !quest && !store.active)mode='live';
+          if(screen==='product-scan')refreshProductView();
+          else if(screen==='home'||(screen==='settings'&&!(document.activeElement instanceof HTMLInputElement)))render(false);
+          if(!h.live_ready && h.access_mode==='public_rate_limited' && attempt<3)
+            window.setTimeout(()=>pollHealth(attempt+1),attempt===0?6000:12000);
+        }).catch(()=>{health=null;healthFailed=true;if(screen==='product-scan')refreshProductView();});
+      };
+      pollHealth(0);
       // Service-worker registration and safe-update notices live in update-client.js.
     }
   }
