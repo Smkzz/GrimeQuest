@@ -274,3 +274,22 @@ test('guided camera quests require user-confirmed scope and preserve self-report
  assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),false);
  assert.equal(G.guidedTargetSupported('glazed_ceramic','grease',['heat']),false);
 });
+test('guided camera quest is a separate player flow and cannot impersonate AI',()=>{
+ assert.equal(G.guidedTargetSupported('glazed_ceramic','grease',['none']),true);
+ assert.equal(G.guidedTargetSupported('uncoated_glass','fingerprints',['none']),true);
+ assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),false);
+ const q={...quest('guided'),surface:'glazed_ceramic',soil:'grease'};
+ assert.throws(()=>G.transition(q,{type:'equip-guided'}),/Invalid quest transition/);
+ const chosen=G.transition(G.transition(q,{type:'confirm',surface:'glazed_ceramic',soil:'grease'}),{type:'equip-guided'});
+ assert.equal(chosen.phase,'equipped');
+ const ongoing=G.transition(chosen,{type:'start'});
+ assert.throws(()=>G.transition(ongoing,{type:'result',result:{...result('clear','live'),encounter_id:q.id},after:'new'}));
+ const report={encounter_id:q.id,status:'clear',xp:300,reason:'Self-reported, not independently verified',provenance:'self_attested'};
+ const finished=G.transition(ongoing,{type:'result',result:report,after:'different'});
+ const stored=G.recordResult(G.emptyStore(),finished);
+ assert.equal(G.stats(stored,'guided').xp,300);
+ assert.equal(G.stats(stored,'practice').xp,0);
+ assert.equal(G.stats(stored,'live').xp,0);
+ assert.ok(G.safeStore(JSON.parse(JSON.stringify(stored))));
+});
+

@@ -74,3 +74,6 @@
 .guided-method .hint{margin-top:10px;font-size:11px}
 @media(max-width:620px){.guided-method{margin:16px 0}.guided-method .btn{width:100%}.hero-actions{flex-wrap:wrap}.hero-actions>.btn{flex:1 1 145px;min-width:0}}
 @media(forced-colors:active){.guided-method{border:1px solid CanvasText}}
+.guided-tutorial-title{margin-top:26px;margin-bottom:17px;font-size:18px}
+@media(max-width:620px){.guided-tutorial-title{font-size:15px}}
+
