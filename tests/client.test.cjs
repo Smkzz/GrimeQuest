@@ -367,13 +367,13 @@ test('guided camera quests require user-confirmed scope and preserve self-report
  assert.equal(G.safeStore(JSON.parse(JSON.stringify(saved))).history[0].mode,'guided');
  const unsupported=G.transition({...q0,analysis:{...q0.analysis, surface:'unknown'}},{type:'confirm',surface:'unknown',soil:'grease'});
  assert.throws(()=>G.transition(unsupported,{type:'equip-guided'}),/outside/);
- assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),false);
+ assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),true);
  assert.equal(G.guidedTargetSupported('glazed_ceramic','grease',['heat']),false);
 });
 test('guided camera quest is a separate player flow and cannot impersonate AI',()=>{
  assert.equal(G.guidedTargetSupported('glazed_ceramic','grease',['none']),true);
  assert.equal(G.guidedTargetSupported('uncoated_glass','fingerprints',['none']),true);
- assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),false);
+ assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),true);
  const q={...quest('guided'),surface:'glazed_ceramic',soil:'grease'};
  assert.throws(()=>G.transition(q,{type:'equip-guided'}),/Invalid quest transition/);
  const chosen=G.transition(G.transition(q,{type:'confirm',surface:'glazed_ceramic',soil:'grease'}),{type:'equip-guided'});
@@ -388,6 +388,31 @@ test('guided camera quest is a separate player flow and cannot impersonate AI',(
  assert.equal(G.stats(stored,'live').xp,0);
  assert.ok(G.safeStore(JSON.parse(JSON.stringify(stored))));
 });
+test('every known material and soil is playable in self-reported guided quests without expanding chemical permissions',()=>{
+ const surfaces=['uncoated_glass','glazed_ceramic','stainless_steel','glass_ceramic_hob','natural_stone','wood','other'];
+ const soils=['grease','fingerprints','light_grime','limescale'];
+ for(const surface of surfaces) for(const soil of soils){
+   const detail=surface==='other'?'Laminate worktop':undefined;
+   assert.equal(G.guidedTargetSupported(surface,soil,['none'],detail),true,surface+':'+soil);
+   const draft={...quest('guided'),analysis:{...analysis,hazards:['none']},surfaceDetail:detail};
+   const confirmed=G.transition(draft,{type:'confirm',surface,soil});
+   const ready=G.transition(confirmed,{type:'equip-guided'});
+   assert.equal(ready.productId,G.GUIDED_METHOD_ID);
+   assert.equal(G.transition(ready,{type:'start'}).phase,'cleaning');
+ }
+ assert.equal(G.guidedTargetSupported('other','grease',['none']),false,'custom material must be identified');
+ assert.equal(G.validOtherMaterial('Laminated surface'),true);
+ for(const invalid of ['', 'x', '  ', 'foo\nbar'])assert.equal(G.validOtherMaterial(invalid),false);
+ assert.equal(G.guidedTargetSupported('unknown','grease',['none']),false);
+ assert.equal(G.guidedTargetSupported('wood','unknown',['none']),false);
+ for(const hazard of ['heat','electrical','damage','mould','body_fluid','unknown_chemical'])
+   assert.equal(G.guidedTargetSupported('wood','limescale',[hazard]),false,hazard);
+ const refused=G.transition({...quest('guided'),surfaceDetail:undefined},{type:'confirm',surface:'other',soil:'light_grime'});
+ assert.throws(()=>G.transition(refused,{type:'equip-guided'}),/Identify/);
+ const catalog=G.matchProduct('natural_stone','grease',product,G.allConfirmed(),['none'],'2026-10-06');
+ assert.notEqual(catalog.status,'eligible','expanded guided play does not approve reviewed chemical products');
+});
+
 test('OCR garbage from low-quality phone scan never auto-populates product name',()=>{
  assert.equal(G.ocrNameForReview('| MTT'),'');
  assert.equal(G.ocrNameForReview('LSANYTOL | VS'),'');
