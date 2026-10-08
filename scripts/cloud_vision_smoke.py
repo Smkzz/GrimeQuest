@@ -1,4 +1,5 @@
 """No-network Google Cloud Vision REST qualification. No real key or billed call."""
+import asyncio
 import base64
 import io
 import json
