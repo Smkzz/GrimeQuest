@@ -263,6 +263,36 @@ namespace GQ {
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download='grimequest-journal.json';a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  async function findBarcodeProduct(code:string):Promise<void> {
+    if(!validGTIN(code))throw new Error('Barcode digits are incomplete or the check digit is wrong. Enter the digits printed below the bars.');
+    barcodeValue=code;
+    await work(async()=>{
+      type ProductLookup={barcode:string;found:boolean;name:string;brand:string;quantity:string;source:string;source_url:string;review_status:string;recommendation_permission:boolean};
+      let result:ProductLookup;
+      try {
+        result=await api<ProductLookup>('product-lookup',{barcode:code},8500);
+      }catch{
+        barcodeStatus='unavailable';barcodeCandidate=null;
+        refreshProductView();
+        toast('Online product lookup is unavailable. Type the product name directly; nothing needs to be configured.',true);
+        return;
+      }
+      if(result.barcode!==code||typeof result.found!=='boolean'||
+         result.review_status!=='unreviewed'||result.recommendation_permission!==false ||
+         typeof result.name!=='string'||result.name.length>240||
+         typeof result.brand!=='string'||result.brand.length>100||
+         typeof result.quantity!=='string'||result.quantity.length>80||
+         result.source!=='Open Products Facts'||
+         result.source_url!=='https://world.openproductsfacts.org/product/'+code)
+        throw new Error('Community database response could not be validated. Enter the product name directly.');
+      barcodeCandidate=result.found?result:null;
+      barcodeStatus=result.found?'found':'missing';
+      refreshProductView();
+      toast(result.found?'Community product name suggested. Confirm the exact bottle before saving.':
+        'Barcode not in the community index. You can still enter the product name and play.');
+    });
+  }
+
   async function action(name:string,id?:string):Promise<void> {
     if(busy) return;
     try {
@@ -387,7 +417,41 @@ namespace GQ {
           persist();render(false);toast('Added to your arsenal. This does not certify the product or its use.');break;
         }
         case 'remove-product':store={...store,inventory:store.inventory.filter(i=>i.id!==id)};persist();render(false);break;
-        case 'scan-product':case 'manual-product':productFront='';productBack='';ocrFailedForThesePhotos=false;observation=null;go('product-scan');break;
+        case 'scan-product':case 'manual-product':{
+          barcodeScanner?.stop();barcodeCameraActive=false;
+          barcodeValue='';barcodeCandidate=null;barcodeStatus='idle';
+          productFront='';productBack='';observation=null;ocrFailedForThesePhotos=false;
+          go('product-scan');
+          if(name==='manual-product'){
+            root.querySelector<HTMLInputElement>('#product-name')?.focus({preventScroll:true});
+          }
+          break;
+        }
+        case 'lookup-barcode':await findBarcodeProduct(val('product-code'));break;
+        case 'start-barcode-camera':{
+          const video=root.querySelector<HTMLVideoElement>('#barcode-video');
+          const panel=root.querySelector<HTMLElement>('#barcode-camera-area');
+          if(!video||!panel)throw new Error('Barcode camera area unavailable.');
+          panel.hidden=false;
+          barcodeScanner??=new BarcodeScanner();barcodeCameraActive=true;
+          try {
+            await barcodeScanner.start(video,code=>{
+              if(screen!=='product-scan')return;
+              barcodeCameraActive=false;barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
+              refreshProductView();
+              toast('EAN barcode detected on this phone. Tap Find product to search the community index.');
+            });
+          }catch(error) {
+            barcodeScanner?.stop();barcodeCameraActive=false;panel.hidden=true;
+            throw error;
+          }
+          break;
+        }
+        case 'stop-barcode-camera':{
+          barcodeScanner?.stop();barcodeCameraActive=false;
+          const panel=root.querySelector<HTMLElement>('#barcode-camera-area');if(panel)panel.hidden=true;
+          break;
+        }
         case 'focus-manual-product':{
           const field=root.querySelector<HTMLInputElement>('#product-name');
           field?.scrollIntoView({behavior:'smooth',block:'center'});field?.focus({preventScroll:true});break;
