@@ -60,3 +60,12 @@ Record results in a private test sheet, not the public GitHub repository. Includ
 4. Verify typing a valid EAN/UPC/GTIN works even when camera access is denied or no library loads. Wrong check digits are rejected. Manually entered product records with no barcode and existing inventory records must remain readable and exportable.
 5. Verify Finnish cleaner GTIN coverage against real bottles; record hit rate and do not assume Open Products Facts has every SKU. A found name never grants chemical/surface compatibility. Keep manufacturer label and surface-care instructions authoritative.
 6. Confirm no product-label OCR controls, Google Vision photo consent or provider key configuration are shown to players; the operator-disabled Google OCR service is not called in the barcode flow.
+
+## Worldwide product discovery acceptance (cross-country testing)
+
+1. Search by brand/name in both Latin and non-Latin scripts, including a Japanese/Arabic/Cyrillic product. Check that typed text is sent **only after** tapping Search and that no camera frame or photo reaches the external community search. There is no Finnish- or UK-only filter.
+2. Confirm per-result source attribution and product category across Open Products Facts, Open Beauty Facts, Open Food Facts and Open Pet Food Facts. Verify exact GTIN/name/brand/quantity against physical packaging. A source match cannot unlock chemical-use eligibility.
+3. Test global barcode fallthrough: if the general-products index lacks a GTIN, a match in cosmetics, foods or pet foods may be suggested. No external redirects to unreviewed hosts or provider text interpreted as cleaning instructions.
+4. Verify no source match, 429 throttling, 503 upstream error, offline mode and wrong search input all allow manual product entry without camera, provider keys or purchases. Results from search must remain unreviewed until a user explicitly confirms the exact variant.
+5. Measure actual lookup hit rates on internationally distributed household products **before** claiming global database coverage. Record country/product category and match/mismatch rates; none of the mocked API tests certify full global coverage.
+6. Check accessibility/keyboard operation of search results at 320 px mobile width, source-link safety, photo privacy and compatibility with older browser local inventory records.
