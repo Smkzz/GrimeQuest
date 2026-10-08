@@ -43,7 +43,7 @@ The Docker production build reproduces the PWA shell and runs offline Node clien
 
 ### Testing and launch evidence
 
-- [Physical device checklist](docs/PHONE_RELEASE_CHECKLIST.md) — real iPhone/iOS camera and installed-PWA acceptance.
+- [Casual iPhone acceptance checklist](docs/CASUAL_PHONE_ACCEPTANCE_20261008.md) — complete real-camera loop, offline, permissions and installed PWA.
 - [Release gates](docs/RELEASE_GATES.md), [safety policy](docs/SAFETY.md), [privacy notice](PRIVACY.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 - [Final pre-simplification audit](docs/FINAL_LAUNCH_AUDIT_20261008.md). It covers the older guided/AI/product-menu game and is not evidence for the new casual layout.
 - [Demo script](docs/DEMO_SCRIPT.md).
