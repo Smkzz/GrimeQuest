@@ -16,7 +16,10 @@ namespace GQ {
   let ocrFailedForThesePhotos=false;
   let barcodeValue='';
   let barcodeStatus:'idle'|'detected'|'found'|'missing'|'unavailable'='idle';
-  let barcodeCandidate:{barcode:string;found:boolean;name:string;brand:string;quantity:string;source:string;source_url:string;review_status:string;recommendation_permission:boolean}|null=null;
+  let barcodeCandidate:ProductCandidate|null=null;
+  let productSearchTerm='';
+  let productSearchResults:ProductCandidate[]=[];
+  let productSearchStatus:'idle'|'results'|'empty'|'unavailable'='idle';
   let barcodeScanner:BarcodeScanner|null=null;
   let barcodeCameraActive=false;
   let observation: {name:string;label_text:string;label_readable:boolean}|null=null;
@@ -146,6 +149,26 @@ namespace GQ {
     return words.length>=2 && words.reduce((sum,word)=>sum+word.length,0)>=8
       && !value.startsWith('Product name unclear') ? value : '';
   }
+  const OPEN_FACTS_SOURCES: Record<ProductCategory,{name:string;host:string}>={
+    general:{name:'Open Products Facts',host:'https://world.openproductsfacts.org'},
+    beauty:{name:'Open Beauty Facts',host:'https://world.openbeautyfacts.org'},
+    food:{name:'Open Food Facts',host:'https://world.openfoodfacts.org'},
+    petfood:{name:'Open Pet Food Facts',host:'https://world.openpetfoodfacts.org'}
+  };
+  export function validProductCandidate(raw:unknown):raw is ProductCandidate {
+    if(!raw || typeof raw!=='object')return false;
+    const item=raw as ProductCandidate;
+    if(!validGTIN(item.barcode) || typeof item.found!=='boolean' ||
+       typeof item.name!=='string' || item.name.length>180 ||
+       typeof item.brand!=='string' || item.brand.length>100 ||
+       typeof item.quantity!=='string' || item.quantity.length>80 ||
+       item.review_status!=='unreviewed' || item.recommendation_permission!==false)return false;
+    if(!Object.prototype.hasOwnProperty.call(OPEN_FACTS_SOURCES,item.category))return false;
+    const source=OPEN_FACTS_SOURCES[item.category];
+    if(item.source!==source.name || item.source_url!==source.host+'/product/'+item.barcode)return false;
+    return !item.found || item.name.trim().length>=3;
+  }
+
   function productScanView():string {
     const suggestion=barcodeCandidate?.found?barcodeCandidate:null;
     const status=barcodeStatus==='found'&&suggestion
