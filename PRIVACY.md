@@ -1,3 +1,5 @@
+> **October 8 casual game:** The public GrimeQuest UI is now **Snap → Clean → Snap → +300 XP**, with no material, cleaner, barcode, account or AI selection. Photos remain in the browser during the quest and are not uploaded. Points and history are locally stored and self-reported. The detailed legacy AI, barcode and catalog descriptions below document API code retained only for compatibility and are not part of the current public game.
+
 # Prototype privacy boundaries
 
 The source application contains no analytics, ads, tracking pixels or account SDKs. This describes the included code, not a complete legal policy for a future public service.
