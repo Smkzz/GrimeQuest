@@ -222,6 +222,22 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     app.state.cloud_labels = cloud_labels
     product_index = barcode_lookup or BarcodeLookup()
     app.state.barcode_index = product_index
+    # A one-shot release qualification using public, non-private terms and
+    # barcodes. Disabled by default; never transmits player data.
+    @app.on_event("startup")
+    async def optional_global_discovery_probe():
+        if os.getenv("GQ_GLOBAL_PRODUCT_DIAGNOSTIC_ON_START", "0") != "1":
+            return
+        async def run_probe():
+            try:
+                sample = await product_index.lookup("3017620422003")
+                matches = await product_index.search("soap")
+                print("GQ_GLOBAL_PRODUCT_DIAGNOSTIC_BARCODE_" +
+                      ("FOUND" if sample.found else "MISSING") +
+                      "_SEARCH_" + str(min(len(matches), 10)), flush=True)
+            except Exception:
+                print("GQ_GLOBAL_PRODUCT_DIAGNOSTIC_NETWORK_OR_PROVIDER_ERROR", flush=True)
+        asyncio.create_task(run_probe())
     barcode_events: deque[float] = deque()
     barcode_cache: dict[str, tuple[float, dict]] = {}
     barcode_lock = asyncio.Lock()
