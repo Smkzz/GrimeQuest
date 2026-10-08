@@ -183,6 +183,7 @@ namespace GQ {
         const button = this.host.querySelector<HTMLButtonElement>('[data-quick="snap"]');
         if (button) button.disabled = false;
       } catch {
+        if (!host.isConnected || (this.stage !== 'before' && this.stage !== 'after')) return;
         this.message = 'Camera unavailable. Choose a photo instead.';
         const notice = this.host.querySelector<HTMLElement>('.quick-message');
         if (notice) notice.textContent = this.message;
@@ -199,6 +200,8 @@ namespace GQ {
       const generation = ++this.uploadGeneration;
       const stage = this.stage;
       this.busy = true;
+      this.host.querySelector('main')?.insertAdjacentHTML('beforeend',
+        '<p class="quick-message" role="status">Preparing your photo on this device…</p>');
       try {
         const shot = await normalizePhoto(file);
         if (generation !== this.uploadGeneration || stage !== this.stage) return;
@@ -325,6 +328,7 @@ namespace GQ {
           case 'reset-confirm':
             if (!this.resetArmed) return;
             resetStore();
+            setAccessCode('');
             this.data = emptyStore();
             saveStore(this.data);
             this.quest = null;
