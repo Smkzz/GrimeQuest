@@ -1,5 +1,9 @@
 # Release gates
 
+## Zero-setup camera quests — functional fallback
+
+The default guided camera mode can run entirely on the phone, even if the remote vision provider is unavailable: before photo, user-known surface/soil, explicitly user-selected method, care confirmations, after photo and **self-reported** visible outcome. It awards separate guided XP, **not** model-observed XP, and never treats a self-report as chemical advice or a certified hygiene measurement. Photos are never uploaded in guided mode. Unsupported material/hazard cases and identical before/after photos cannot earn a guided clear. Physical iPhone acceptance remains outstanding.
+
 ## Software release candidate — qualified
 
 The current software architecture and automated implementation are ready for the remaining empirical gates.
