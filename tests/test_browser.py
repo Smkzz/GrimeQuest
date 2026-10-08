@@ -741,7 +741,7 @@ def test_casual_same_photo_cannot_claim_300_xp(page,before):
     page.locator('#quick-file').set_input_files(payload)
     expect(page.locator('img[alt="After photo preview"]')).to_be_visible()
     page.locator('[data-quick="claim"]').click()
-    expect(page.locator('[role="status"]')).to_contain_text('identical')
+    expect(page.locator('.quick-message')).to_contain_text('identical')
     assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
     assert page.locator('[data-quick="claim"]').count()==1
     assert not errors
@@ -779,7 +779,7 @@ def test_casual_legacy_active_chemical_warning_stays_explicit(page):
     mount(page,initial=base,casual=True)
     expect(page.locator('main')).to_contain_text('Previous task still active')
     page.locator('[data-quick="start"]').click()
-    expect(page.locator('[role="status"]')).to_contain_text('Check the previous cleaning task')
+    expect(page.locator('.quick-message')).to_contain_text('Check the previous cleaning task')
     assert page.evaluate("GQ.readStore().active.product")=='Previous cleaner'
     page.locator('[data-quick="old-task-checked"]').click()
     assert page.evaluate("GQ.readStore().active") is None
@@ -802,7 +802,7 @@ def test_casual_settings_has_no_products_or_ai_configuration_and_requires_reset_
 
 def test_casual_offline_journey_does_not_call_api(page,before,after):
     errors=mount(page,casual=True)
-    page.evaluate('window.fetch=()=>{throw Error("Casual game must not call API");}')
+    page.evaluate('() => { window.fetch=()=>{throw Error("Casual game must not call API");}; }')
     page.locator('[data-quick="start"]').click()
     page.locator('#quick-file').set_input_files({
         'name':'before.jpg','mimeType':'image/jpeg',
