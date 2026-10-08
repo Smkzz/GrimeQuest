@@ -515,10 +515,23 @@ namespace GQ {
           await work(async()=>{const r=await api<{observation:{name:string;label_text:string;label_readable:boolean}}>('analyze-product',{front_image:productFront,back_image:productBack,consent:true});const o=r.observation;if(!o||typeof o.name!=='string'||o.name.length>240||typeof o.label_text!=='string'||o.label_text.length>6000||typeof o.label_readable!=='boolean') throw new Error('Label response was invalid.');observation=o;render();});break;
         }
         case 'save-product': {
-          const name=val('product-name'),note=val('product-note');if(!name||name.length>240||note.length>6000) throw new Error('Enter the exact product name from the bottle and an optional short note.');
-          if(observation&&!checked('label-review-confirm'))throw new Error('Please review the extracted label against the actual bottle and confirm before saving.');
+          const name=val('product-name'),note=val('product-note');
+          const code=val('product-code');
+          if(!name||name.length>240||note.length>6000)
+            throw new Error('Enter the exact product name from your bottle. Notes are optional.');
+          if(code && !validGTIN(code))
+            throw new Error('Check the barcode digits, or clear the barcode field to save by name.');
+          if(barcodeCandidate?.found && !checked('barcode-review'))
+            throw new Error('Confirm the suggested name and exact variant against the real bottle before saving.');
           if(store.inventory.length>=40) throw new Error('Inventory limit reached.');
-          store={...store,inventory:[...store.inventory,{id:crypto.randomUUID(),name,catalogId:null,note,addedAt:new Date().toISOString()}]};persist();productFront='';productBack='';observation=null;go('inventory');toast('Saved as unreviewed. It cannot unlock a cleaning recommendation.');break;
+          store={...store,inventory:[...store.inventory,{
+            id:crypto.randomUUID(),name,catalogId:null,note,addedAt:new Date().toISOString(),
+            ...(code?{barcode:code}:{})
+          }]};
+          persist();barcodeScanner?.stop();barcodeCameraActive=false;
+          barcodeValue='';barcodeCandidate=null;barcodeStatus='idle';
+          productFront='';productBack='';observation=null;
+          go('inventory');toast('Product saved locally. It remains unreviewed and cannot authorize cleaner use.');break;
         }
         case 'resolve-active':go('settings');break;
         case 'clear-active':if(!checked('resolve-check')) throw new Error('Read and confirm the interrupted-task check first.');store={...store,active:null};quest=null;persist();render();toast('Warning cleared. This is not a guarantee that the surface is free of product residues.');break;
@@ -531,6 +544,16 @@ namespace GQ {
     const file=input.files?.[0];if(!file) return;
     try {
       const generation=++uploadGeneration;
+      if(input.id==='barcode-photo'){
+        barcodeScanner??=new BarcodeScanner();
+        barcodeCameraActive=false;barcodeScanner.stop();
+        const code=await barcodeScanner.fromPhoto(file);
+        if(generation!==uploadGeneration || screen!=='product-scan')return;
+        barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
+        refreshProductView();
+        toast('Barcode decoded locally. Tap Find product to check the community database.');
+        return;
+      }
       if(file.size>8_000_000) toast('Optimizing the large photo on this device. Nothing is uploaded without your consent.');
       const img=await normalizePhoto(file);
       if(generation!==uploadGeneration || !input.isConnected) return;
@@ -546,8 +569,20 @@ namespace GQ {
     store=readStore();camera=new Camera();render(false);
     root.addEventListener('click',ev=>{const target=(ev.target as Element).closest<HTMLElement>('[data-action]');if(target){ev.preventDefault();void action(target.dataset.action||'',target.dataset.id);}});
     root.addEventListener('change',ev=>{const target=ev.target as HTMLInputElement;if(target.type==='file')void onFile(target);});
-    window.addEventListener('pagehide',()=>camera.stop());
-    document.addEventListener('visibilitychange',()=>{if(document.hidden)camera.stop();});
+    root.addEventListener('input',ev=>{
+      const target=ev.target as HTMLInputElement;
+      if(target.id==='product-code'){
+        barcodeValue=target.value.trim();
+        barcodeCandidate=null;barcodeStatus='idle';
+      }
+    });
+    window.addEventListener('pagehide',()=>{camera.stop();barcodeScanner?.stop();barcodeCameraActive=false;});
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden){
+        camera.stop();barcodeScanner?.stop();barcodeCameraActive=false;
+        const pane=root.querySelector<HTMLElement>('#barcode-camera-area');if(pane)pane.hidden=true;
+      }
+    });
     window.addEventListener('offline',()=>toast('You are offline. Practice, saved arsenal and journal remain available. Live analysis does not.'));
     if(location.protocol!=='file:') {
       const pollHealth=(attempt:number):void=>{
