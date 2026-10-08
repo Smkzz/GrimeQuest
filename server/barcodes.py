@@ -184,23 +184,30 @@ class BarcodeLookup:
             timeout=httpx.Timeout(3.5), follow_redirects=False,
             trust_env=False, transport=self.transport
         ) as client:
-            for platform in PLATFORMS:
+            async def one(platform: tuple[str, str, str]) -> BarcodeSuggestion | None:
                 payload = await _bounded_json(
                     client, platform[2] + "/api/v2/product/" + barcode + ".json",
                     {"fields": FIELDS}, MAX_BARCODE_RESPONSE
                 )
                 if not payload or payload.get("status") != 1:
-                    continue
+                    return None
                 record = payload.get("product")
                 if not isinstance(record, dict):
-                    continue
-                candidate = _suggest(
+                    return None
+                return _suggest(
                     {**record, "code": payload.get("code") or record.get("code") or barcode},
                     platform, requested=barcode
                 )
-                if candidate is not None:
-                    return candidate
-        return unknown(barcode)
+
+            # General merchandise usually answers the cleaning-product query
+            # in a single request. If missing, probe the other three worldwide
+            # communities CONCURRENTLY to keep worst-case latency below the
+            # 11-second phone deadline, without skipping any region.
+            primary = await one(PLATFORMS[0])
+            if primary:
+                return primary
+            rest = await asyncio.gather(*(one(p) for p in PLATFORMS[1:]))
+            return next((result for result in rest if result is not None), unknown(barcode))
 
     async def search(self, term: str) -> list[BarcodeSuggestion]:
         query = normalize_query(term)
