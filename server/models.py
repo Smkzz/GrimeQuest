@@ -65,6 +65,10 @@ class BarcodeRequest(StrictModel):
     barcode: str = Field(min_length=8, max_length=14)
 
 
+class ProductSearchRequest(StrictModel):
+    query: str = Field(min_length=2, max_length=72)
+
+
 class ProductRequest(StrictModel):
     front_image: ImageData
     back_image: ImageData
