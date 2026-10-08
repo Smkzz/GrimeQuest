@@ -183,3 +183,14 @@ The repo-backed Python service is deployed successfully on Railway. A temporary 
 ## License
 
 Original application code and original illustrations: MIT. Dependency licenses remain their own. Product names and manufacturer material are third-party identifiers, not an endorsement; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+
+### Barcode-first international product discovery (October 8 release candidate)
+
+Scanning a valid EAN/UPC from the camera or a barcode photo now **starts lookup automatically**; manually typed codes retain an explicit lookup button. Exact-code Open Facts lookup remains first. If it misses, bounded no-key [UPCitemdb](https://www.upcitemdb.com/api/) and [EAN-Suche](https://ean-suche.net/api-doku) requests provide two independent identity fallbacks. If neither returns a valid exact-GTIN record, an operator-configured `GQ_SERPER_API_KEY` optionally allows a final Google-backed *title/snippet* identity suggestion. No key is required to play, no paid web lookup runs without that operator environment variable, and no image or player credential is transmitted with barcode search.
+
+All returned identities are **unreviewed**; provider titles and product links cannot grant cleaning permissions. Browser candidates are restricted to fixed provider names and deterministic source URLs. UPC/EAN/Google results are not imported into the five-product independently reviewed safety catalog. Players always have the manual name route and can complete guided quests when the databases are unavailable. Optional wider web links stay user-initiated.
+
+Provider ceilings per Railway replica: UPCitemdb at most 4/min and 80/24h; EAN-Suche at most 45/hour; Serper at most 2/min and 30/24h if enabled. Barcode endpoint retains its existing 8/minute admission gate and bounded in-memory caches. These limits protect free quotas, not a guarantee of worldwide identity coverage. Browser/iPhone hardware scanning and exact Sanytol product variants require physical acceptance before marking that user experience fully verified.
+
+Regression gates: `tests/test_extended_lookup.py`, `tests/test_barcodes.py`, `tests/client.test.cjs` and `tests/test_browser.py`. The production Docker image also runs `scripts/extended_lookup_smoke.py` with fake transports and **zero external paid calls**. Release by merging into `main` and advancing the Railway-watched `production` branch only after build acceptance; do not hand out provider keys to players.
