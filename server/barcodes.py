@@ -87,20 +87,29 @@ class BarcodeSuggestion:
     category: str = "general"
 
     def public(self) -> dict:
-        platform = next((p for p in PLATFORMS if p[0] == self.category), PLATFORMS[0])
+        # Never return arbitrary URLs provided by product-search vendors.
+        platform = next((p for p in PLATFORMS if p[0] == self.category), None)
+        links = {
+            "upc": ("UPCitemdb", "https://www.upcitemdb.com/upc/" + self.barcode),
+            "ean": ("EAN-Suche", "https://ean-suche.net/produkt/" + self.barcode),
+            "web": ("Web search", "https://www.google.com/search?q=" + self.barcode),
+        }
+        source, source_url = (platform[1], platform[2] + "/product/" + self.barcode) if platform else links.get(
+            self.category, (SOURCE, HOST + "/product/" + self.barcode)
+        )
         return {
             "barcode": self.barcode,
             "found": self.found,
             "name": self.name,
             "brand": self.brand,
             "quantity": self.quantity,
-            "source": platform[1],
-            "category": platform[0],
-            "source_url": platform[2] + "/product/" + self.barcode,
+            "source": source,
+            "category": self.category if self.category in links or platform else "general",
+            "source_url": source_url,
             "review_status": "unreviewed",
             "recommendation_permission": False,
             "notice": (
-                "Open Facts is community-contributed and may be incomplete or wrong. "
+                "This is an unverified product-identity suggestion, not manufacturer guidance. "
                 "Check the exact physical package. A barcode or search result "
                 "does not verify cleaning instructions, hazards or surface compatibility."
             ),
@@ -174,8 +183,15 @@ def _rank(suggestion: BarcodeSuggestion, term: str) -> tuple[int, str]:
 class BarcodeLookup:
     """Four worldwide Open Facts categories, one request per fixed host."""
 
-    def __init__(self, transport=None):
+    def __init__(self, transport=None, *, extra_enabled: bool | None = None,
+                 serper_key: str | None = None):
         self.transport = transport
+        # Old mocked Open Facts-only tests keep their exact request contract.
+        # Production enables both free secondary providers by default.
+        if extra_enabled is None:
+            extra_enabled = transport is None
+        from .extended_lookup import ExtendedLookup
+        self.extended = ExtendedLookup(serper_key) if extra_enabled else None
 
     async def lookup(self, barcode: str) -> BarcodeSuggestion:
         if not valid_gtin(barcode):
@@ -206,8 +222,27 @@ class BarcodeLookup:
             primary = await one(PLATFORMS[0])
             if primary:
                 return primary
+            supplemental = (
+                asyncio.create_task(self.extended.structured(client, barcode))
+                if self.extended else None
+            )
             rest = await asyncio.gather(*(one(p) for p in PLATFORMS[1:]))
-            return next((result for result in rest if result is not None), unknown(barcode))
+            found = next((result for result in rest if result is not None), None)
+            if found:
+                if supplemental:
+                    supplemental.cancel()
+                    await asyncio.gather(supplemental, return_exceptions=True)
+                return found
+            if supplemental:
+                other = await supplemental
+                if other:
+                    return other
+                # A web lookup is LAST, so a configured key is not wasted
+                # when a free structured registry already has the product.
+                web = await self.extended.web(client, barcode)
+                if web:
+                    return web
+            return unknown(barcode)
 
     async def search(self, term: str) -> list[BarcodeSuggestion]:
         query = normalize_query(term)
