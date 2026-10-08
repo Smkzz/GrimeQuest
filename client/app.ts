@@ -144,7 +144,7 @@ namespace GQ {
   function productScanView():string {
     const suggestion=barcodeCandidate?.found?barcodeCandidate:null;
     const status=barcodeStatus==='found'&&suggestion
-      ? \`<div class='notice soft' role='status'><b>Community listing found</b><p>${e(suggestion.name)} ${suggestion.brand?'· '+e(suggestion.brand):''} ${suggestion.quantity?'· '+e(suggestion.quantity):''}</p><p>Unverified. Confirm the exact name and variant on your actual bottle. Never infer cleaner safety from barcode data.</p><a href='${e(suggestion.source_url)}' target='_blank' rel='noopener noreferrer'>Open Products Facts source ↗</a></div>\`
+      ? `<div class='notice soft' role='status'><b>Community listing found</b><p>${e(suggestion.name)} ${suggestion.brand?'· '+e(suggestion.brand):''} ${suggestion.quantity?'· '+e(suggestion.quantity):''}</p><p>Unverified. Confirm the exact name and variant on your actual bottle. Never infer cleaner safety from barcode data.</p><a href='${e(suggestion.source_url)}' target='_blank' rel='noopener noreferrer'>Open Products Facts source ↗</a></div>`
       :barcodeStatus==='missing'
         ? "<div class='notice soft' role='status'>No community record found for this barcode. Type the product name below. You can still save it and complete camera quests.</div>"
         :barcodeStatus==='unavailable'
@@ -152,7 +152,7 @@ namespace GQ {
           :barcodeStatus==='detected'
             ? "<div class='notice soft' role='status'>Barcode detected locally. Choose Find product to check the community database.</div>"
             : "";
-    return \`${back('inventory','Arsenal')}${heading('PRODUCT ID · NO LABEL OCR','Find your bottle.','Scan the printed barcode or enter its digits. GrimeQuest will suggest a product name only when it finds an existing listing. You confirm the details.')}
+    return `${back('inventory','Arsenal')}${heading('PRODUCT ID · NO LABEL OCR','Find your bottle.','Scan the printed barcode or enter its digits. GrimeQuest will suggest a product name only when it finds an existing listing. You confirm the details.')}
       <div class='split'>
         <section class='panel barcode-panel'>
           <h2>1. Identify by barcode</h2>
@@ -191,7 +191,7 @@ namespace GQ {
           <p class='micro'>Saved only on this device. Unreviewed products do not unlock chemical/surface safety recommendations. You can complete guided quests with your own instruction-checked method.</p>
           <p class='micro'>Community data: <a href='https://world.openproductsfacts.org/' target='_blank' rel='noopener noreferrer'>Open Products Facts</a> (<a href='https://opendatacommons.org/licenses/odbl/' target='_blank' rel='noopener noreferrer'>ODbL</a>).</p>
         </section>
-      </div>\`;
+      </div>`;
   }
 
   function render(focus=true):void {
