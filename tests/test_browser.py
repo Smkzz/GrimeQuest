@@ -864,3 +864,32 @@ def test_casual_delete_progress_clears_old_credentials_with_confirmation(page):
     assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
     assert page.evaluate("sessionStorage.getItem('grimequest.access')")==''
     expect(page.locator('h1')).to_contain_text('A little mess.')
+
+
+def test_casual_in_progress_quest_survives_visiting_wins_and_settings(page,before,after):
+    mount(page,casual=True)
+    page.locator('[data-quick="start"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'before.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(before.split(',')[1])
+    })
+    expect(page.locator('[data-quick="before-ready"]')).to_be_visible()
+    page.locator('[data-quick="before-ready"]').click()
+    expect(page.locator('h1')).to_contain_text('Time to clean')
+    page.locator('[data-quick="wins"]').click()
+    expect(page.locator('main')).to_contain_text('Little wins add up')
+    expect(page.locator('[data-quick="resume"]')).to_be_visible()
+    page.locator('[data-quick="resume"]').click()
+    expect(page.locator('h1')).to_contain_text('Time to clean')
+    page.locator('[data-quick="after"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'after.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(after.split(',')[1])
+    })
+    expect(page.locator('img[alt="After photo preview"]')).to_be_visible()
+    page.locator('[data-quick="settings"]').click()
+    expect(page.locator('[data-quick="resume"]')).to_be_visible()
+    page.locator('[data-quick="resume"]').click()
+    expect(page.locator('img[alt="After photo preview"]')).to_be_visible()
+    page.locator('[data-quick="claim"]').click()
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
