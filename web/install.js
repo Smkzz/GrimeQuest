@@ -130,5 +130,6 @@
       presentDesktop();
     }
   });
-  if (webOrigin && !standalone() && phoneOrTablet) presentPhone();
+  // Never obscure the first camera-quest CTA with an unsolicited install card.
+  // The optional Install / share control opens this guide on demand.
 })();
