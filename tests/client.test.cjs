@@ -397,3 +397,51 @@ test('OCR garbage from low-quality phone scan never auto-populates product name'
  assert.equal(G.ocrNameForReview('method'),'');
 });
 
+test('GTIN checksum validation rejects guessed or corrupted barcode numbers',()=>{
+ for(const value of ['4006381333931','036000291452','96385074'])assert.equal(G.validGTIN(value),true,value);
+ for(const value of ['4006381333932','123','12345678','abc4006381333931','4006381333931 ','','000'])assert.equal(G.validGTIN(value),false,value);
+});
+
+test('locally stored barcodes preserve older inventory records and reject invalid barcodes',()=>{
+ const initial=G.emptyStore();
+ const item={id:'sku1',name:'Bottle verified by owner',catalogId:null,
+   note:'Owner typed',addedAt:'2026-10-08T05:00:00Z',barcode:'4006381333931'};
+ const updated={...initial,inventory:[item]};
+ assert.deepEqual(G.safeStore(updated).inventory[0].barcode,'4006381333931');
+ assert.equal(G.safeStore({...updated,inventory:[{...item,barcode:'4006381333932'}]}),null);
+ assert.ok(G.safeStore({...updated,inventory:[{id:'old',name:'Old manual',
+   catalogId:null,note:'No barcode',addedAt:'2026-10-06T12:00:00Z'}]}));
+});
+
+test('barcode video decoder runs locally and stops camera tracks after check-digit success',async()=>{
+ let detectorCallback,reset=0,stopped=0,found=[];
+ class FakeDecoder {
+  async decodeFromVideoDevice(device,video,cb){
+   assert.equal(device,null);detectorCallback=cb;video.srcObject={
+    getTracks:()=>[{stop:()=>{stopped++;}}]};return undefined;
+  }
+  reset(){reset++;}
+ }
+ const lib={ZXing:{BrowserMultiFormatReader:FakeDecoder}};
+ const h=harness({window:lib});
+ const scanner=new h.BarcodeScanner();
+ const video={srcObject:null};
+ await scanner.start(video,code=>found.push(code));
+ detectorCallback({getText:()=> '4006381333932'});
+ assert.deepEqual(found,[],'wrong check digit ignored');
+ detectorCallback({getText:()=> '4006381333931'});
+ assert.deepEqual(found,['4006381333931']);
+ assert.equal(stopped,1);assert.equal(video.srcObject,null);
+ assert.ok(reset>=1);
+ scanner.stop();assert.deepEqual(found,['4006381333931']);
+});
+
+test('manual GTIN entry works without any barcode camera capability',()=>{
+ const GQ=harness({window:{}});
+ assert.ok(GQ.validGTIN('4006381333931'));
+ assert.ok(GQ.safeStore({...GQ.emptyStore(),inventory:[{
+   id:'manual',name:'Verified from packaging',catalogId:null,barcode:'4006381333931',
+   note:'Only locally held',addedAt:'2026-10-08T05:00:00Z'
+ }]}));
+});
+
