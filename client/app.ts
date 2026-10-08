@@ -415,8 +415,10 @@ namespace GQ {
           if(id&&!picked)throw new Error('This product is no longer in your Arsenal. Choose another or use your own method.');
           quest=transition(quest,{type:'equip-guided'});
           quest={...quest,guidedProductName:picked?.name};
-          render(false);
-          toast('Your own method was selected by you, not recommended or assessed by GrimeQuest.');
+          // Directly advance to the care checks. Staying on the long
+          // product-selection screen hid the next step below the fold.
+          go('clean');
+          toast('Check the real product and surface directions before starting. GrimeQuest has not approved this method.');
         }break;
         case 'switch-to-guided':{
           if(!quest||quest.mode!=='live'||quest.phase!=='confirmed'||store.active)throw new Error('Only an unstarted safe target can switch to private camera play.');
