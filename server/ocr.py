@@ -5,7 +5,6 @@ All text is untrusted, may be inaccurate, and never authorizes a cleaner.
 """
 import base64
 import os
-import re
 import shutil
 import subprocess
 from functools import lru_cache
@@ -16,6 +15,18 @@ class LabelOcrUnavailable(RuntimeError):
     pass
 
 
+
+
+def _worker_env() -> dict[str, str]:
+    """Tesseract subprocess never inherits provider keys or app secrets."""
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+           "LANG": "C.UTF-8",
+           "OMP_THREAD_LIMIT": "1",
+           "OMP_NUM_THREADS": "1"}
+    if os.environ.get("TESSDATA_PREFIX"):
+        env["TESSDATA_PREFIX"] = os.environ["TESSDATA_PREFIX"]
+    return env
+
 @lru_cache(maxsize=1)
 def available() -> bool:
     """Check actual OCR binary and Finnish+English packs, not AI credentials."""
@@ -24,7 +35,7 @@ def available() -> bool:
     try:
         proc = subprocess.run(
             ["tesseract", "--list-langs"], capture_output=True, timeout=3,
-            env={**os.environ, "OMP_THREAD_LIMIT": "1"}, check=False
+            env=_worker_env(), check=False
         )
         if proc.returncode != 0:
             return False
@@ -49,7 +60,7 @@ def _text(data_url: str) -> str:
             ["tesseract", "stdin", "stdout", "-l", "fin+eng", "--psm", "6"],
             input=jpeg, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             timeout=12, check=False,
-            env={**os.environ, "OMP_THREAD_LIMIT": "1", "OMP_NUM_THREADS": "1"},
+            env=_worker_env(),
         )
         if process.returncode != 0 or len(process.stdout) > 80_000:
             raise LabelOcrUnavailable("Could not read the label. Try brighter light or enter the text manually.")
