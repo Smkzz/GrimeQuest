@@ -445,24 +445,40 @@ test('manual GTIN entry works without any barcode camera capability',()=>{
  }]}));
 });
 
-test('real self-hosted ZXing library decodes a generated EAN-13 barcode without network or camera',()=>{
+test('real bundled ZXing decodes standard EAN-13 bars without network or a browser',()=>{
  const Z=require('../web/vendor/zxing-0.21.3.min.js');
  assert.equal(typeof Z.BrowserMultiFormatReader,'function');
- assert.equal(typeof Z.MultiFormatWriter,'function');
+ assert.equal(typeof Z.MultiFormatReader,'function');
  assert.equal(typeof Z.RGBLuminanceSource,'function');
- const barcode='4006381333931';
- const writer=new Z.MultiFormatWriter();
- const matrix=writer.encode(barcode,Z.BarcodeFormat.EAN_13,840,200);
- const width=matrix.getWidth(),height=matrix.getHeight();
- const luminance=new Uint8ClampedArray(width*height);
- for(let y=0;y<height;y++){
-   for(let x=0;x<width;x++)luminance[y*width+x]=matrix.get(x,y)?0:255;
+ const code='4006381333931';
+ const L=['0001101','0011001','0010011','0111101','0100011',
+          '0110001','0101111','0111011','0110111','0001011'];
+ const G=['0100111','0110011','0011011','0100001','0111001',
+          '0000101','0010001','0001001','0010111'];
+ const R=['1110010','1100110','1101100','1000010','1011100',
+          '1001110','1010000','1000100','1001000','1110100'];
+ const parity=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG',
+               'LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+ let bits='101';
+ for(let i=0;i<6;i++){
+   const digit=Number(code[i+1]);
+   bits+=(parity[Number(code[0])][i]==='L'?L:G)[digit];
  }
- const reader=new Z.MultiFormatReader();
- const bits=new Z.BinaryBitmap(new Z.HybridBinarizer(
-   new Z.RGBLuminanceSource(luminance,width,height)));
- const decoded=reader.decode(bits);
- assert.equal(decoded.getText(),barcode);
- assert.equal(G.validGTIN(decoded.getText()),true);
+ bits+='01010';
+ for(const digit of code.slice(7))bits+=R[Number(digit)];
+ bits+='101';
+ assert.equal(bits.length,95);
+ const scale=6,margin=22,height=210,width=(bits.length+2*margin)*scale;
+ const pixels=new Uint8ClampedArray(width*height);
+ pixels.fill(255);
+ for(let i=0;i<bits.length;i++)if(bits[i]==='1'){
+   for(let y=0;y<height;y++)for(let x=0;x<scale;x++)
+     pixels[y*width+(margin+i)*scale+x]=0;
+ }
+ const bitmap=new Z.BinaryBitmap(new Z.HybridBinarizer(
+   new Z.RGBLuminanceSource(pixels,width,height)));
+ const decoded=new Z.MultiFormatReader().decode(bitmap);
+ assert.equal(decoded.getText(),code);
+ assert.ok(G.validGTIN(decoded.getText()));
 });
 
