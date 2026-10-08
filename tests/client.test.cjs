@@ -366,7 +366,7 @@ test('guided camera quests require user-confirmed scope and preserve self-report
  assert.equal(G.stats(saved,'practice').xp,0);
  assert.equal(G.safeStore(JSON.parse(JSON.stringify(saved))).history[0].mode,'guided');
  const unsupported=G.transition({...q0,analysis:{...q0.analysis, surface:'unknown'}},{type:'confirm',surface:'unknown',soil:'grease'});
- assert.throws(()=>G.transition(unsupported,{type:'equip-guided'}),/outside/);
+ assert.throws(()=>G.transition(unsupported,{type:'equip-guided'}),/Identify the material/);
  assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),true);
  assert.equal(G.guidedTargetSupported('glazed_ceramic','grease',['heat']),false);
 });
