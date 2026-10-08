@@ -125,13 +125,18 @@ namespace GQ {
   }
   function refreshProductView():void {
     if(screen!=='product-scan')return;
-    const name=val('product-name'),note=val('product-note'),consent=checked('product-consent'),aiConsent=checked('product-ai-consent');
+    const draftName=val('product-name'),draftNote=val('product-note');
+    const userChecked=checked('barcode-review');
+    barcodeCameraActive=false;
+    barcodeScanner?.stop();
     render(false);
-    const n=root.querySelector<HTMLInputElement>('#product-name'),t=root.querySelector<HTMLTextAreaElement>('#product-note'),c=root.querySelector<HTMLInputElement>('input[name="product-consent"]');
-    if(n)n.value=name;if(t)t.value=note;if(c)c.checked=consent;
-    const ai=root.querySelector<HTMLInputElement>('input[name="product-ai-consent"]');if(ai)ai.checked=aiConsent;
+    const name=root.querySelector<HTMLInputElement>('#product-name');
+    const note=root.querySelector<HTMLTextAreaElement>('#product-note');
+    if(name&&draftName)name.value=draftName;
+    if(note&&draftNote)note.value=draftNote;
+    const confirm=root.querySelector<HTMLInputElement>('input[name="barcode-review"]');
+    if(confirm)confirm.checked=userChecked;
   }
-
   export function ocrNameForReview(name:string|undefined):string {
     const value=(name||'').trim();
     // A decorative mark and 2–3 scrambled letters aren't a product name.
@@ -196,6 +201,7 @@ namespace GQ {
 
   function render(focus=true):void {
     camera?.stop();
+    if(barcodeCameraActive){barcodeScanner?.stop();barcodeCameraActive=false;}
     const content=screen==='home'?homeView():screen==='confirm'?confirmView():screen==='loadout'?loadoutView():screen==='clean'?cleanView():screen==='result'?resultView():screen==='inventory'?inventoryView():screen==='journal'?journalView():screen==='settings'?settingsView():screen==='capture'?captureView():productScanView();
     root.innerHTML=shell(content);
     if(focus) requestAnimationFrame(()=>{root.querySelector<HTMLElement>('h1')?.focus({preventScroll:true}); window.scrollTo({top:0,behavior:'instant'});});
