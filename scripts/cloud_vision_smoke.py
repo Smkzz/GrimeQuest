@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 
 from server.app import create_app
 from server.config import Settings
-from server.cloud_vision import CloudVisionReader, CloudVisionUnavailable, NAME_UNREADABLE
+from server.cloud_vision import CloudVisionReader, CloudVisionUnavailable, NAME_UNREADABLE, CLOUD_VISION_FIELDS
 from server.images import normalize_image
 
 
@@ -42,7 +42,11 @@ def handler(request):
     assert request.method == "POST"
     assert request.url.host == "eu-vision.googleapis.com"
     assert request.url.path == f"/v1/projects/{PROJECT}/locations/eu/images:annotate"
-    assert not request.url.query, "No key in URL or logs"
+    # Only the documented, non-sensitive partial-response selector is in URL.
+    # The API key must NEVER appear in query, logs or frontend bundles.
+    assert request.url.params["fields"] == CLOUD_VISION_FIELDS
+    assert list(request.url.params.keys()) == ["fields"]
+    assert KEY not in str(request.url)
     assert request.headers["x-goog-api-key"] == KEY
     assert "authorization" not in request.headers
     data = json.loads(request.content)
@@ -140,6 +144,19 @@ with TestClient(create_app(config, label_reader=noise)) as client:
     assert result.json()["observation"]["label_readable"] is False
     assert result.json()["recommendation_permission"] is False
     print("GQ_GOOGLE_VISION_GARBAGE_REJECTED_PASS")
+
+# Original Google Vision fullTextAnnotation recursively includes per-symbol
+# bounding boxes, creating >1.5 MB responses for dense real labels. Verify
+# the request actively asks Google for text and page confidence only.
+def masked_dense_response(request):
+    assert request.url.params["fields"] == CLOUD_VISION_FIELDS
+    # Google applies fields server-side; this compact response is sufficient.
+    return httpx.Response(200, json={"responses":items})
+
+compact=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(masked_dense_response))
+out=asyncio.run(compact.read(front,back))
+assert out.label_readable and out.name == "KIILTO KOTI"
+print("GQ_GOOGLE_VISION_COMPACT_FIELDS_PASS")
 
 print("GQ_GOOGLE_VISION_MOCK_QUALIFICATION_PASS")
 

@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from server.cloud_vision import (
     CloudVisionReader, CloudVisionUnavailable, NAME_UNREADABLE,
-    _clean_text, _plausible_name
+    _clean_text, _plausible_name, CLOUD_VISION_FIELDS
 )
 from server.config import Settings
 from conftest import make_image
@@ -62,6 +62,8 @@ def test_api_key_is_only_in_private_http_header_and_batch_is_correct():
     assert req.url.host == "eu-vision.googleapis.com"
     assert f"/projects/{PROJECT}/locations/eu/images:annotate" in req.url.path
     assert KEY not in str(req.url)
+    assert req.url.params["fields"] == CLOUD_VISION_FIELDS
+    assert list(req.url.params.keys()) == ["fields"]
     assert req.headers["x-goog-api-key"] == KEY
     assert "authorization" not in req.headers
     tasks = json.loads(req.content)["requests"]
@@ -241,4 +243,47 @@ def test_synthetic_diagnostic_returns_sanitized_failed_status():
             "message":"private Google secret"
         }})))
     assert asyncio.run(reader.synthetic_diagnostic())=="HTTP_403_API_KEY_SERVICE_BLOCKED"
+
+
+def test_google_partial_response_avoids_huge_symbol_geometry():
+    """Google's dense unmasked OCR JSON exceeded the former 1.5 MB cap."""
+    captured=[]
+    def handle(request):
+        captured.append(request)
+        assert request.url.params.get("fields")==CLOUD_VISION_FIELDS
+        assert "key" not in request.url.params
+        # Mimic Google's server-side projection: only the combined text
+        # and page confidence are returned, not millions of bounding vertices.
+        return httpx.Response(200,json=response())
+    reader=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(handle))
+    out=asyncio.run(reader.read(image(),image()))
+    assert out.label_readable and out.name=="KIILTO KOTI"
+    assert len(captured)==1
+
+
+def test_oversized_response_is_bounded_without_leaking_key_or_photo():
+    """An upstream that ignores the fields filter must still fail safely."""
+    calls=[]
+    def handle(request):
+        calls.append(request)
+        return httpx.Response(200,json={"responses":response()["responses"],
+            "unusedSymbolCoordinates":"X"*1_600_000})
+    reader=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(handle))
+    with pytest.raises(CloudVisionUnavailable) as exc:
+        asyncio.run(reader.read(image(),image()))
+    assert exc.value.code=="RESPONSE_TOO_LARGE"
+    assert "KEY" not in str(exc.value) and KEY not in str(exc.value)
+    assert len(calls)==1
+
+
+def test_text_annotations_fallback_when_full_text_is_absent():
+    fallback={"responses":[
+        {"textAnnotations":[{"description":"KIILTO KOTI\nYleispuhdistussuihke"}]},
+        {"fullTextAnnotation":{"text":"KÄYTTÖOHJE\nLue ohjeet ja varoitukset."}}
+    ]}
+    reader=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(
+        lambda r:httpx.Response(200,json=fallback)))
+    out=asyncio.run(reader.read(image(),image()))
+    assert out.name=="KIILTO KOTI"
+    assert out.label_readable is True
 
