@@ -23,6 +23,16 @@ Google currently lists the first 1,000 Cloud Vision image-feature units/month as
 8. On a real iPhone Home Screen app, open Arsenal → Scan a product → Recognize both labels. After explicit consent, test both sides of a label you own. Check the returned editable text against the real package, including every warning. A recognized name remains unreviewed and must not grant a cleaning recommendation.
 9. Test revoked credentials, quota limits, Google service failures and network loss. Each must safely offer manual entry without leaking secrets, retrying paid inference or losing the player's photos.
 
+## Diagnose Google Cloud connection errors safely
+
+A generic **Automatic text reading was too slow** message previously masked Google failures, including a real HTTP 503 response after only 0.73 seconds. The backend now distinguishes an immediate Google HTTP rejection from a network timeout and records only a reviewed status/reason token in Railway deploy logs, never the key, body, photos or returned text.
+
+For one operator-authorized synthetic-image test, temporarily set the Railway backend variable `GQ_VISION_DIAGNOSTIC_ON_START=1` and deploy once. On server startup GrimeQuest sends exactly one batch of two **synthetic generated JPEG images** to Google Cloud Vision EU, which may count as two billable feature units (normally cents or less, depending on account pricing). Railway logs a single sanitized `GQ_CLOUD_VISION_DIAGNOSTIC_PASS_HTTP_200` or `GQ_CLOUD_VISION_DIAGNOSTIC_HTTP_403_...` marker. Disable the flag immediately after reading logs, so subsequent restarts do not repeat the paid test.
+
+For **HTTP 400/401/403**, inspect API enablement, Google Cloud project/billing association and API key restrictions. A key restricted to HTTP referrers is typically inappropriate for server-side Railway requests; restrict its **API** to Cloud Vision, and if supported use appropriate Railway outbound-IP restrictions. A Google billing budget alert is not a spending cap. Never paste credentials or provider error messages containing key/project identifiers into chat or logs.
+
+For **HTTP 429**, inspect Google Cloud Vision quotas. For **NETWORK_TIMEOUT/NETWORK_OR_PARSE**, investigate Google connectivity. For **PASS_HTTP_200**, run a consented real iPhone label test and assess actual transcription accuracy. The health endpoint signals configuration, not proven OCR accuracy.
+
 ## Privacy, security and rollback
 
 - Exactly two normalized, metadata-stripped JPEGs are sent in memory to the fixed EU region Google Cloud Vision endpoint after per-scan consent. GrimeQuest does not persist original label images, OCR transcripts or API keys in files or logs.
