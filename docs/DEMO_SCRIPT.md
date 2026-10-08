@@ -1,21 +1,24 @@
-# Demo script — real task required
+# GrimeQuest — international hackathon demo
 
-**The goal is completing a real, safe household task, not demonstrating AI or pretending a simulated outcome is physical proof.** The default guided camera quest is available without account, provider setup or photo upload. No automatic model verification is claimed.
+**One game loop, one real chore.** Film an actual dirty spot you can safely clean, with your own permitted method and product. This is a self-reported game, not an AI cleanliness inspection.
 
-## Suggested 60–75 second real-use video
+## Suggested 45–60-second real demonstration
 
-**0–8 seconds:** Show a real small chore and the actual surface. “The cleaning task is the game.” Choose a material you know from its care information; do not use a damaged, powered, hot or otherwise hazardous target.
+**0–7s — The problem.** Show a small ordinary mess in your home. “Chores are boring. So I turned them into a game.”
 
-**8–20 seconds:** Open GrimeQuest's guided camera quest and capture the before photo. Confirm a known surface (glass, tile, stainless steel, stone, wood, cool unpowered hob or another explicitly named material), visible soil and safe conditions. Explain that this is user-confirmed, not AI classification.
+**7–17s — Snap.** Open GrimeQuest on your phone. Tap **Find some grime** and photograph the dirty spot. No account, no cleaner database, no material classification and no app configuration.
 
-**20–35 seconds:** Select your own independently suitable cleaning method or your own saved Arsenal product. Demonstrate that the barcode lookup is for identity only, not a chemical-use permission. Complete five product/tool/surface care checks. For stone, wood, specialty coatings or mineral deposits, the actual material and product directions are essential. Film the real action without shortening required handling time misleadingly.
+**17–30s — Clean.** Tap **Let’s clean!**. Film the real action using your independently checked product/surface instructions. Do not skip relevant precautions or imply a quick wipe is universally suitable.
 
-**35–52 seconds:** After following the real instructions, let the target become suitably dry. Capture a comparable after photo without uploading it. The player self-reports clear, partial or unverifiable; do not invent or exaggerate a result.
+**30–42s — Snap again.** Tap **Done cleaning**, photograph the same spot dry from a comparable angle, and tap **It’s clean!**. Show the clear before/after comparison.
 
-**52–65 seconds:** Show the **SELF-REPORTED** result, guided XP and journal. Explain that visible change is not a hygiene/disinfection measurement. Show the unknown-material stop, which stays separate from the unlocked known materials.
+**42–52s — Reward.** Show **+300 XP** and **My wins**, then tap **Clean another spot**. Say explicitly, “The progress is self-reported; the photos stay on your phone.”
 
-**Closing:** “Small chores. Real wins. Your home, your method, your progress.”
+**52–60s — Call to action.** “Point. Clean. Score. Make a little mess into a little win.” Show the working URL and public source code link when they are actually available.
 
-## Practice walkthrough
+## Submission integrity
 
-Open the illustrated practice tutorial to show the separate SIMULATED result pipeline; do not splice it into footage of real cleaning as if it were independently verified. The mystery-material exercise remains a safety stop, while real guided camera quests accept any known material with independently verified care.
+- Video must show a real task, not a simulated illustrated practice scene disguised as real cleaning.
+- Do not claim that the app identifies chemicals or independently detects hygiene, germs, disinfection or physical cleaning.
+- The game does not choose or approve any cleaner. Do not promote unsafe combinations or use on an uncertain surface.
+- Before submitting, confirm actual iPhone camera/PWA operation, readable screens, saved XP/journal, and accessible links. The GitHub repository is private until the owner chooses to publish it.
