@@ -42,17 +42,12 @@ Record results in a private test sheet, not the public GitHub repository. Includ
 
 **Go/no-go:** the release remains `NOT_READY_FOR_GENERAL_PUBLIC_LIVE_AI` if any real-model false clear or false supported recommendation, missing privacy consent, camera leakage, image-decoding crash, or absent provider/privacy owner detail remains. The owner keeps the repo private until explicit final publication approval.
 
-## Real-world OCR qualification (must be performed on the phone)
+## Google Cloud Vision OCR acceptance (on the real phone)
 
-1. On glossy and curved cleaning bottles, try close-up front and warnings photos with bright, even light, avoiding glare and background clutter. Repeat with Finnish and English print, 24/48 MP photos and portrait/rotated text.
-2. Compare every recognized line to the actual bottle. **Garbled text such as `| MTT` or `LSANYTOL | VS` must never silently populate the product-name field.** If OCR is uncertain, the app must explain what happened and ask to retake or manually correct.
-3. Saving an OCR transcription must require the user to confirm the text, including warnings, against the bottle. Without review, no product entry should be saved. Neither a successful OCR call nor that review may expand cleaning-product compatibility rules.
-4. Verify both photos remain on the device until explicit OCR upload consent; server OCR does not send images to an external model or write picture/transcript files. When the service is busy or offline, manual entry stays available.
-5. Measure word/name transcription accuracy and the rate of incorrect *apparently successful* scans on a small consented set of actual labels. Synthetic OCR smoke tests alone do not qualify real bottle accuracy.
+1. Without the operator's restricted Google Vision key, the UI must offer **manual product entry**, not suggest that users configure a server. The rest of the camera quest stays playable.
+2. Enable the Vision API in a dedicated, billed and quota-controlled Google Cloud project, restrict the API key to that API and connect it only in Railway. Verify health advertises `label_ocr_ready=true` only after explicit operator activation.
+3. Scan front/back labels with normal high-resolution iPhone photos and clear Finnish/English product text. Explicitly approve the third-party Google Vision image-processing checkbox; declining must result in **zero Cloud Vision requests**. Confirm the Vision API only sees metadata-stripped images and one TEXT_DETECTION plus one DOCUMENT_TEXT_DETECTION feature.
+4. Confirm returned text is editable, names like `| MTT` are never silently saved as product names, warnings are treated as potentially incomplete and an explicit label-review confirmation is mandatory. No scan or saved note grants cleaning-product compatibility.
+5. Test an invalid Google key, provider timeout, rate/quota exhaustion, image upload failure and provider errors. Photos and manual drafts must remain editable; no automatic retry or switch to paid OpenRouter inference.
+6. Compare recognized results against actual bottles and record measured name and warning accuracy. Mock-only protocol verification is not evidence of real OCR accuracy.
 
-## Timeout and resource validation
-
-- Test both front and back with highly patterned/curved labels on the production-sized 0.5-vCPU instance. Each image receives exactly one 5-second recognition attempt; the total server processing must remain short enough for the client-side 16-second request deadline.
-- Force a subprocess timeout on both images. The HTTP response must be **200 with `label_readable=false`**, not HTTP 503, and no product is auto-approved. No additional OCR pass or paid provider request may occur.
-- Force HTTP 503, 429 and a network interruption. The phone must retain both selected photos and drafted text, show an active manual-entry path without any server configuration, and allow saving an unreviewed product without rescanning.
-- Real phone tests must separately assess actual recognition accuracy. These timeout fixes guarantee an escape path, **not** correct OCR for every package.

@@ -32,6 +32,14 @@ Native HEIC/HEIF upload acceptance and browser error fallback are now source/tes
 
 Optional public preview traffic is strictly operator-configured; players never supply an API key or touch server settings. The server chooses only `google/gemini-2.5-flash-lite` on OpenRouter for this bounded beta, and performs **read-only** metadata verification of an existing non-resetting total key cap (at most $10) and supported ZDR/structured-output endpoint before any image inference. Every actual request independently requires ZDR and denies provider data collection. The operator must use narrow `GQ_MAX_CALLS_HOUR` and `GQ_MAX_CALLS_DAY` values (the in-memory request counter resets on restart, so it is not a dollar budget), and the shared provider-side cap remains the last-resort spending ceiling. If any check fails, the AI feature fails closed and guided quests remain playable. This beta is **not** certified for generalized cleaning advice; full independent labeled evaluation and physical tests remain mandatory before a general public real-world launch.
 
+## Cloud Vision product-label OCR readiness
+
+- The Tesseract local OCR path is retired. Automatic product label reading remains operator-disabled unless the GrimeQuest-hosted Google Cloud Vision EU API key, project and explicit activation flag are configured.
+- Confirm Google Cloud Vision API enabled on its own billing-controlled project; restrict the API key to Cloud Vision only; configure quota/billing controls and privacy/controller contact. A billing alert alone is **not** a hard spending cap.
+- Verify front/back label OCR with actual consented Finnish and English bottle photos, measure name/directions/warnings accuracy and errors, and require explicit human review. No OCR text unlocks cleaner recommendations.
+- Verify the bundled mock-transport Cloud Vision REST contract and the public server's same-origin, consent and request-size controls before activation.
+- Google Vision OCR is separate from unqualified general-purpose AI cleaning analysis, which remains fail-closed.
+
 ## Before the first real-model / physical demo
 
 1. Confirm the organizer's exact build-week eligibility/rules for AI-generated code/assets. Do not backdate work.
