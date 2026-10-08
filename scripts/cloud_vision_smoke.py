@@ -142,3 +142,23 @@ with TestClient(create_app(config, label_reader=noise)) as client:
     print("GQ_GOOGLE_VISION_GARBAGE_REJECTED_PASS")
 
 print("GQ_GOOGLE_VISION_MOCK_QUALIFICATION_PASS")
+
+# The exact observed production failure (503 in 728 ms) can mean immediate
+# rejection by Google. Never call it a timeout or log raw provider content.
+from server.cloud_vision import _provider_code
+forbidden = httpx.MockTransport(lambda req:httpx.Response(403,json={"error":{
+    "status":"PERMISSION_DENIED",
+    "message":"CONFIDENTIAL SECRET OR PERSONAL CONTENT",
+    "details":[{"reason":"API_KEY_HTTP_REFERRER_BLOCKED"}]
+}}))
+reader403 = CloudVisionReader(KEY, PROJECT, transport=forbidden)
+try:
+    import asyncio
+    asyncio.run(reader403.read(front,back))
+    raise AssertionError("403 should fail closed")
+except CloudVisionUnavailable as exc:
+    assert exc.code == "HTTP_403_API_KEY_HTTP_REFERRER_BLOCKED"
+    assert "CONFIDENTIAL" not in str(exc)
+    print("GQ_CLOUD_VISION_AUTH_REJECTION_CLASSIFIED_PASS")
+assert _provider_code(403,b"invalid upstream payload")=="HTTP_403"
+
