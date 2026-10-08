@@ -65,7 +65,7 @@ namespace GQ {
   }
   function confirmView():string {
     if(!quest) return homeView();
-    return `${back()}${steps(0)}${heading('ENCOUNTER FOUND',`Meet ${e(quest.name.toLowerCase())}.`,quest.mode==='guided'?'You describe this target yourself. No AI has identified it. Choose only a material you know from its care information.':'A photograph suggests a target. You confirm what the surface actually is.')}<div class="split"><div class="scene-card">${picture(quest.before,'Before view of the cleaning target')}<div class="scene-caption">${tag(quest.mode==='practice'?'ILLUSTRATED EXAMPLE':'BEFORE PHOTO')}<span>Visible target, not a hygiene assessment</span></div></div><section class="panel"><h2>Know your battlefield.</h2><div class="field"><label for="surface">What is the surface?</label><select id="surface">${Object.entries(surfaceNames).map(([k,v])=>`<option value="${k}" ${quest?.surface===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="field"><label for="soil">What is the visible problem?</label><select id="soil">${Object.entries(soilNames).map(([k,v])=>`<option value="${k}" ${quest?.soil===k?'selected':''}>${v}</option>`).join('')}</select></div><p class="hint">A camera cannot establish coatings, heat, residues or material compatibility. Choose “I'm not sure” rather than guessing.</p>${check('surface-confirm',quest.mode==='practice'?'Use this example surface and soil.':quest.mode==='guided'?'I know the actual material and visible problem, and checked the surface care instructions.':'I know this material from its care information, not just its appearance.')}<div class="notice soft">${icon('shield')} Unknown surfaces and unsupported jobs will not unlock a cleaner.</div>${quest.mode==='guided'?check('guided-safe-scene','This is a cool, undamaged, unpowered household target with no mould, body fluids, unknown chemicals, or other hazards.'):''}${button('Confirm target '+icon('arrow'),'confirm-target','primary wide')}</section></div>`;
+    return `${back()}${steps(0)}${heading('ENCOUNTER FOUND',`Meet ${e(quest.name.toLowerCase())}.`,quest.mode==='guided'?'You describe this target yourself. No AI has identified it. Choose only a material you know from its care information.':'A photograph suggests a target. You confirm what the surface actually is.')}<div class="split"><div class="scene-card">${picture(quest.before,'Before view of the cleaning target')}<div class="scene-caption">${tag(quest.mode==='practice'?'ILLUSTRATED EXAMPLE':'BEFORE PHOTO')}<span>Visible target, not a hygiene assessment</span></div></div><section class="panel"><h2>Know your battlefield.</h2><div class="field"><label for="surface">What is the surface?</label><select id="surface">${Object.entries(surfaceNames).map(([k,v])=>`<option value="${k}" ${quest?.surface===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="field other-material-field" id="other-surface-field" ${quest.surface==='other'?'':'hidden'}><label for="other-surface-detail">Which material is it?</label><input id="other-surface-detail" maxlength="80" autocomplete="off" value="${e(quest.surfaceDetail||'')}" placeholder="e.g. laminate, painted wall, fabric"><p class="hint">Name the material you have identified from the actual object's care information.</p></div><div class="field"><label for="soil">What is the visible problem?</label><select id="soil">${Object.entries(soilNames).map(([k,v])=>`<option value="${k}" ${quest?.soil===k?'selected':''}>${v}</option>`).join('')}</select></div><p class="hint">A camera cannot establish coatings, heat, residues or material compatibility. Choose “I'm not sure” rather than guessing.</p>${check('surface-confirm',quest.mode==='practice'?'Use this example surface and soil.':quest.mode==='guided'?'I know the actual material and visible problem, and checked the surface care instructions.':'I know this material from its care information, not just its appearance.')}<div class="notice soft">${icon('shield')} All known surfaces can use a private guided quest with your independently checked method. If you do not know the material or detect a hazard, stop and identify it first.</div>${quest.mode==='guided'?check('guided-safe-scene','This is a cool, undamaged, unpowered household target with no mould, body fluids, unknown chemicals, or other hazards.'):''}${button('Confirm target '+icon('arrow'),'confirm-target','primary wide')}</section></div>`;
   }
   function loadoutView():string {
     if(!quest) return homeView();
@@ -400,8 +400,11 @@ namespace GQ {
           if(quest.mode==='guided'&&!checked('guided-safe-scene'))throw new Error('Confirm this is an ordinary, undamaged, cool target without electrical or chemical hazards.');
           const surface=val('surface'),soil=val('soil');
           if(!checked('surface-confirm')) throw new Error('Confirm the material check, or choose “I’m not sure.”');
-          if(!isSurface(surface)||!isSoil(soil)) throw new Error('Unsupported target selection.');
-          quest=transition(quest,{type:'confirm',surface,soil});go('loadout');break;
+          if(!isSurface(surface)||!isSoil(soil)) throw new Error('Choose a valid material and visible problem.');
+          const surfaceDetail=surface==='other'?val('other-surface-detail').trim():undefined;
+          if(surface==='other'&&!validOtherMaterial(surfaceDetail))throw new Error('Enter the actual material name (3–80 characters) after checking its care information.');
+          quest={...transition(quest,{type:'confirm',surface,soil}),surfaceDetail,guidedProductName:undefined};
+          go('loadout');break;
         }
         case 'choose-product': if(quest){quest=transition(quest,{type:'equip',productId:id||''});render(false);toast('Conditional match found. Check the current bottle and surface instructions before use.');}break;
         case 'choose-guided-method':if(quest?.mode==='guided'){quest=transition(quest,{type:'equip-guided'});render(false);toast('Your own method was selected by you, not recommended or assessed by GrimeQuest.');}break;
@@ -668,7 +671,14 @@ namespace GQ {
     root=document.getElementById('app')!;if(!root) return;
     store=readStore();camera=new Camera();render(false);
     root.addEventListener('click',ev=>{const target=(ev.target as Element).closest<HTMLElement>('[data-action]');if(target){ev.preventDefault();void action(target.dataset.action||'',target.dataset.id);}});
-    root.addEventListener('change',ev=>{const target=ev.target as HTMLInputElement;if(target.type==='file')void onFile(target);});
+    root.addEventListener('change',ev=>{
+      const target=ev.target as HTMLInputElement;
+      if(target.type==='file')void onFile(target);
+      if(target.id==='surface'){
+        const detail=root.querySelector<HTMLElement>('#other-surface-field');
+        if(detail)detail.hidden=target.value!=='other';
+      }
+    });
     root.addEventListener('input',ev=>{
       const target=ev.target as HTMLInputElement;
       if(target.id==='product-code'){
