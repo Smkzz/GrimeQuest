@@ -459,6 +459,30 @@ def test_guided_quest_refuses_unsupported_material_and_duplicate_clear(page,clie
     assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
     assert vision.calls==[]
 
+def test_live_non_catalog_material_can_continue_privately_without_model_approval(page,client,vision,before):
+    errors=setup_live(page,client)
+    upload(page,'#photo-file',before)
+    page.locator('[name="photo-consent"]').check()
+    click(page,'analyze-photo')
+    page.wait_for_selector('#surface')
+    page.locator('#surface').select_option('natural_stone')
+    page.locator('#soil').select_option('limescale')
+    page.locator('[name="surface-confirm"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('main')).to_contain_text('No reviewed product match')
+    expect(page.locator('[data-action="switch-to-guided"]')).to_be_visible()
+    click(page,'switch-to-guided')
+    expect(page.locator('.mode-banner')).to_contain_text('Self-reported')
+    expect(page.locator('[data-action="choose-guided-method"]')).to_be_visible()
+    click(page,'choose-guided-method')
+    click(page,'prepare')
+    care_checks(page)
+    click(page,'start-cleaning')
+    assert page.evaluate("GQ.readStore().active") is not None
+    assert vision.calls==['analyze']
+    assert not errors
+
+
 def test_ai_target_photo_can_be_reused_in_private_guided_quest(page,client,before):
     errors=setup_live(page,client)
     upload(page,'#photo-file',before)
