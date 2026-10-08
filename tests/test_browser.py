@@ -281,3 +281,64 @@ def test_private_label_reader_needs_code_and_live_opt_in_without_losing_photos(p
     expect(page.locator('[data-action="analyze-product"]')).to_be_enabled()
     assert not errors
 
+def test_zero_setup_guided_camera_full_game_without_ai_or_server_config(page,client,vision,before,after):
+    errors=mount(page,client)
+    assert page.locator('[data-action="guided-first"]').count() > 0
+    click(page,'guided-first')
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('#surface').select_option('glazed_ceramic')
+    page.locator('#soil').select_option('grease')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    click(page,'choose-guided-method')
+    expect(page.locator('main')).to_contain_text('Your own checked approach')
+    click(page,'prepare')
+    care_checks(page)
+    click(page,'start-cleaning')
+    page.wait_for_selector('[data-action="capture-after"]')
+    click(page,'capture-after')
+    upload(page,'#photo-file',after)
+    page.locator('[name="guided-same-target"]').check()
+    page.locator('[name="guided-dry"]').check()
+    page.locator('#guided-outcome').select_option('clear')
+    click(page,'guided-compare')
+    expect(page.locator('main')).to_contain_text('SELF-REPORTED VISIBLE CHANGE')
+    assert page.evaluate("GQ.readStore().history[0].mode")=='guided'
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert page.evaluate("GQ.stats(GQ.readStore(),'live').xp")==0
+    assert page.evaluate("GQ.stats(GQ.readStore(),'practice').xp")==0
+    assert page.evaluate("GQ.readStore().active") is None
+    assert 'data:image/' not in page.evaluate("localStorage.getItem('grimequest.v1')")
+    assert vision.calls==[]
+    assert not errors
+
+
+def test_guided_quest_refuses_unsupported_material_and_duplicate_clear(page,client,vision,before,after):
+    mount(page,client)
+    click(page,'guided-first')
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    assert page.locator('[data-action="choose-guided-method"]').count()==0
+    page.locator('[data-action="confirm-back"]').click()
+    page.locator('#surface').select_option('uncoated_glass')
+    page.locator('#soil').select_option('fingerprints')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    click(page,'choose-guided-method');click(page,'prepare')
+    care_checks(page);click(page,'start-cleaning');click(page,'capture-after')
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-same-target"]').check()
+    page.locator('[name="guided-dry"]').check()
+    page.locator('#guided-outcome').select_option('clear')
+    click(page,'guided-compare')
+    expect(page.locator('#toast')).to_contain_text('identical')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
+    assert vision.calls==[]

@@ -44,6 +44,8 @@ RUN python -m pip install --root-user-action=ignore --no-cache-dir -r requiremen
     && useradd --system --uid 10001 --no-create-home appuser
 
 COPY server ./server
+# Import the exact server module at image-build time; never call a paid provider.
+RUN python -c "from server.app import app; from server.config import Settings; assert app is not None and not Settings().ready"
 COPY --from=frontend-build /src/web ./web
 COPY run.py ./
 

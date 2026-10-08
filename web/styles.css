@@ -68,3 +68,12 @@
 .label-private-code input{width:100%;min-width:0;padding:12px;font-size:16px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:10px}
 .label-private-code .btn{justify-self:start}
 @media (forced-colors:active){.label-ai-status{border:1px solid CanvasText}}
+/* Guided quests use the existing app cards and are fully touch accessible. */
+.guided-method{margin:16px 0;background:#f1f6e8;border-color:#d8e6c9}
+.guided-method p{margin-top:9px;font-size:13px;line-height:1.7}
+.guided-method .hint{margin-top:10px;font-size:11px}
+@media(max-width:620px){.guided-method{margin:16px 0}.guided-method .btn{width:100%}.hero-actions{flex-wrap:wrap}.hero-actions>.btn{flex:1 1 145px;min-width:0}}
+@media(forced-colors:active){.guided-method{border:1px solid CanvasText}}
+.guided-tutorial-title{margin-top:26px;margin-bottom:17px;font-size:18px}
+@media(max-width:620px){.guided-tutorial-title{font-size:15px}}
+

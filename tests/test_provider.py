@@ -163,3 +163,20 @@ def test_zdr_preflight_requires_fixed_model_and_supported_parameters():
                 transport=httpx.MockTransport(lambda request,status=status:httpx.Response(status,json={}))))
     with pytest.raises(ProviderFailure):
         asyncio.run(verify_openrouter_zdr_model('synthetic-test-key','openrouter/free'))
+
+
+def test_public_beta_guard_fails_closed_without_model_inference(monkeypatch):
+    from server.app import BetaPreflight
+    from server.config import Settings
+    import asyncio
+    settings=Settings(provider_base='https://openrouter.ai/api/v1', provider_model='unknown-model', provider_key='fake-key', public_live=True, ticket_secret='t'*48, max_calls_day=12)
+    beta=BetaPreflight(settings, provider_injected=False)
+    assert asyncio.run(beta.refresh()) is False
+    assert beta.cached_ready() is False
+
+def test_public_beta_spend_guard_validates_nonresetting_total_limit():
+    from server.provider import validate_openrouter_key_limit, ProviderFailure
+    valid={'limit':10.0,'limit_remaining':4.0,'limit_reset':None,'is_management_key':False,'include_byok_in_limit':True}
+    assert validate_openrouter_key_limit(valid, maximum_usd=10)['verified']
+    for invalid in ({**valid,'limit':11},{**valid,'limit_reset':'daily'},{**valid,'include_byok_in_limit':False}):
+        with pytest.raises(ProviderFailure):validate_openrouter_key_limit(invalid,maximum_usd=10)

@@ -18,7 +18,7 @@ from .config import Settings
 from .images import normalize_image, InvalidImage
 from .models import ImageRequest, ProductRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
 from .policy import CATALOG, PRODUCTS, POLICY_VERSION, match_product, adjudicate
-from .provider import VisionProvider, ProviderFailure
+from .provider import VisionProvider, ProviderFailure, verify_openrouter_zdr_model, verify_openrouter_beta_spend_cap
 from .tickets import Tickets, InvalidTicket
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -114,6 +114,51 @@ class Boundary:
             return await self.app(scope, replay, safe_send)
         return await self.app(scope, receive, safe_send)
 
+
+class BetaPreflight:
+    """Fail-closed ZDR/model/key checks before any paid public preview request."""
+    def __init__(self, settings: Settings, provider_injected: bool):
+        self.settings = settings
+        self.governed = settings.public_live and not provider_injected
+        self.verified = not self.governed
+        self.valid_until = 0.0
+        self._lock = asyncio.Lock()
+
+    async def refresh(self) -> bool:
+        if not self.governed:
+            return True
+        if time.monotonic() < self.valid_until:
+            return self.verified
+        async with self._lock:
+            if time.monotonic() < self.valid_until:
+                return self.verified
+            self.verified = False
+            try:
+                if (urlsplit(self.settings.provider_base).hostname != 'openrouter.ai'
+                        or self.settings.provider_model != 'google/gemini-2.5-flash-lite'
+                        or not self.settings.provider_key):
+                    raise ProviderFailure('Public preview requires the qualified fixed ZDR model and an operator-held key.')
+                spend, endpoints = await asyncio.gather(
+                    verify_openrouter_beta_spend_cap(self.settings.provider_key),
+                    verify_openrouter_zdr_model(self.settings.provider_key, self.settings.provider_model),
+                )
+                if not spend['verified'] or not endpoints['verified']:
+                    raise ProviderFailure('Provider preflight is incomplete.')
+                self.verified = True
+                self.valid_until = time.monotonic() + 300
+            except (ProviderFailure, Exception):
+                # Do not leak provider/key metadata or break non-AI gameplay.
+                self.verified = False
+                self.valid_until = time.monotonic() + 45
+            return self.verified
+
+    def cached_ready(self) -> bool:
+        return self.verified and (not self.governed or time.monotonic() < self.valid_until)
+
+    async def require(self) -> None:
+        if not await self.refresh():
+            raise HTTPException(503, 'AI preview is temporarily unavailable; Camera Quest works without it.')
+
 class Budget:
     """Single-process bounds, not a dollar budget. Production must keep one worker."""
     def __init__(self, limit: int, daily_limit: int = 200):
@@ -152,6 +197,14 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     app.add_middleware(Boundary, settings=settings)
     signer = tickets or Tickets(settings.ticket_secret.encode("utf-8") if settings.ticket_secret else None)
     vision = provider or VisionProvider(settings.provider_base, settings.provider_model, settings.provider_key)
+    beta = BetaPreflight(settings, provider is not None)
+    app.state.beta = beta
+
+    @app.on_event('startup')
+    async def preflight_public_beta():
+        if beta.governed:
+            # Read-only metadata checks only. Startup never sends photos or makes inference calls.
+            asyncio.create_task(beta.refresh())
     budget = Budget(settings.max_calls_hour, settings.max_calls_day)
     # Only bounded receipts/results are cached, never images or product label text.
     results: dict[str, tuple[float, dict]] = {}
@@ -186,7 +239,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ok", "version": VERSION, "live_ready": settings.ready, "policy_version": POLICY_VERSION,
+        return {"status": "ok", "version": VERSION, "live_ready": settings.ready and beta.cached_ready(), "policy_version": POLICY_VERSION,
                 "catalog_version": CATALOG["version"], "provider_host": urlsplit(settings.provider_base).hostname if settings.ready else None,
                 "provider_model": settings.provider_model if settings.ready else None,
                 "max_calls_hour": settings.max_calls_hour, "max_calls_day": settings.max_calls_day,
@@ -207,6 +260,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
 
     @app.post("/api/analyze-target")
     async def analyze_target(body: ImageRequest, request: Request):
+        await beta.require()
         image = await decode(body.image)
         async with budget.slot(request.client.host if request.client else "unknown"):
             observation = await vision.analyze(image.data_url)
@@ -218,6 +272,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
 
     @app.post("/api/analyze-product")
     async def analyze_product(body: ProductRequest, request: Request):
+        await beta.require()
         front, back = await asyncio.gather(decode(body.front_image), decode(body.back_image))
         async with budget.slot(request.client.host if request.client else "unknown"):
             observation = await vision.product(front.data_url, back.data_url)
@@ -249,6 +304,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
                                 Attestations.model_validate(encounter["attestations"]), encounter["analysis"]["hazards"])
         if current["status"] != "eligible":
             raise HTTPException(409, "Product eligibility changed; no verification was issued.")
+        await beta.require()
         before, after = await asyncio.gather(decode(body.before_image), decode(body.after_image))
         if before.digest != encounter["before_digest"]:
             raise HTTPException(409, "The before photo does not match this encounter.")

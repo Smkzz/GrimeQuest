@@ -2,6 +2,8 @@
 
 **Small chores. Real wins.** A camera-first cleaning quest PWA.
 
+**Zero-setup complete camera play:** The default guided mode lets anyone choose a before photo, describe a real glass/glazed-ceramic cleaning target they have independently verified, select their own instruction-checked cleaning method, complete five safety confirmations, take an after photo and self-report what visibly changed. It uses zero AI calls, uploads no photographs and requires no account, access code, server settings or API payment. Guided XP/history are **clearly marked self-reported and separate** from simulated practice and model-observed AI results. A result cannot be claimed from the exact same before/after photo. This is a *gameplay fallback*, not AI verification or chemical-safety certification. All use of products remains governed by their actual label and surface care; unsupported/damaged/uncertain targets must not be treated as safe. AI-powered vision remains a separately consented, cost-controlled optional beta when enabled by the operator.
+
 **Build guard:** Production's existing Railway frontend build stage now runs all no-network Node client tests and byte-identical generated-PWA verification before the final runtime image can deploy; tests and Node tooling are NOT copied to the runtime image. Manual GitHub Actions remain untriggered.
 
 **Why 'Read both labels' can be unavailable:** Photos are processed locally even in Practice mode. This does **not** mean the hosted AI label reader is available. The page now explains whether it is checking the server, unable to connect, server-disabled, missing private test access, in Practice mode, or missing one of the photos. Public production AI has not been activated; the ZDR-only three-request exploratory test did not qualify a public release. If private AI becomes configured and authorized, a tester must enter a private code (when required), explicitly switch to live mode, select both photos and separately consent before any API call. Users can always manually record the label as unreviewed; no scanning result grants chemical safety permission.
@@ -15,6 +17,14 @@ Identify one visible mess, confirm its material, choose a product from your own 
 
 **v0.1.0 is a working, externally clean-room-qualified prototype, not a publicly qualified chemical-advice service.** The shipped default is an explicitly simulated practice mode. The live application protocol is qualified with deterministic observations, but no real vision model or physical cleaning trial has yet passed the release gate. See [test evidence](docs/TEST_REPORT.md) and [release gates](docs/RELEASE_GATES.md).
 
+
+## Zero-setup real camera play
+
+1. Open GrimeQuest on a phone and choose **Start camera quest**. No registration, API key or code.
+2. Take a before photo, confirm the actual surface and visible soil, and choose a method you independently know is permitted. The app is not certifying any unknown product.
+3. Review the five care checks, perform the actual task following the current product/surface instructions, then take a comparable after photo when dry.
+4. Report what you can see. Results appear as **SELF-REPORTED**, earn only guided XP, and are not presented as model verification or chemical-safety approval. Identical before/after photos are rejected for clear results.
+5. If the operator has activated and verified the fixed ZDR model within its preflight and call budgets, the server automatically offers consent-based **AI Beta**. Players are never shown server configuration. If AI Beta is unavailable or rate-limited, the real camera quest still works.
 
 ## Try it immediately
 
