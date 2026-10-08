@@ -445,21 +445,24 @@ test('manual GTIN entry works without any barcode camera capability',()=>{
  }]}));
 });
 
-test('global product candidates allow only four exact Open Facts source hosts',()=>{
+test('global product candidates require exact allowlisted identity-provider links',()=>{
  const candidates=[
-  ['general','Open Products Facts','world.openproductsfacts.org'],
-  ['beauty','Open Beauty Facts','world.openbeautyfacts.org'],
-  ['food','Open Food Facts','world.openfoodfacts.org'],
-  ['petfood','Open Pet Food Facts','world.openpetfoodfacts.org']
+  ['general','Open Products Facts','https://world.openproductsfacts.org/product/'],
+  ['beauty','Open Beauty Facts','https://world.openbeautyfacts.org/product/'],
+  ['food','Open Food Facts','https://world.openfoodfacts.org/product/'],
+  ['petfood','Open Pet Food Facts','https://world.openpetfoodfacts.org/product/'],
+  ['upc','UPCitemdb','https://www.upcitemdb.com/upc/'],
+  ['ean','EAN-Suche','https://ean-suche.net/produkt/'],
+  ['web','Web search','https://www.google.com/search?q=']
  ];
  const gtin='4006381333931';
- for(const [category,source,host] of candidates){
-  const item={barcode:gtin,found:true,name:'Example globally listed cleaner',
-    brand:'World Brand',quantity:'500 ml',category,source,
-    source_url:'https://'+host+'/product/'+gtin,
+ for(const [category,source,prefix] of candidates){
+  const item={barcode:gtin,found:true,name:'Possible product',brand:'',
+    quantity:'',category,source,source_url:prefix+gtin,
     review_status:'unreviewed',recommendation_permission:false};
-  assert.equal(G.validProductCandidate(item),true);
-  assert.equal(G.validProductCandidate({...item,source_url:'https://evil.example/product/'+gtin}),false);
+  assert.equal(G.validProductCandidate(item),true,category);
+  assert.equal(G.validProductCandidate({...item,source_url:'https://evil.example/'+gtin}),false);
+  assert.equal(G.validProductCandidate({...item,source_url:prefix+gtin+'&unsafe=1'}),false);
   assert.equal(G.validProductCandidate({...item,recommendation_permission:true}),false);
   assert.equal(G.validProductCandidate({...item,review_status:'verified'}),false);
   assert.equal(G.validProductCandidate({...item,barcode:'4006381333932'}),false);
