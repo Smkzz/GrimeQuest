@@ -166,7 +166,7 @@ class CloudVisionReader:
                     received = bytearray()
                     async for part in response.aiter_bytes():
                         received.extend(part)
-                        if len(received) > 400_000:
+                        if len(received) > 1_500_000:
                             raise CloudVisionUnavailable("The recognition response was too large.")
             data = __import__("json").loads(received)
             entries = data.get("responses") if isinstance(data, dict) else None
