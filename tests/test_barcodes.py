@@ -53,7 +53,7 @@ def test_strict_community_lookup_has_no_photo_or_unapproved_safety_data():
         }})
     suggestion=asyncio.run(BarcodeLookup(transport=httpx.MockTransport(handler)).lookup(VALID))
     assert suggestion.found
-    assert suggestion.name=="Kiilto Koti"
+    assert suggestion.name=="All-purpose cleaner"  # Primary contributor title is language-neutral source of identity.
     assert suggestion.brand=="Kiilto"
     assert suggestion.quantity=="600 ml"
     payload=suggestion.public()
