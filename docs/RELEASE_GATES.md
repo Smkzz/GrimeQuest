@@ -28,6 +28,10 @@ A subsequent **exploratory Gemini 2.5 Flash Lite** fixed-model test produced thr
 
 Native HEIC/HEIF upload acceptance and browser error fallback are now source/test qualified for Safari 17+, but still require the actual-device [phone acceptance checklist](PHONE_RELEASE_CHECKLIST.md) before a real-image launch.
 
+## Limited owner-authorized AI beta configuration
+
+Optional public preview traffic is strictly operator-configured; players never supply an API key or touch server settings. The server chooses only `google/gemini-2.5-flash-lite` on OpenRouter for this bounded beta, and performs **read-only** metadata verification of an existing non-resetting total key cap (at most $10) and supported ZDR/structured-output endpoint before any image inference. Every actual request independently requires ZDR and denies provider data collection. The operator must use narrow `GQ_MAX_CALLS_HOUR` and `GQ_MAX_CALLS_DAY` values (the in-memory request counter resets on restart, so it is not a dollar budget), and the shared provider-side cap remains the last-resort spending ceiling. If any check fails, the AI feature fails closed and guided quests remain playable. This beta is **not** certified for generalized cleaning advice; full independent labeled evaluation and physical tests remain mandatory before a general public real-world launch.
+
 ## Before the first real-model / physical demo
 
 1. Confirm the organizer's exact build-week eligibility/rules for AI-generated code/assets. Do not backdate work.

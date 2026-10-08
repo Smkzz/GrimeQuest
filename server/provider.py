@@ -98,6 +98,29 @@ async def verify_openrouter_zdr_model(key: str, model: str, transport=None) -> d
         raise ProviderFailure("OpenRouter ZDR preflight failed. No inference was made.") from exc
 
 
+
+async def verify_openrouter_beta_spend_cap(key: str, transport=None) -> dict:
+    """Read-only, production-preview guard; not the stricter $0.50 evaluation gate.
+
+    The existing owner-authorized key has a non-resetting $10 total cap shared
+    with other projects. It is a ceiling, NOT a project-specific spend budget.
+    """
+    if not key:
+        raise ProviderFailure('A server-side vision key is required.')
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=False, trust_env=False, transport=transport) as client:
+            response = await client.get('https://openrouter.ai/api/v1/key', headers={'Authorization': 'Bearer ' + key})
+            if response.status_code != 200 or len(response.content) > 20_000:
+                raise ProviderFailure('Could not verify the existing provider spending ceiling.')
+            verified = validate_openrouter_key_limit(response.json().get('data'), maximum_usd=10.0)
+            if verified['remaining_usd'] < 0.10:
+                raise ProviderFailure('The provider spending limit is nearly exhausted.')
+            return verified
+    except ProviderFailure:
+        raise
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        raise ProviderFailure('Provider spending preflight unavailable.') from exc
+
 class VisionProvider:
     def __init__(self, base_url: str, model: str, key: str = "", transport=None, timeout: float = 25):
         self.base_url = base_url.rstrip("/")
