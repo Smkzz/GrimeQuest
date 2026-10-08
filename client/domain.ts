@@ -92,7 +92,7 @@ namespace GQ {
     if(!s.history.every((h:HistoryItem)=>h && str(h.id,100)&&str(h.name,240)&&str(h.room,100)&&['practice','live','guided'].includes(h.mode)&&['clear','partial','unverifiable'].includes(h.status)&&h.xp===(h.status==='clear'?300:0)&&str(h.date,40)&&Number.isFinite(Date.parse(h.date))&&(!h.receipt||str(h.receipt,14000))&&(h.mode!=='live'||h.status!=='clear'||typeof h.receipt==='string'&&h.receipt.length>20))) return null;
     const keys=s.history.map((h:HistoryItem)=>h.mode+':'+h.id);
     if(new Set(keys).size!==keys.length) return null;
-    if(!s.inventory.every((i:InventoryItem)=>i&&str(i.id,100)&&str(i.name,240)&&(i.catalogId===null||str(i.catalogId,100))&&str(i.note,6000)&&str(i.addedAt,40))) return null;
+    if(!s.inventory.every((i:InventoryItem)=>i&&str(i.id,100)&&str(i.name,240)&&(i.catalogId===null||str(i.catalogId,100))&&str(i.note,6000)&&str(i.addedAt,40)&&(i.barcode===undefined||typeof i.barcode==='string'&&validGTIN(i.barcode)))) return null;
     if(s.active!==null) {
       if(!s.active||typeof s.active!=='object') return null;
       const a=s.active as Record<string,unknown>;
