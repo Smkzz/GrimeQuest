@@ -506,3 +506,25 @@ test('worldwide multilingual identity accepts Japanese, Arabic and Cyrillic name
  }
 });
 
+
+
+test('casual cleaning quest awards only self-reported guided XP after photo',()=>{
+  const before='data:image/jpeg;base64,'+'A'.repeat(240);
+  const draft={...quest('guided'),before,phase:'identified',
+    surface:'unknown',soil:'unknown',
+    analysis:{...analysis,surface:'unknown',soil:'unknown'}};
+  const cleaning=G.transition(draft,{type:'begin-casual'});
+  assert.equal(cleaning.phase,'cleaning');
+  assert.equal(cleaning.productId,undefined,'casual play never authorizes chemical use');
+  assert.throws(()=>G.transition({...draft,before:''},{type:'begin-casual'}),/before photo/);
+  assert.throws(()=>G.transition(cleaning,{type:'begin-casual'}),/Invalid quest/);
+  assert.throws(()=>G.transition(cleaning,{type:'result',result:{...result('clear','live'),encounter_id:cleaning.id},after:'other'}));
+  const self={encounter_id:cleaning.id,status:'clear',xp:300,
+    reason:'player completed cleaning',provenance:'self_attested'};
+  const finished=G.transition(cleaning,{type:'result',result:self,after:'other'});
+  let store=G.recordResult(G.emptyStore(),finished);
+  store=G.recordResult(store,finished);
+  assert.equal(store.history.length,1,'one win per quest');
+  assert.equal(G.stats(store,'guided').xp,300);
+  assert.equal(G.stats(store,'live').xp,0);
+});
