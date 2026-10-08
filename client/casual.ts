@@ -14,6 +14,7 @@ namespace GQ {
     private message = '';
     private busy = false;
     private resetArmed = false;
+    private resumeStage: 'clean' | 'after' = 'clean';
 
     constructor(private readonly host: HTMLElement) {}
 
@@ -57,6 +58,7 @@ namespace GQ {
     }
     private homeView(): string {
       const p = this.progress;
+      const pending = this.quest?.phase === 'cleaning';
       const legacyWarning = this.data.active
         ? '<div class="quick-warning"><b>Previous task still active.</b> Follow its actual product instructions before starting another cleaning job.' +
           this.btn('I checked the previous task', 'old-task-checked', true) + '</div>'
@@ -65,7 +67,8 @@ namespace GQ {
         '<div class="quick-mascot" aria-hidden="true">✦</div>' +
         '<h1 tabindex="-1">A little mess.<br><em>Big little win.</em></h1>' +
         '<p>Point your camera at the grime. Clean it. Snap the result. Get points.</p>' +
-        this.btn('📸  Find some grime', 'start') +
+        this.btn(pending ? '▶ Continue cleaning' : '📸  Find some grime', pending ? 'resume' : 'start') +
+        (pending ? this.btn('Discard unfinished quest', 'discard', true) : '') +
         '<p class="quick-note">No account. No setup. No product menus.</p></section>' +
         '<section class="quick-stats" aria-label="Your game progress"><div><strong>' + p.xp + '</strong><span>XP earned</span></div>' +
         '<div><strong>' + p.clears + '</strong><span>Little wins</span></div>' +
@@ -99,7 +102,8 @@ namespace GQ {
         (this.shot ? '<div class="quick-next">' +
           (after ? this.btn('✨ It’s clean! +300 XP', 'claim') + this.btn('Not clean yet', 'back-clean', true) :
             this.btn('Let’s clean!', 'before-ready')) + '</div>' : '') +
-        '<div class="quick-bottom">' + this.btn(after ? '← Back to cleaning' : 'Cancel quest', after ? 'back-clean' : 'home', true) + '</div>';
+        (after && this.shot ? '' : '<div class="quick-bottom">' +
+          this.btn(after ? '← Back to cleaning' : 'Cancel quest', after ? 'back-clean' : 'home', true) + '</div>');
     }
 
     private cleaningView(): string {
@@ -111,7 +115,7 @@ namespace GQ {
         '<p>Use a method you already know is suitable for this item. The game does not choose a cleaner for you.</p>' +
         this.btn('Done cleaning →', 'after') + '</section>' +
         '<p class="quick-safety">Never mix cleaners. Follow the actual label and surface-care instructions. Stop if the material or residue is uncertain.</p>' +
-        this.btn('Start over', 'home', true);
+        this.btn('Discard this quest', 'discard', true);
     }
 
     private resultView(): string {
@@ -165,8 +169,11 @@ namespace GQ {
         this.stage === 'clean' ? this.cleaningView() :
         this.stage === 'result' ? this.resultView() :
         this.stage === 'wins' ? this.winsView() : this.settingsView();
+      const resumeBanner = this.quest?.phase === 'cleaning' && (this.stage === 'wins' || this.stage === 'settings')
+        ? '<aside class="quick-warning"><b>Quest in progress.</b>' +
+          this.btn('Return to cleaning', 'resume', true) + '</aside>' : '';
       this.host.innerHTML = '<a class="skip" href="#quick-main">Skip to game</a><div class="quick-app">' +
-        this.nav() + (storageWarning ? '<p class="quick-warning">' + escapeHTML(storageWarning) + '</p>' : '') +
+        this.nav() + resumeBanner + (storageWarning ? '<p class="quick-warning">' + escapeHTML(storageWarning) + '</p>' : '') +
         '<main id="quick-main">' + content + '</main>' +
         (this.message ? '<p class="quick-message" role="status">' + escapeHTML(this.message) + '</p>' : '') +
         '<footer class="quick-footer">Small chores. Real wins. · <button type="button" class="quick-install-link" data-quick="install">Install / share</button> · <a href="/privacy.html">Privacy</a> · <a href="/safety.html">Safety</a></footer></div>';
@@ -259,19 +266,38 @@ namespace GQ {
         switch (action) {
           case 'home':
             this.uploadGeneration++;
-            this.quest = null;
-            this.shot = '';
+            if (this.quest?.phase !== 'cleaning') {
+              this.quest = null;
+              this.shot = '';
+            } else if (this.stage === 'after') this.resumeStage = 'after';
             this.stage = 'home';
             this.render();
             break;
           case 'wins':
+            if (this.stage === 'after') this.resumeStage = 'after';
             this.stage = 'wins'; this.render(); break;
           case 'settings':
+            if (this.stage === 'after') this.resumeStage = 'after';
             this.stage = 'settings'; this.render(); break;
+          case 'resume':
+            if (!this.quest || this.quest.phase !== 'cleaning') return;
+            this.stage = this.resumeStage;
+            this.render();
+            if (this.stage === 'after' && !this.shot) void this.openCamera();
+            break;
+          case 'discard':
+            this.uploadGeneration++;
+            this.quest = null; this.shot = '';
+            this.resumeStage = 'clean';
+            this.stage = 'home';
+            this.render();
+            break;
           case 'start':
+            if (this.quest?.phase === 'cleaning') throw new Error('Finish or discard your current quest before starting another.');
             if (this.data.active) throw new Error('Check the previous cleaning task first. Follow its real product label.');
             this.quest = null;
             this.shot = '';
+            this.resumeStage = 'clean';
             this.stage = 'before';
             this.render();
             void this.openCamera();
@@ -296,6 +322,7 @@ namespace GQ {
             if (this.stage !== 'clean' || !this.quest) return;
             this.shot = '';
             this.stage = 'after';
+            this.resumeStage = 'after';
             this.render();
             void this.openCamera();
             break;
@@ -303,6 +330,7 @@ namespace GQ {
             if (!this.quest) return;
             this.shot = '';
             this.stage = 'clean';
+            this.resumeStage = 'clean';
             this.render();
             break;
           case 'claim':
