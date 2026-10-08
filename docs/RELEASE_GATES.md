@@ -2,7 +2,7 @@
 
 ## Zero-setup camera quests — functional fallback
 
-The default guided camera mode can run entirely on the phone, even if the remote vision provider is unavailable: before photo, user-known surface/soil, explicitly user-selected method, care confirmations, after photo and **self-reported** visible outcome. It awards separate guided XP, **not** model-observed XP, and never treats a self-report as chemical advice or a certified hygiene measurement. Photos are never uploaded in guided mode. Unsupported material/hazard cases and identical before/after photos cannot earn a guided clear. Physical iPhone acceptance remains outstanding.
+The default guided camera mode can run entirely on the phone, even if the remote vision provider is unavailable: before photo, user-known surface/soil, explicitly user-selected method, care confirmations, after photo and **self-reported** visible outcome. It awards separate guided XP, **not** model-observed XP, and never treats a self-report as chemical advice or a certified hygiene measurement. Photos are never uploaded in guided mode. Unknown materials/soils, unverified custom materials, hazards and identical before/after photos cannot earn a guided clear. Any known user-confirmed material and visible soil—including stone, wood, steel, cool unpowered hobs, mineral deposits and explicitly named other materials—can use the independent self-selected-method flow; this does not enlarge the reviewed chemical-product catalog. Physical iPhone acceptance remains outstanding.
 
 ## Software release candidate — qualified
 
