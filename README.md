@@ -45,7 +45,8 @@ The Docker production build reproduces the PWA shell and runs offline Node clien
 
 - [Casual iPhone acceptance checklist](docs/CASUAL_PHONE_ACCEPTANCE_20261008.md) — complete real-camera loop, offline, permissions and installed PWA.
 - [Release gates](docs/RELEASE_GATES.md), [safety policy](docs/SAFETY.md), [privacy notice](PRIVACY.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
-- [Final pre-simplification audit](docs/FINAL_LAUNCH_AUDIT_20261008.md). It covers the older guided/AI/product-menu game and is not evidence for the new casual layout.
+- [Casual release audit](docs/CASUAL_RELEASE_AUDIT_20261008.md) — current 581-test qualification and remaining physical iPhone checks.
+- [Pre-simplification audit](docs/FINAL_LAUNCH_AUDIT_20261008.md) — historical guided/AI/product-menu build, not this game.
 - [Demo script](docs/DEMO_SCRIPT.md).
 
 **External acceptance remains essential:** Test the entire before → clean → after → XP → wins loop on an actual iPhone Home Screen app, including photo permissions and a native HEIC picture. Browser automation cannot certify physical camera hardware or whether real-world cleaning occurred.
