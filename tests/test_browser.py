@@ -252,9 +252,10 @@ def test_disabled_label_reader_explains_release_gate_and_manual_entry(page,befor
         page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
         page.wait_for_timeout(130)
     expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
-    expect(page.locator('[data-action="analyze-product"]')).to_be_disabled()
-    page.locator('[name="product-consent"]').check()
-    expect(page.locator('[data-action="analyze-product"]')).to_be_disabled()
+    expect(page.locator('[data-action="analyze-product"]')).to_have_count(0)
+    expect(page.locator('[data-action="focus-manual-product"]')).to_be_visible()
+    click(page,'focus-manual-product')
+    assert page.evaluate('document.activeElement.id')=='product-name'
     page.locator('#product-name').fill('Manually entered spray')
     page.locator('#product-note').fill('From exact original label')
     click(page,'save-product')
@@ -342,3 +343,14 @@ def test_guided_quest_refuses_unsupported_material_and_duplicate_clear(page,clie
     expect(page.locator('#toast')).to_contain_text('identical')
     assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
     assert vision.calls==[]
+
+def test_ai_target_photo_can_be_reused_in_private_guided_quest(page,client,before):
+    errors=setup_live(page,client)
+    upload(page,'#photo-file',before)
+    expect(page.locator('[data-action="guided-from-ai-photo"]')).to_be_visible()
+    click(page,'guided-from-ai-photo')
+    expect(page.locator('main')).to_contain_text('REAL CAMERA QUEST')
+    expect(page.locator('img[alt="Selected image preview"]')).to_be_visible()
+    assert page.evaluate('GQ.readStore().history.length')==0
+    assert not errors
+
