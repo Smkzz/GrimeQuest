@@ -681,3 +681,140 @@ def test_global_name_search_in_unicode_with_no_record_has_manual_path(page):
         assert item['catalogId'] is None
         assert not errors
 
+
+
+# Public GrimeQuest has no product, material or chemistry-selection path.
+# The larger historical suite above intentionally exercises archived policy
+# compatibility in an isolated harness; these cases exercise the shipped UI.
+
+@pytest.mark.parametrize('width,height',[(390,844),(320,740),(1280,900)])
+def test_casual_start_to_finish_in_three_steps(page,before,after,width,height):
+    page.set_viewport_size({'width':width,'height':height})
+    errors=mount(page,casual=True)
+    expect(page.locator('h1')).to_contain_text('A little mess.')
+    for old in ('#surface','#soil','#product-name','[data-action="choose-guided-method"]'):
+        assert page.locator(old).count()==0, old
+    assert page.locator('[data-quick="start"]').count()==1
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    page.locator('[data-quick="start"]').click()
+    expect(page.locator('h1')).to_contain_text('Spot the grime')
+    assert page.locator('[data-quick="snap"]').is_disabled()
+    page.locator('#quick-file').set_input_files({
+        'name':'before.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(before.split(',')[1])
+    })
+    expect(page.locator('img[alt="Before photo preview"]')).to_be_visible()
+    page.locator('[data-quick="before-ready"]').click()
+    expect(page.locator('h1')).to_contain_text('Time to clean!')
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    assert page.locator('#surface').count()==0
+    page.locator('[data-quick="after"]').click()
+    expect(page.locator('h1')).to_contain_text('Show the glow-up')
+    page.locator('#quick-file').set_input_files({
+        'name':'after.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(after.split(',')[1])
+    })
+    expect(page.locator('img[alt="After photo preview"]')).to_be_visible()
+    page.locator('[data-quick="claim"]').click()
+    expect(page.locator('h1')).to_contain_text('Grime defeated!')
+    expect(page.locator('main')).to_contain_text('+300 XP')
+    expect(page.locator('main')).to_contain_text('Self-reported')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert page.evaluate("GQ.stats(GQ.readStore(),'live').xp")==0
+    assert page.evaluate("GQ.readStore().history[0].mode")=="guided"
+    assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+    page.locator('[data-quick="wins"]').first.click()
+    expect(page.locator('main')).to_contain_text('Grime defeated')
+    assert not errors
+
+
+def test_casual_same_photo_cannot_claim_300_xp(page,before):
+    errors=mount(page,casual=True)
+    page.locator('[data-quick="start"]').click()
+    payload={'name':'same.jpg','mimeType':'image/jpeg',
+             'buffer':base64.b64decode(before.split(',')[1])}
+    page.locator('#quick-file').set_input_files(payload)
+    expect(page.locator('img[alt="Before photo preview"]')).to_be_visible()
+    page.locator('[data-quick="before-ready"]').click()
+    page.locator('[data-quick="after"]').click()
+    page.locator('#quick-file').set_input_files(payload)
+    expect(page.locator('img[alt="After photo preview"]')).to_be_visible()
+    page.locator('[data-quick="claim"]').click()
+    expect(page.locator('[role="status"]')).to_contain_text('identical')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
+    assert page.locator('[data-quick="claim"]').count()==1
+    assert not errors
+
+
+def test_casual_can_retake_and_go_back_without_scoring(page,before):
+    mount(page,casual=True)
+    page.locator('[data-quick="start"]').click()
+    assert page.locator('[data-quick="before-ready"]').count()==0
+    page.locator('#quick-file').set_input_files({
+        'name':'before.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(before.split(',')[1])
+    })
+    expect(page.locator('[data-quick="retake"]')).to_be_visible()
+    page.locator('[data-quick="retake"]').click()
+    assert page.locator('[data-quick="before-ready"]').count()==0
+    page.locator('#quick-file').set_input_files({
+        'name':'before.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(before.split(',')[1])
+    })
+    page.locator('[data-quick="before-ready"]').click()
+    page.locator('[data-quick="after"]').click()
+    page.locator('[data-quick="back-clean"]').click()
+    expect(page.locator('h1')).to_contain_text('Time to clean!')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
+    page.locator('[data-quick="home"]').first.click()
+    expect(page.locator('h1')).to_contain_text('A little mess.')
+
+
+def test_casual_legacy_active_chemical_warning_stays_explicit(page):
+    base={'grimequest.v1':json.dumps({
+        'version':1,'history':[],'inventory':[],
+        'active':{'product':'Previous cleaner','startedAt':'2026-10-08T18:00:00Z'}
+    })}
+    mount(page,initial=base,casual=True)
+    expect(page.locator('main')).to_contain_text('Previous task still active')
+    page.locator('[data-quick="start"]').click()
+    expect(page.locator('[role="status"]')).to_contain_text('Check the previous cleaning task')
+    assert page.evaluate("GQ.readStore().active.product")=='Previous cleaner'
+    page.locator('[data-quick="old-task-checked"]').click()
+    assert page.evaluate("GQ.readStore().active") is None
+    page.locator('[data-quick="start"]').click()
+    expect(page.locator('h1')).to_contain_text('Spot the grime')
+
+
+def test_casual_settings_has_no_products_or_ai_configuration_and_requires_reset_confirmation(page):
+    mount(page,casual=True)
+    page.locator('[data-quick="settings"]').click()
+    expect(page.locator('h1')).to_contain_text('Play, not paperwork')
+    assert page.locator('#surface').count()==0
+    assert page.locator('#product-code').count()==0
+    assert page.locator('#access-code').count()==0
+    page.locator('[data-quick="reset-arm"]').click()
+    expect(page.locator('main')).to_contain_text('cannot be undone')
+    page.locator('[data-quick="reset-cancel"]').click()
+    assert page.locator('[data-quick="reset-confirm"]').count()==0
+
+
+def test_casual_offline_journey_does_not_call_api(page,before,after):
+    errors=mount(page,casual=True)
+    page.evaluate('window.fetch=()=>{throw Error("Casual game must not call API");}')
+    page.locator('[data-quick="start"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'before.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(before.split(',')[1])
+    })
+    expect(page.locator('[data-quick="before-ready"]')).to_be_visible()
+    page.locator('[data-quick="before-ready"]').click()
+    page.locator('[data-quick="after"]').click()
+    page.locator('#quick-file').set_input_files({
+        'name':'after.jpg','mimeType':'image/jpeg',
+        'buffer':base64.b64decode(after.split(',')[1])
+    })
+    page.locator('[data-quick="claim"]').click()
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert not errors
