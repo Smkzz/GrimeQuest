@@ -17,7 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from .config import Settings
 from .images import normalize_image, InvalidImage
 from .cloud_vision import CloudVisionReader, CloudVisionUnavailable
-from .models import ImageRequest, ProductRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
+from .barcodes import BarcodeLookup, valid_gtin
+from .models import ImageRequest, ProductRequest, BarcodeRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
 from .policy import CATALOG, PRODUCTS, POLICY_VERSION, match_product, adjudicate
 from .provider import VisionProvider, ProviderFailure, verify_openrouter_zdr_model, verify_openrouter_beta_spend_cap
 from .tickets import Tickets, InvalidTicket
@@ -80,7 +81,7 @@ class Boundary:
                 return await reject(403, "ORIGIN", "Same-origin requests are required.")
             # Same-origin, JSON and upload bounds apply to Cloud Vision OCR.
             # The operator owns its API key; players never supply credentials.
-            local_ocr = scope["path"] == "/api/read-labels"
+            local_ocr = scope["path"] in ("/api/read-labels", "/api/product-lookup")
             if not local_ocr and not self.settings.ready:
                 return await reject(503, "LIVE_NOT_CONFIGURED", "AI analysis is unavailable; camera quests and text-only OCR remain usable.")
             if not local_ocr and not self.settings.public_live and not hmac.compare_digest(h.get("x-gq-access", "").encode(), self.settings.access_code.encode()):
@@ -198,7 +199,7 @@ class Budget:
 
 
 def create_app(settings: Settings | None = None, provider=None, tickets: Tickets | None = None,
-               label_reader: CloudVisionReader | None = None) -> FastAPI:
+               label_reader: CloudVisionReader | None = None, barcode_lookup: BarcodeLookup | None = None) -> FastAPI:
     settings = (settings or Settings.from_env()).validate()
     app = FastAPI(
         title="GrimeQuest",
@@ -218,6 +219,12 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     )
     cloud_labels_enabled = settings.google_vision_enabled and cloud_labels.ready
     app.state.cloud_labels = cloud_labels
+    product_index = barcode_lookup or BarcodeLookup()
+    app.state.barcode_index = product_index
+    barcode_events: deque[float] = deque()
+    barcode_cache: dict[str, tuple[float, dict]] = {}
+    barcode_lock = asyncio.Lock()
+    app.state.barcode_requests = barcode_events
 
     @app.on_event('startup')
     async def preflight_public_beta():
@@ -330,6 +337,31 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
         payload = {"id": secrets.token_urlsafe(16), "before_digest": image.digest,
                    "analysis": observation.model_dump(), "policy": POLICY_VERSION, "catalog": CATALOG["version"]}
         return {"analysis": observation, "target_ticket": signer.sign("target", payload), "provenance": "model_observation"}
+
+    @app.post("/api/product-lookup")
+    async def product_lookup(body: BarcodeRequest):
+        """Opt-in community lookup by identifier only. Never send photos."""
+        gtin = body.barcode
+        if not valid_gtin(gtin):
+            raise HTTPException(422, "Check the digits printed beneath the barcode. The check digit does not match.")
+        now = time.monotonic()
+        async with barcode_lock:
+            cached = barcode_cache.get(gtin)
+            if cached and cached[0] > now:
+                return cached[1]
+            while barcode_events and barcode_events[0] < now - 60:
+                barcode_events.popleft()
+            if len(barcode_events) >= 8:
+                raise HTTPException(429, "Community lookup is temporarily busy. Enter the product name manually.")
+            barcode_events.append(now)
+        suggestion = await product_index.lookup(gtin)
+        public = suggestion.public()
+        # Community names are only suggestions and never manufacturer evidence.
+        async with barcode_lock:
+            if len(barcode_cache) >= 128:
+                barcode_cache.clear()
+            barcode_cache[gtin] = (time.monotonic() + (3600 if public["found"] else 300), public)
+        return public
 
     @app.post("/api/read-labels")
     async def read_labels(body: ProductRequest, request: Request):

@@ -61,6 +61,10 @@ class ImageRequest(StrictModel):
     image: ImageData
     consent: ExplicitConsent
 
+class BarcodeRequest(StrictModel):
+    barcode: str = Field(min_length=8, max_length=14)
+
+
 class ProductRequest(StrictModel):
     front_image: ImageData
     back_image: ImageData

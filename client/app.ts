@@ -14,6 +14,11 @@ namespace GQ {
   let productFront='';
   let productBack='';
   let ocrFailedForThesePhotos=false;
+  let barcodeValue='';
+  let barcodeStatus:'idle'|'detected'|'found'|'missing'|'unavailable'='idle';
+  let barcodeCandidate:{barcode:string;found:boolean;name:string;brand:string;quantity:string;source:string;source_url:string;review_status:string;recommendation_permission:boolean}|null=null;
+  let barcodeScanner:BarcodeScanner|null=null;
+  let barcodeCameraActive=false;
   let observation: {name:string;label_text:string;label_readable:boolean}|null=null;
   let root: HTMLElement;
   const e=escapeHTML;
@@ -85,7 +90,7 @@ namespace GQ {
     return `${steps(3)}<div class="result-intro">${tag(q.mode==='practice'?'SIMULATED RESULT':q.mode==='guided'?'SELF-REPORTED VISIBLE CHANGE':'MODEL-ASSESSED VISIBLE CHANGE',q.mode==='practice'?'':'green')}<div class="result-mascot">${mascot(clear?'mint':'peach',true)}<span>${icon(clear?'sparkle':'shield')}</span></div><h1 tabindex="-1">${clear?'Small chore. Big little win.':r.status==='partial'?'A little grime remains.':'Let’s not guess.'}</h1><p>${clear?`${e(q.name)} ${q.mode==='practice'?'cleared in practice.':q.mode==='guided'?'reported visibly improved by you.':'visibly improved in an AI comparison.'}`:e(r.reason)}</p>${clear?`<div class="xp-reward">+300 <span>${q.mode==='practice'?'practice ':q.mode==='guided'?'guided ':''}XP</span></div>`:`<p class="no-reward">No XP awarded. No pressure to keep cleaning.</p>`}</div><div class="comparison"><figure>${picture(q.before,'Before comparison')}<figcaption>BEFORE ${q.mode==='practice'?'· ILLUSTRATION':''}</figcaption></figure><figure>${picture(q.after||q.before,'After comparison')}<figcaption>AFTER ${q.mode==='practice'?'· SIMULATED':''}</figcaption></figure></div><div class="result-footnote">${icon('info')}<p>${e(r.reason)} ${q.mode==='practice'?'Practice XP is separate from other modes.':q.mode==='guided'?'This is your self-reported progress, NOT AI validation, disinfection or certified cleanliness.':''}</p></div><div class="result-actions">${clear?button('Back to quests '+icon('arrow'),'finish'):button('Try another comparison','retry')}${button('View journal','journal','secondary')}${!clear?button('End this quest','abandon','text'):''}</div>`;
   }
   function inventoryView():string {
-    return `${heading('USE WHAT YOU ALREADY OWN','Your cleaning arsenal.','Products are remembered on this device. Scanned text never automatically becomes a safety rule.')}<div class="toolbar">${button(icon('camera')+'Scan a product','scan-product')}${button('Add an unreviewed product','manual-product','secondary')}</div>${store.inventory.length?`<section class="inventory-list">${store.inventory.map(i=>`<article class="inventory-item"><span class="inventory-symbol">${icon('bottle')}</span><div><h2>${e(i.name)}</h2><p>${i.catalogId?'Linked reference entry. Exact label must still be confirmed at each use.':'Unreviewed. Cannot unlock a cleaning recommendation.'}</p>${i.note?`<details><summary>Saved note / label text</summary><p class="label-text">${e(i.note)}</p></details>`:''}</div><button class="icon-button" data-action="remove-product" data-id="${e(i.id)}" aria-label="Remove ${e(i.name)}">${icon('close')}</button></article>`).join('')}</section>`:`<div class="empty-state">${icon('bottle')}<h2>A good loadout starts under your sink.</h2><p>Add a product you already own. No one needs a new bottle just to play.</p></div>`}<section class="section"><div class="section-heading"><div><p class="eyebrow">SMALL, SOURCE-LINKED REFERENCE CATALOG</p><h2>Do you own this exact variant?</h2></div>${tag(products.length+' EXACT PRODUCTS · FINLAND & UK')}</div><p class="hint">These are illustrative integration choices, not a shopping recommendation or a Finnish product database. Do not substitute a similarly named local variant.</p><div class="catalog-list">${products.map(p=>`<article class="catalog-item">${productArt(p)}<div><h3>${e(p.name)}</h3><p>${e(p.variant)}</p><a href="${e(p.source)}" target="_blank" rel="noopener noreferrer">Manufacturer guidance ↗</a></div>${button(store.inventory.some(i=>i.catalogId===p.id)?'Added':'I own this exact variant','add-catalog','secondary',`data-id="${p.id}" ${store.inventory.some(i=>i.catalogId===p.id)?'disabled':''}`)}</article>`).join('')}</div><p class="micro">Reference review: ${catalog.reviewed_on}. Suggestions expire ${catalog.valid_until} unless the catalog is reviewed.</p></section>`;
+    return `${heading('USE WHAT YOU ALREADY OWN','Your cleaning arsenal.','Products are remembered on this device. Scanned text never automatically becomes a safety rule.')}<div class="toolbar">${button(icon('camera')+'Scan barcode','scan-product')}${button('Enter product name','manual-product','secondary')}</div>${store.inventory.length?`<section class="inventory-list">${store.inventory.map(i=>`<article class="inventory-item"><span class="inventory-symbol">${icon('bottle')}</span><div><h2>${e(i.name)}</h2><p>${i.catalogId?'Linked reference entry. Exact label must still be confirmed at each use.':'Unreviewed. Cannot unlock a cleaning recommendation.'}</p>${i.barcode?`<p class="barcode-id">GTIN: ${e(i.barcode)}</p>`:''}${i.note?`<details><summary>Your unreviewed notes</summary><p class="label-text">${e(i.note)}</p></details>`:''}</div><button class="icon-button" data-action="remove-product" data-id="${e(i.id)}" aria-label="Remove ${e(i.name)}">${icon('close')}</button></article>`).join('')}</section>`:`<div class="empty-state">${icon('bottle')}<h2>A good loadout starts under your sink.</h2><p>Add a product you already own. No one needs a new bottle just to play.</p></div>`}<section class="section"><div class="section-heading"><div><p class="eyebrow">SMALL, SOURCE-LINKED REFERENCE CATALOG</p><h2>Do you own this exact variant?</h2></div>${tag(products.length+' EXACT PRODUCTS · FINLAND & UK')}</div><p class="hint">These are illustrative integration choices, not a shopping recommendation or a Finnish product database. Do not substitute a similarly named local variant.</p><div class="catalog-list">${products.map(p=>`<article class="catalog-item">${productArt(p)}<div><h3>${e(p.name)}</h3><p>${e(p.variant)}</p><a href="${e(p.source)}" target="_blank" rel="noopener noreferrer">Manufacturer guidance ↗</a></div>${button(store.inventory.some(i=>i.catalogId===p.id)?'Added':'I own this exact variant','add-catalog','secondary',`data-id="${p.id}" ${store.inventory.some(i=>i.catalogId===p.id)?'disabled':''}`)}</article>`).join('')}</div><p class="micro">Reference review: ${catalog.reviewed_on}. Suggestions expire ${catalog.valid_until} unless the catalog is reviewed.</p></section>`;
   }
   function journalView():string {
     const histories=store.history.filter(h=>h.mode===mode);
@@ -120,13 +125,18 @@ namespace GQ {
   }
   function refreshProductView():void {
     if(screen!=='product-scan')return;
-    const name=val('product-name'),note=val('product-note'),consent=checked('product-consent'),aiConsent=checked('product-ai-consent');
+    const draftName=val('product-name'),draftNote=val('product-note');
+    const userChecked=checked('barcode-review');
+    barcodeCameraActive=false;
+    barcodeScanner?.stop();
     render(false);
-    const n=root.querySelector<HTMLInputElement>('#product-name'),t=root.querySelector<HTMLTextAreaElement>('#product-note'),c=root.querySelector<HTMLInputElement>('input[name="product-consent"]');
-    if(n)n.value=name;if(t)t.value=note;if(c)c.checked=consent;
-    const ai=root.querySelector<HTMLInputElement>('input[name="product-ai-consent"]');if(ai)ai.checked=aiConsent;
+    const name=root.querySelector<HTMLInputElement>('#product-name');
+    const note=root.querySelector<HTMLTextAreaElement>('#product-note');
+    if(name&&draftName)name.value=draftName;
+    if(note&&draftNote)note.value=draftNote;
+    const confirm=root.querySelector<HTMLInputElement>('input[name="barcode-review"]');
+    if(confirm)confirm.checked=userChecked;
   }
-
   export function ocrNameForReview(name:string|undefined):string {
     const value=(name||'').trim();
     // A decorative mark and 2–3 scrambled letters aren't a product name.
@@ -137,13 +147,61 @@ namespace GQ {
       && !value.startsWith('Product name unclear') ? value : '';
   }
   function productScanView():string {
-    const gate=labelGate();
-    const ocrReady=health?.label_ocr_ready===true && !ocrFailedForThesePhotos;
-    const displayName=ocrNameForReview(observation?.name);
-    return `${back('inventory','Arsenal')}${heading('READ THE BOTTLE. DON’T GUESS.','Scan your product.','Photograph printed text close-up, with the bottle still and the label filling the frame. Avoid glare and shadows. You must review the result.')}<div class="split"><section class="panel"><div class="label-captures">${[['front','Front label',productFront],['back','Directions & warnings',productBack]].map(([id,label,src])=>`<label class="label-capture"><span>${label}</span>${src?picture(src,'Product '+label):icon('camera')}<span class="btn secondary">Choose / photograph</span><input id="product-${id}" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label>`).join('')}</div><div class="label-ai-status" id="label-read-status" role="status" aria-live="polite"><h2>Read labels with Google Cloud Vision</h2><p>${ocrFailedForThesePhotos?'Google Cloud Vision could not process these photos. Your images remain selected. You can type the product name and label details below without scanning again.':ocrReady?'Google Cloud Vision is available for Finnish and English label text. Your two photos are sent to Google only with your consent. Read and correct the result, especially warnings.':'Google Cloud Vision label reading is not yet connected by the GrimeQuest operator. You can still enter and save product details manually. No server setup is required on your phone.'}</p><p class="label-count">${Number(!!productFront)+Number(!!productBack)} of 2 photos selected</p></div>${ocrReady?check('product-consent','I consent to GrimeQuest sending both product-label photos to Google Cloud Vision (EU processing) for text recognition. I have excluded private details and understand that Google processes the images.'):''}${ocrReady?button('Recognize both labels','read-label-ocr','primary wide','aria-describedby="label-read-status"'):button('Enter product details manually','focus-manual-product','primary wide')}${ocrReady?button('Or enter details manually','focus-manual-product','secondary wide'):''}${gate.code==='code'?`<details class="private-test-controls"><summary>Advanced private AI test (operator only)</summary><div class="label-private-code"><label for="label-private-code">Private tester access code</label><input type="password" id="label-private-code" maxlength="160" autocomplete="off" placeholder="Operator-provided code">${button('Save access code','save-label-code','secondary')}</div></details>`:''}${gate.code==='mode'?button('Enable Live AI for private testing','enable-label-live','secondary'):''}${gate.enabled?`${check('product-ai-consent','I separately approve sending both photos to the external AI provider.')}${button('Try experimental AI Beta','analyze-product','secondary wide')}`:''}<p class="hint">Photos are processed through Google Cloud Vision only after consent. <a href="/privacy.html">Read the privacy details</a>. Recognition can be wrong or incomplete; always check the original directions and warnings. Your saved product stays unreviewed.</p></section><section class="panel"><h2>${observation?'Check and correct the scanned text.':'Or record it yourself.'}</h2><p>${observation?'This is an unverified draft, not a confirmed product name or safety check. Compare everything with the original bottle, including every warning.':'Manual notes stay on this device and cannot authorize a cleaner.'}</p>${observation && (!observation.label_readable||!displayName)?`<div class="notice warning" role="status"><b>Low-confidence label scan.</b> The OCR could not reliably read one or both photos. It may miss or scramble warnings. Retake close-up photos with even lighting or type the details yourself.</div>`:''}<div class="field"><label for="product-name">Product name${observation?' (confirm from the bottle)':''}</label><input id="product-name" maxlength="240" value="${e(displayName)}" placeholder="Type the exact product name on the bottle"></div><div class="field"><label for="product-note">Label text / note (optional, unreviewed)</label><textarea id="product-note" maxlength="6000" rows="5" placeholder="Do not include personal information">${e(observation?.label_text||'')}</textarea></div>${observation?check('label-review-confirm','I compared the name, directions, and warnings with the actual bottle and corrected this draft where necessary.'):''}${button('Save as unreviewed product','save-product','secondary wide')}<p class="micro">To use a reviewed entry, return to Arsenal and manually select the exact catalog variant. Scanning never expands compatibility rules.</p></section></div>`;
+    const suggestion=barcodeCandidate?.found?barcodeCandidate:null;
+    const status=barcodeStatus==='found'&&suggestion
+      ? `<div class='notice soft' role='status'><b>Community listing found</b><p>${e(suggestion.name)} ${suggestion.brand?'· '+e(suggestion.brand):''} ${suggestion.quantity?'· '+e(suggestion.quantity):''}</p><p>Unverified. Confirm the exact name and variant on your actual bottle. Never infer cleaner safety from barcode data.</p><a href='${e(suggestion.source_url)}' target='_blank' rel='noopener noreferrer'>Open Products Facts source ↗</a></div>`
+      :barcodeStatus==='missing'
+        ? "<div class='notice soft' role='status'>No community record found for this barcode. Type the product name below. You can still save it and complete camera quests.</div>"
+        :barcodeStatus==='unavailable'
+          ? "<div class='notice soft' role='status'>The community lookup is temporarily unavailable. You can type the product name and keep playing without an online database.</div>"
+          :barcodeStatus==='detected'
+            ? "<div class='notice soft' role='status'>Barcode detected locally. Choose Find product to check the community database.</div>"
+            : "";
+    return `${back('inventory','Arsenal')}${heading('PRODUCT ID · NO LABEL OCR','Find your bottle.','Scan the printed barcode or enter its digits. GrimeQuest will suggest a product name only when it finds an existing listing. You confirm the details.')}
+      <div class='split'>
+        <section class='panel barcode-panel'>
+          <h2>1. Identify by barcode</h2>
+          <p>Point at the black bars and numbers on your bottle. Barcode scanning runs <b>on this phone</b>; no photos or video go to a server.</p>
+          <div class='barcode-scanner-actions'>
+            ${button(icon('camera')+' Scan barcode','start-barcode-camera','primary')}
+            <label class='btn secondary file-button'>${icon('upload')} Choose barcode photo<input id='barcode-photo' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif' capture='environment'></label>
+          </div>
+          <div id='barcode-camera-area' class='barcode-camera-area' hidden>
+            <video id='barcode-video' autoplay muted playsinline aria-label='Live local barcode camera'></video>
+            <p>Hold the EAN bars inside the frame. Nothing is recorded or uploaded.</p>
+            ${button('Stop camera','stop-barcode-camera','secondary')}
+          </div>
+          <div class='field barcode-entry'>
+            <label for='product-code'>Barcode number (EAN / UPC / GTIN)</label>
+            <input id='product-code' type='text' inputmode='numeric' autocomplete='off' maxlength='14' pattern='[0-9]*' value='${e(barcodeValue)}' placeholder='Numbers printed under the barcode'>
+          </div>
+          ${button('Find product by barcode','lookup-barcode','secondary wide')}
+          <p class='micro'>Finding a product sends <b>only the barcode digits</b> to Open Products Facts, a community database. No photo, label text or account details are sent. No paid AI calls.</p>
+          ${status}
+          <p class='micro'>Missing or outdated barcode listings are normal. If lookup fails, enter the name directly; no database connection is necessary to play.</p>
+        </section>
+        <section class='panel barcode-entry-panel'>
+          <h2>2. Confirm or enter the product</h2>
+          <p>Read the bottle yourself. A barcode identifies a product candidate, not its ingredients, directions or compatibility with your surface.</p>
+          <div class='field'>
+            <label for='product-name'>Exact product name</label>
+            <input id='product-name' maxlength='240' value='${e(suggestion?.name||'')}' placeholder='Brand and product variant printed on the bottle'>
+          </div>
+          <div class='field'>
+            <label for='product-note'>Your notes (optional, unreviewed)</label>
+            <textarea id='product-note' rows='5' maxlength='6000' placeholder='Only details you personally confirmed from the bottle'>${''}</textarea>
+          </div>
+          ${suggestion?check('barcode-review','I checked this suggested name and exact product variant against the bottle.'):''}
+          ${button('Save product to my arsenal','save-product','primary wide')}
+          <p class='micro'>Saved only on this device. Unreviewed products do not unlock chemical/surface safety recommendations. You can complete guided quests with your own instruction-checked method.</p>
+          <p class='micro'>Community data: <a href='https://world.openproductsfacts.org/' target='_blank' rel='noopener noreferrer'>Open Products Facts</a> (<a href='https://opendatacommons.org/licenses/odbl/' target='_blank' rel='noopener noreferrer'>ODbL</a>).</p>
+        </section>
+      </div>`;
   }
+
   function render(focus=true):void {
     camera?.stop();
+    if(barcodeCameraActive){barcodeScanner?.stop();barcodeCameraActive=false;}
     const content=screen==='home'?homeView():screen==='confirm'?confirmView():screen==='loadout'?loadoutView():screen==='clean'?cleanView():screen==='result'?resultView():screen==='inventory'?inventoryView():screen==='journal'?journalView():screen==='settings'?settingsView():screen==='capture'?captureView():productScanView();
     root.innerHTML=shell(content);
     if(focus) requestAnimationFrame(()=>{root.querySelector<HTMLElement>('h1')?.focus({preventScroll:true}); window.scrollTo({top:0,behavior:'instant'});});
@@ -205,6 +263,36 @@ namespace GQ {
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download='grimequest-journal.json';a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  async function findBarcodeProduct(code:string):Promise<void> {
+    if(!validGTIN(code))throw new Error('Barcode digits are incomplete or the check digit is wrong. Enter the digits printed below the bars.');
+    barcodeValue=code;
+    await work(async()=>{
+      type ProductLookup={barcode:string;found:boolean;name:string;brand:string;quantity:string;source:string;source_url:string;review_status:string;recommendation_permission:boolean};
+      let result:ProductLookup;
+      try {
+        result=await api<ProductLookup>('product-lookup',{barcode:code},8500);
+      }catch{
+        barcodeStatus='unavailable';barcodeCandidate=null;
+        refreshProductView();
+        toast('Online product lookup is unavailable. Type the product name directly; nothing needs to be configured.',true);
+        return;
+      }
+      if(result.barcode!==code||typeof result.found!=='boolean'||
+         result.review_status!=='unreviewed'||result.recommendation_permission!==false ||
+         typeof result.name!=='string'||result.name.length>240||
+         typeof result.brand!=='string'||result.brand.length>100||
+         typeof result.quantity!=='string'||result.quantity.length>80||
+         result.source!=='Open Products Facts'||
+         result.source_url!=='https://world.openproductsfacts.org/product/'+code)
+        throw new Error('Community database response could not be validated. Enter the product name directly.');
+      barcodeCandidate=result.found?result:null;
+      barcodeStatus=result.found?'found':'missing';
+      refreshProductView();
+      toast(result.found?'Community product name suggested. Confirm the exact bottle before saving.':
+        'Barcode not in the community index. You can still enter the product name and play.');
+    });
+  }
+
   async function action(name:string,id?:string):Promise<void> {
     if(busy) return;
     try {
@@ -329,7 +417,41 @@ namespace GQ {
           persist();render(false);toast('Added to your arsenal. This does not certify the product or its use.');break;
         }
         case 'remove-product':store={...store,inventory:store.inventory.filter(i=>i.id!==id)};persist();render(false);break;
-        case 'scan-product':case 'manual-product':productFront='';productBack='';ocrFailedForThesePhotos=false;observation=null;go('product-scan');break;
+        case 'scan-product':case 'manual-product':{
+          barcodeScanner?.stop();barcodeCameraActive=false;
+          barcodeValue='';barcodeCandidate=null;barcodeStatus='idle';
+          productFront='';productBack='';observation=null;ocrFailedForThesePhotos=false;
+          go('product-scan');
+          if(name==='manual-product'){
+            root.querySelector<HTMLInputElement>('#product-name')?.focus({preventScroll:true});
+          }
+          break;
+        }
+        case 'lookup-barcode':await findBarcodeProduct(val('product-code'));break;
+        case 'start-barcode-camera':{
+          const video=root.querySelector<HTMLVideoElement>('#barcode-video');
+          const panel=root.querySelector<HTMLElement>('#barcode-camera-area');
+          if(!video||!panel)throw new Error('Barcode camera area unavailable.');
+          panel.hidden=false;
+          barcodeScanner??=new BarcodeScanner();barcodeCameraActive=true;
+          try {
+            await barcodeScanner.start(video,code=>{
+              if(screen!=='product-scan')return;
+              barcodeCameraActive=false;barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
+              refreshProductView();
+              toast('EAN barcode detected on this phone. Tap Find product to search the community index.');
+            });
+          }catch(error) {
+            barcodeScanner?.stop();barcodeCameraActive=false;panel.hidden=true;
+            throw error;
+          }
+          break;
+        }
+        case 'stop-barcode-camera':{
+          barcodeScanner?.stop();barcodeCameraActive=false;
+          const panel=root.querySelector<HTMLElement>('#barcode-camera-area');if(panel)panel.hidden=true;
+          break;
+        }
         case 'focus-manual-product':{
           const field=root.querySelector<HTMLInputElement>('#product-name');
           field?.scrollIntoView({behavior:'smooth',block:'center'});field?.focus({preventScroll:true});break;
@@ -393,10 +515,23 @@ namespace GQ {
           await work(async()=>{const r=await api<{observation:{name:string;label_text:string;label_readable:boolean}}>('analyze-product',{front_image:productFront,back_image:productBack,consent:true});const o=r.observation;if(!o||typeof o.name!=='string'||o.name.length>240||typeof o.label_text!=='string'||o.label_text.length>6000||typeof o.label_readable!=='boolean') throw new Error('Label response was invalid.');observation=o;render();});break;
         }
         case 'save-product': {
-          const name=val('product-name'),note=val('product-note');if(!name||name.length>240||note.length>6000) throw new Error('Enter the exact product name from the bottle and an optional short note.');
-          if(observation&&!checked('label-review-confirm'))throw new Error('Please review the extracted label against the actual bottle and confirm before saving.');
+          const name=val('product-name'),note=val('product-note');
+          const code=val('product-code');
+          if(!name||name.length>240||note.length>6000)
+            throw new Error('Enter the exact product name from your bottle. Notes are optional.');
+          if(code && !validGTIN(code))
+            throw new Error('Check the barcode digits, or clear the barcode field to save by name.');
+          if(barcodeCandidate?.found && !checked('barcode-review'))
+            throw new Error('Confirm the suggested name and exact variant against the real bottle before saving.');
           if(store.inventory.length>=40) throw new Error('Inventory limit reached.');
-          store={...store,inventory:[...store.inventory,{id:crypto.randomUUID(),name,catalogId:null,note,addedAt:new Date().toISOString()}]};persist();productFront='';productBack='';observation=null;go('inventory');toast('Saved as unreviewed. It cannot unlock a cleaning recommendation.');break;
+          store={...store,inventory:[...store.inventory,{
+            id:crypto.randomUUID(),name,catalogId:null,note,addedAt:new Date().toISOString(),
+            ...(code?{barcode:code}:{})
+          }]};
+          persist();barcodeScanner?.stop();barcodeCameraActive=false;
+          barcodeValue='';barcodeCandidate=null;barcodeStatus='idle';
+          productFront='';productBack='';observation=null;
+          go('inventory');toast('Product saved locally. It remains unreviewed and cannot authorize cleaner use.');break;
         }
         case 'resolve-active':go('settings');break;
         case 'clear-active':if(!checked('resolve-check')) throw new Error('Read and confirm the interrupted-task check first.');store={...store,active:null};quest=null;persist();render();toast('Warning cleared. This is not a guarantee that the surface is free of product residues.');break;
@@ -409,6 +544,16 @@ namespace GQ {
     const file=input.files?.[0];if(!file) return;
     try {
       const generation=++uploadGeneration;
+      if(input.id==='barcode-photo'){
+        barcodeScanner??=new BarcodeScanner();
+        barcodeCameraActive=false;barcodeScanner.stop();
+        const code=await barcodeScanner.fromPhoto(file);
+        if(generation!==uploadGeneration || screen!=='product-scan')return;
+        barcodeValue=code;barcodeCandidate=null;barcodeStatus='detected';
+        refreshProductView();
+        toast('Barcode decoded locally. Tap Find product to check the community database.');
+        return;
+      }
       if(file.size>8_000_000) toast('Optimizing the large photo on this device. Nothing is uploaded without your consent.');
       const img=await normalizePhoto(file);
       if(generation!==uploadGeneration || !input.isConnected) return;
@@ -424,8 +569,20 @@ namespace GQ {
     store=readStore();camera=new Camera();render(false);
     root.addEventListener('click',ev=>{const target=(ev.target as Element).closest<HTMLElement>('[data-action]');if(target){ev.preventDefault();void action(target.dataset.action||'',target.dataset.id);}});
     root.addEventListener('change',ev=>{const target=ev.target as HTMLInputElement;if(target.type==='file')void onFile(target);});
-    window.addEventListener('pagehide',()=>camera.stop());
-    document.addEventListener('visibilitychange',()=>{if(document.hidden)camera.stop();});
+    root.addEventListener('input',ev=>{
+      const target=ev.target as HTMLInputElement;
+      if(target.id==='product-code'){
+        barcodeValue=target.value.trim();
+        barcodeCandidate=null;barcodeStatus='idle';
+      }
+    });
+    window.addEventListener('pagehide',()=>{camera.stop();barcodeScanner?.stop();barcodeCameraActive=false;});
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden){
+        camera.stop();barcodeScanner?.stop();barcodeCameraActive=false;
+        const pane=root.querySelector<HTMLElement>('#barcode-camera-area');if(pane)pane.hidden=true;
+      }
+    });
     window.addEventListener('offline',()=>toast('You are offline. Practice, saved arsenal and journal remain available. Live analysis does not.'));
     if(location.protocol!=='file:') {
       const pollHealth=(attempt:number):void=>{

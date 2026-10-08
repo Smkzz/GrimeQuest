@@ -56,6 +56,7 @@ def test_real_origin_service_worker_and_offline_shell():
             cached=page.evaluate("caches.keys().then(async ks=>{const c=await caches.open(ks.find(k=>k.startsWith('grimequest-')));return (await c.keys()).map(r=>new URL(r.url).pathname)})")
             assert '/' in cached and '/privacy.html' in cached and '/safety.html' in cached
             assert '/vendor/qr-creator.js' in cached and '/install.js' in cached
+            assert '/vendor/zxing-0.21.3.min.js' in cached
             assert '/update-client.js' in cached
             assert not any(p in cached for p in ['/update.html','/update.js','/update.css'])
             context.set_offline(True)
@@ -78,7 +79,7 @@ def test_real_http_origin_exposes_complete_pwa_shell():
     process=subprocess.Popen([os.environ.get('PYTHON','python'),'run.py','--host','127.0.0.1'],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     try:
         wait_ready(base)
-        for path in ['/', '/app.js', '/install.js', '/update-client.js', '/update.html', '/update.js', '/update.css', '/vendor/qr-creator.js', '/styles.css', '/manifest.webmanifest', '/sw.js', '/privacy.html', '/safety.html', '/robots.txt']:
+        for path in ['/', '/app.js', '/install.js', '/update-client.js', '/update.html', '/update.js', '/update.css', '/vendor/qr-creator.js', '/vendor/zxing-0.21.3.min.js', '/styles.css', '/manifest.webmanifest', '/sw.js', '/privacy.html', '/safety.html', '/robots.txt']:
             with urllib.request.urlopen(base+path,timeout=2) as r:
                 assert r.status==200, path
                 body=r.read()

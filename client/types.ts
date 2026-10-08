@@ -32,7 +32,7 @@ namespace GQ {
     encounter_id: string; status: ResultStatus; xp: number; reason: string;
     provenance: 'practice_fixture' | 'model_observation' | 'deterministic_guard' | 'self_attested'; receipt?: string;
   }
-  export interface InventoryItem {id: string; name: string; catalogId: string | null; note: string; addedAt: string}
+  export interface InventoryItem {id: string; name: string; catalogId: string | null; note: string; addedAt: string; barcode?: string}
   export interface HistoryItem {
     id: string; name: string; room: string; mode: Mode; status: ResultStatus;
     xp: number; date: string; receipt?: string;

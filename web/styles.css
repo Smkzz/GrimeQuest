@@ -76,4 +76,21 @@
 @media(forced-colors:active){.guided-method{border:1px solid CanvasText}}
 .guided-tutorial-title{margin-top:26px;margin-bottom:17px;font-size:18px}
 @media(max-width:620px){.guided-tutorial-title{font-size:15px}}
-
+/* Barcode-first identification: iOS-ready local ZXing camera, no OCR upload. */
+.barcode-panel,.barcode-entry-panel{min-width:0}
+.barcode-panel>p,.barcode-entry-panel>p{line-height:1.7;font-size:13px}
+.barcode-scanner-actions{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 17px}
+.barcode-scanner-actions>.btn,.barcode-scanner-actions>label{min-height:48px;flex:1 1 170px;justify-content:center}
+.barcode-camera-area{border:1px solid #cfdbc8;background:#152d27;border-radius:14px;padding:10px;margin:14px 0;color:#fff}
+.barcode-camera-area[hidden]{display:none!important}
+.barcode-camera-area video{display:block;width:100%;max-height:360px;aspect-ratio:4/3;object-fit:cover;border-radius:9px;background:#060c09}
+.barcode-camera-area p{font-size:12px;color:#e0ecdc;padding:9px 4px}
+.barcode-camera-area button{width:100%}
+.barcode-entry{margin:15px 0}
+.barcode-entry input{font-variant-numeric:tabular-nums;letter-spacing:.08em;font-size:18px}
+.barcode-panel .notice{margin-top:17px}
+.barcode-panel .notice a{display:inline-block;padding-top:9px}
+.barcode-entry-panel textarea{min-height:150px}
+.inventory-item .barcode-id{font-size:11px;letter-spacing:.04em;color:var(--muted)}
+@media(max-width:620px){.barcode-scanner-actions{display:grid;grid-template-columns:1fr}.barcode-scanner-actions>*{width:100%}.barcode-camera-area video{max-height:260px}}
+@media(forced-colors:active){.barcode-camera-area{border:2px solid CanvasText}}
