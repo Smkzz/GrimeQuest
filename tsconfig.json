@@ -5,5 +5,5 @@
     "noUncheckedIndexedAccess": true, "forceConsistentCasingInFileNames": true,
     "outFile": "web/app.js", "removeComments": false
   },
-  "files": ["client/types.ts", "client/catalog.ts", "client/domain.ts", "client/storage.ts", "client/camera.ts", "client/barcode.ts", "client/app.ts"]
+  "files": ["client/types.ts", "client/catalog.ts", "client/domain.ts", "client/storage.ts", "client/camera.ts", "client/barcode.ts", "client/casual.ts", "client/app.ts"]
 }
