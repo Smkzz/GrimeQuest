@@ -12,6 +12,16 @@ RUN npm ci --ignore-scripts
 COPY client ./client
 COPY server/catalog.json ./server/catalog.json
 COPY web ./web
+# Pin the open-source ZXing v0.21.3 package to the exact published npm
+# version. Its browser UMD file is COPIED into our own PWA at build time:
+# no external script is fetched from the player's device.
+RUN npm pack @zxing/library@0.21.3 --pack-destination /tmp --silent \
+    && mkdir -p /tmp/zxing-package web/vendor \
+    && tar -xzf /tmp/zxing-library-0.21.3.tgz -C /tmp/zxing-package package/umd/index.min.js package/LICENSE \
+    && cp /tmp/zxing-package/package/umd/index.min.js web/vendor/zxing-0.21.3.min.js \
+    && cp /tmp/zxing-package/package/LICENSE web/vendor/zxing.LICENSE.txt \
+    && test -s web/vendor/zxing-0.21.3.min.js \
+    && node --check web/vendor/zxing-0.21.3.min.js
 COPY scripts/build.py ./scripts/build.py
 COPY scripts/verify_build.py ./scripts/verify_build.py
 COPY tests/client.test.cjs ./tests/client.test.cjs

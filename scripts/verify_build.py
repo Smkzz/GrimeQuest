@@ -37,6 +37,9 @@ def main():
     for name in ('update.html', 'update.js', 'update.css'):
         assert '"/'+name+'"' not in sw
     assert '"/update-client.js"' in sw
+    assert '"/vendor/zxing-0.21.3.min.js"' in sw
+    assert (ROOT/'web/vendor/zxing-0.21.3.min.js').stat().st_size > 100_000
+    assert (ROOT/'web/vendor/zxing.LICENSE.txt').stat().st_size > 100
     runtime=list((ROOT/'web').rglob('*'))
     forbidden=['GQ_PROVIDER_KEY=sk-','sk-proj-','-----BEGIN PRIVATE KEY-----']
     for path in runtime:
