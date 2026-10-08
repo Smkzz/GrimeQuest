@@ -146,10 +146,12 @@ class BetaPreflight:
                     raise ProviderFailure('Provider preflight is incomplete.')
                 self.verified = True
                 self.valid_until = time.monotonic() + 300
-            except (ProviderFailure, Exception):
-                # Do not leak provider/key metadata or break non-AI gameplay.
+                print('GQ_PUBLIC_BETA_PREFLIGHT_PASS', flush=True)
+            except Exception:
+                # Never log keys, private account metadata, photos or raw provider errors.
                 self.verified = False
                 self.valid_until = time.monotonic() + 45
+                print('GQ_PUBLIC_BETA_PREFLIGHT_BLOCKED', flush=True)
             return self.verified
 
     def cached_ready(self) -> bool:
