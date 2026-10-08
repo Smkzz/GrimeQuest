@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import Settings
 from .images import normalize_image, InvalidImage
+from .ocr import available as ocr_available, recognize_product, LabelOcrUnavailable
 from .models import ImageRequest, ProductRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
 from .policy import CATALOG, PRODUCTS, POLICY_VERSION, match_product, adjudicate
 from .provider import VisionProvider, ProviderFailure, verify_openrouter_zdr_model, verify_openrouter_beta_spend_cap
@@ -77,9 +78,12 @@ class Boundary:
                 allowed_origins = {self.settings.app_origin.rstrip("/")}
             if h.get("origin") not in allowed_origins or h.get("sec-fetch-site") == "cross-site":
                 return await reject(403, "ORIGIN", "Same-origin requests are required.")
-            if not self.settings.ready:
-                return await reject(503, "LIVE_NOT_CONFIGURED", "Live analysis is not configured. Practice mode never contacts an AI service.")
-            if not self.settings.public_live and not hmac.compare_digest(h.get("x-gq-access", "").encode(), self.settings.access_code.encode()):
+            # Same-origin, JSON and upload bounds still apply to public OCR.
+            # Unlike paid AI, local Tesseract must not require provider keys.
+            local_ocr = scope["path"] == "/api/read-labels"
+            if not local_ocr and not self.settings.ready:
+                return await reject(503, "LIVE_NOT_CONFIGURED", "AI analysis is unavailable; camera quests and text-only OCR remain usable.")
+            if not local_ocr and not self.settings.public_live and not hmac.compare_digest(h.get("x-gq-access", "").encode(), self.settings.access_code.encode()):
                 return await reject(401, "ACCESS", "Enter the private access code in Settings.")
             if h.get("content-type", "").split(";")[0].strip().lower() != "application/json":
                 return await reject(415, "CONTENT_TYPE", "application/json is required.")
@@ -220,6 +224,9 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     in_flight: set[str] = set()
     app.state.budget = budget
     decode_slots = asyncio.Semaphore(2)
+    ocr_slots = asyncio.Semaphore(1)
+    ocr_events: deque[float] = deque()
+    app.state.ocr_calls = ocr_events
 
     async def decode(value: str):
         # Pixel decoding is bounded independently of the paid model-call budget.
@@ -242,6 +249,10 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     async def ticket_error(request: Request, exc):
         return JSONResponse({"error": {"code": "TICKET", "message": str(exc)}}, status_code=409)
 
+    @app.exception_handler(LabelOcrUnavailable)
+    async def ocr_error(request: Request, exc):
+        return JSONResponse({"error": {"code": "OCR", "message": str(exc)}}, status_code=503)
+
     @app.exception_handler(ProviderFailure)
     async def provider_error(request: Request, exc):
         return JSONResponse({"error": {"code": "VISION", "message": str(exc)}}, status_code=502)
@@ -257,7 +268,7 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
                 "source_sha": os.getenv("RAILWAY_GIT_COMMIT_SHA", ""),
                 "deployment_id": os.getenv("RAILWAY_DEPLOYMENT_ID", ""),
                 "replica_region": os.getenv("RAILWAY_REPLICA_REGION", ""),
-                "real_world_validation": "not_performed"}
+                "real_world_validation": "not_performed", "label_ocr_ready": ocr_available()}
 
     @app.get("/api/catalog")
     async def catalog():
@@ -278,6 +289,32 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
         payload = {"id": secrets.token_urlsafe(16), "before_digest": image.digest,
                    "analysis": observation.model_dump(), "policy": POLICY_VERSION, "catalog": CATALOG["version"]}
         return {"analysis": observation, "target_ticket": signer.sign("target", payload), "provenance": "model_observation"}
+
+    @app.post("/api/read-labels")
+    async def read_labels(body: ProductRequest, request: Request):
+        """Automatic Finnish/English OCR; no third-party AI, no stored images."""
+        if not ocr_available():
+            raise HTTPException(503, "Automatic label reading is unavailable. Enter the text manually.")
+        # One process at a time on the 0.5 GB / 0.5 vCPU Railway instance.
+        # This is separate from the AI model-call budget.
+        now = time.monotonic()
+        while ocr_events and ocr_events[0] < now - 3600:
+            ocr_events.popleft()
+        if len(ocr_events) >= 36 or ocr_slots.locked():
+            raise HTTPException(429, "Label reader is busy. Try again or enter the label manually.")
+        async with ocr_slots:
+            ocr_events.append(now)
+            front = await decode(body.front_image)
+            back = await decode(body.back_image)
+            observation = await asyncio.to_thread(recognize_product, front.data_url, back.data_url)
+        return {
+            "observation": observation,
+            "review_status": "unreviewed",
+            "recommendation_permission": False,
+            "extraction": "server_local_tesseract",
+            "provider_calls": 0,
+            "notice": "Recognized text may be wrong or incomplete. Compare every line and warning with the actual bottle. OCR never approves a cleaner.",
+        }
 
     @app.post("/api/analyze-product")
     async def analyze_product(body: ProductRequest, request: Request):

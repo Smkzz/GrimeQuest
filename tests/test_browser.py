@@ -225,7 +225,7 @@ def test_label_scan_is_wired_and_never_auto_authorized(page,client,vision,before
     for field,data in [('product-front',before),('product-back',after)]:
         page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
         page.wait_for_timeout(150)
-    page.locator('[name="product-consent"]').check();click(page,'analyze-product')
+    page.locator('[name="product-ai-consent"]').check();click(page,'analyze-product')
     expect(page.locator('#product-name')).to_have_value('Unreviewed bottle')
     click(page,'save-product')
     assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
@@ -248,7 +248,7 @@ def test_disabled_label_reader_explains_release_gate_and_manual_entry(page,befor
     errors=mount(page)
     click(page,'inventory')
     click(page,'scan-product')
-    expect(page.locator('#label-read-status')).to_contain_text('switched off')
+    expect(page.locator('#label-read-status')).to_contain_text('Automatic label reading')
     for field,data in [('product-front',before),('product-back',after)]:
         page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
         page.wait_for_timeout(130)
@@ -269,10 +269,10 @@ def test_private_label_reader_needs_code_and_live_opt_in_without_losing_photos(p
     errors=mount(page,client)
     click(page,'inventory')
     click(page,'scan-product')
-    expect(page.locator('#label-read-status')).to_contain_text('private testers')
+    page.locator('.private-test-controls summary').click()
     page.locator('#label-private-code').fill(ACCESS)
     click(page,'save-label-code')
-    expect(page.locator('#label-read-status')).to_contain_text('Practice mode')
+    expect(page.locator('[data-action="enable-label-live"]')).to_be_visible()
     page.locator('#product-name').fill('Already drafted')
     for field,data in [('product-front',before),('product-back',after)]:
         page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
@@ -354,4 +354,42 @@ def test_ai_target_photo_can_be_reused_in_private_guided_quest(page,client,befor
     expect(page.locator('img[alt="Selected image preview"]')).to_be_visible()
     assert page.evaluate('GQ.readStore().history.length')==0
     assert not errors
+
+def test_automatic_label_ocr_needs_consent_and_never_calls_paid_model(page,settings,vision,before,after,monkeypatch):
+    """The production OCR button operates with no access code and no paid model."""
+    import importlib
+    from fastapi.testclient import TestClient
+    from server.models import ProductObservation
+    appmod=importlib.import_module('server.app')
+    called=[]
+    monkeypatch.setattr(appmod,'ocr_available',lambda:True)
+    def fake_ocr(front,back):
+        called.append((front.startswith('data:image/jpeg;base64,'),back.startswith('data:image/jpeg;base64,')))
+        return ProductObservation(name='Kiilto Koti',label_readable=True,
+          label_text='FRONT: KIILTO KOTI\nDIRECTIONS: Lue käyttöohje',warnings_observed=[])
+    monkeypatch.setattr(appmod,'recognize_product',fake_ocr)
+    from server.config import Settings
+    with TestClient(appmod.create_app(Settings())) as public:
+        errors=mount(page,public)
+        click(page,'inventory');click(page,'scan-product')
+        expect(page.locator('#label-read-status')).to_contain_text('text recognition is available')
+        for field,data in [('product-front',before),('product-back',after)]:
+            page.locator('#'+field).set_input_files({
+                'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])
+            })
+            page.wait_for_timeout(130)
+        expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
+        click(page,'read-label-ocr')
+        expect(page.locator('#toast')).to_contain_text('consent box')
+        assert not called
+        page.locator('[name="product-consent"]').check()
+        click(page,'read-label-ocr')
+        expect(page.locator('#product-name')).to_have_value('Kiilto Koti')
+        expect(page.locator('#product-note')).to_contain_text('Lue käyttöohje')
+        assert called==[(True,True)]
+        assert vision.calls==[]
+        click(page,'save-product')
+        assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
+        assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
+        assert not errors
 

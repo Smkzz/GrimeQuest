@@ -26,6 +26,14 @@ Identify one visible mess, confirm its material, choose a product from your own 
 4. Report what you can see. Results appear as **SELF-REPORTED**, earn only guided XP, and are not presented as model verification or chemical-safety approval. Identical before/after photos are rejected for clear results.
 5. If the operator has activated and verified the fixed ZDR model within its preflight and call budgets, the server automatically offers consent-based **AI Beta**. Players are never shown server configuration. If AI Beta is unavailable or rate-limited, the real camera quest still works.
 
+## Automatic label text reading
+
+Take photographs of the **front** and **directions/warnings** sides of the bottle, confirm permission to send them to GrimeQuest's own server and tap **Read text from both labels**. The self-hosted Finnish/English Tesseract OCR process reads them without OpenRouter, BYOK, cloud inference or an API key. Recognized text is copied into editable fields. Double-check all warnings and the exact product name before saving. OCR text is always marked **unreviewed** and cannot grant cleaning-product eligibility. When busy or offline, manual entry is still available. GrimeQuest does not save images or transcripts on the server.
+
+## Automatic text recognition for product labels
+
+GrimeQuest now runs a local Finnish/English Tesseract OCR engine inside its own Railway service. Upload the **front** and **directions/warnings** label photos, explicitly approve GrimeQuest server processing, and tap **Read text from both labels**. No player API key, BYOK configuration, external AI model or additional paid provider request is involved. Recognized text is editable and unreviewed, never a chemical/surface recommendation; users must compare the text with the actual product label, including every warning. Both label pictures are processed only in memory via stdin/stdout and not retained in a photo library. A single OCR worker and hourly request ceiling protect the shared server. Manual entry remains available when offline or overloaded.
+
 ## Try it immediately
 
 The full repo-backed application is deployed over HTTPS at:
