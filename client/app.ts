@@ -332,7 +332,7 @@ namespace GQ {
     await work(async()=>{
       let result:ProductCandidate;
       try {
-        result=await api<ProductCandidate>('product-lookup',{barcode:code},11000);
+        result=await api<ProductCandidate>('product-lookup',{barcode:code},16000);
       }catch {
         barcodeStatus='unavailable';barcodeCandidate=null;
         refreshProductView();
