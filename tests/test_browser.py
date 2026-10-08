@@ -424,3 +424,84 @@ def test_software_barcode_reader_can_decode_photograph_without_upload(page):
     expect(page.locator('#product-code')).to_have_value('4006381333931')
     expect(page.locator('main')).to_contain_text('Barcode detected locally')
     assert not errors
+
+
+def test_worldwide_name_search_selects_unreviewed_beauty_variant_without_ocr(page):
+    """A global brand can be searched and selected without a readable barcode."""
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    from server.config import Settings
+    from server.barcodes import BarcodeSuggestion, unknown
+    queries = []
+
+    class GlobalIndex:
+        async def search(self, term):
+            queries.append(term)
+            return [
+                BarcodeSuggestion("036000291452", True, "Global Hand Soap", "Worldwide", "500 ml",
+                                  "Open Beauty Facts", "beauty"),
+                BarcodeSuggestion("4006381333931", True, "Global Cleaner", "Worldwide", "750 ml"),
+            ]
+        async def lookup(self, barcode):
+            return unknown(barcode)
+
+    with TestClient(create_app(Settings(), barcode_lookup=GlobalIndex())) as client:
+        errors=mount(page,client)
+        click(page,"inventory")
+        click(page,"scan-product")
+        assert page.locator('[data-action="read-label-ocr"]').count()==0
+        assert page.locator('[name="product-consent"]').count()==0
+        page.locator('#product-note').fill('Keep my personal manual notes')
+        page.locator('#product-search').fill('Global')
+        click(page,'search-product-name')
+        expect(page.locator('main')).to_contain_text('Found 2 possible products')
+        expect(page.locator('main')).to_contain_text('Open Beauty Facts')
+        assert queries==['Global']
+        assert page.locator('#product-note').input_value()=='Keep my personal manual notes'
+        click(page,'select-search-result','0')
+        expect(page.locator('#product-name')).to_have_value('Global Hand Soap')
+        expect(page.locator('#product-code')).to_have_value('036000291452')
+        expect(page.locator('main')).to_contain_text('Open Beauty Facts source')
+        click(page,'save-product')
+        expect(page.locator('#toast')).to_contain_text('Confirm the suggested name')
+        page.locator('[name="barcode-review"]').check()
+        click(page,'save-product')
+        item=page.evaluate("GQ.readStore().inventory.at(-1)")
+        assert item['name']=='Global Hand Soap'
+        assert item['barcode']=='036000291452'
+        assert item['note']=='Keep my personal manual notes'
+        assert item['catalogId'] is None
+        assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
+        assert not errors
+
+
+def test_global_name_search_in_unicode_with_no_record_has_manual_path(page):
+    """International scripts work and missing data must not block the game."""
+    from fastapi.testclient import TestClient
+    from server.app import create_app
+    from server.config import Settings
+    from server.barcodes import unknown
+    queries=[]
+
+    class SparseIndex:
+        async def search(self,term):
+            queries.append(term)
+            return []
+        async def lookup(self,barcode):
+            return unknown(barcode)
+
+    with TestClient(create_app(Settings(), barcode_lookup=SparseIndex())) as client:
+        errors=mount(page,client)
+        click(page,'inventory');click(page,'scan-product')
+        page.locator('#product-search').fill('洗衣粉')
+        click(page,'search-product-name')
+        expect(page.locator('main')).to_contain_text('No matching entries')
+        assert queries==['洗衣粉']
+        page.locator('#product-name').fill('洗衣粉 Brand')
+        click(page,'save-product')
+        item=page.evaluate('GQ.readStore().inventory.at(-1)')
+        assert item['name']=='洗衣粉 Brand'
+        assert 'barcode' not in item
+        assert item['catalogId'] is None
+        assert not errors
+

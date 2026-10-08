@@ -444,3 +444,37 @@ test('manual GTIN entry works without any barcode camera capability',()=>{
    note:'Only locally held',addedAt:'2026-10-08T05:00:00Z'
  }]}));
 });
+
+test('global product candidates allow only four exact Open Facts source hosts',()=>{
+ const candidates=[
+  ['general','Open Products Facts','world.openproductsfacts.org'],
+  ['beauty','Open Beauty Facts','world.openbeautyfacts.org'],
+  ['food','Open Food Facts','world.openfoodfacts.org'],
+  ['petfood','Open Pet Food Facts','world.openpetfoodfacts.org']
+ ];
+ const gtin='4006381333931';
+ for(const [category,source,host] of candidates){
+  const item={barcode:gtin,found:true,name:'Example globally listed cleaner',
+    brand:'World Brand',quantity:'500 ml',category,source,
+    source_url:'https://'+host+'/product/'+gtin,
+    review_status:'unreviewed',recommendation_permission:false};
+  assert.equal(G.validProductCandidate(item),true);
+  assert.equal(G.validProductCandidate({...item,source_url:'https://evil.example/product/'+gtin}),false);
+  assert.equal(G.validProductCandidate({...item,recommendation_permission:true}),false);
+  assert.equal(G.validProductCandidate({...item,review_status:'verified'}),false);
+  assert.equal(G.validProductCandidate({...item,barcode:'4006381333932'}),false);
+ }
+});
+
+test('worldwide multilingual identity accepts Japanese, Arabic and Cyrillic names',()=>{
+ const gtin='4006381333931';
+ for(const label of ['洗衣粉','منظف','Средство','Lysol Cleaner','Crème Nettoyant']){
+  assert.ok(label.length>=2);
+  const result={barcode:gtin,found:true,name:label,brand:'',quantity:'',
+    category:'general',source:'Open Products Facts',
+    source_url:'https://world.openproductsfacts.org/product/'+gtin,
+    review_status:'unreviewed',recommendation_permission:false};
+  assert.equal(G.validProductCandidate(result),true,label);
+ }
+});
+

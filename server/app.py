@@ -17,8 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from .config import Settings
 from .images import normalize_image, InvalidImage
 from .cloud_vision import CloudVisionReader, CloudVisionUnavailable
-from .barcodes import BarcodeLookup, valid_gtin
-from .models import ImageRequest, ProductRequest, BarcodeRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
+from .barcodes import BarcodeLookup, valid_gtin, normalize_query
+from .models import ImageRequest, ProductRequest, BarcodeRequest, ProductSearchRequest, StartRequest, VerifyRequest, MatchRequest, Attestations, TargetAnalysis
 from .policy import CATALOG, PRODUCTS, POLICY_VERSION, match_product, adjudicate
 from .provider import VisionProvider, ProviderFailure, verify_openrouter_zdr_model, verify_openrouter_beta_spend_cap
 from .tickets import Tickets, InvalidTicket
@@ -81,7 +81,8 @@ class Boundary:
                 return await reject(403, "ORIGIN", "Same-origin requests are required.")
             # Same-origin, JSON and upload bounds apply to Cloud Vision OCR.
             # The operator owns its API key; players never supply credentials.
-            local_ocr = scope["path"] in ("/api/read-labels", "/api/product-lookup")
+            public_identity_route = scope["path"] in ("/api/read-labels", "/api/product-lookup", "/api/product-search")
+            local_ocr = public_identity_route
             if not local_ocr and not self.settings.ready:
                 return await reject(503, "LIVE_NOT_CONFIGURED", "AI analysis is unavailable; camera quests and text-only OCR remain usable.")
             if not local_ocr and not self.settings.public_live and not hmac.compare_digest(h.get("x-gq-access", "").encode(), self.settings.access_code.encode()):
@@ -221,10 +222,30 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     app.state.cloud_labels = cloud_labels
     product_index = barcode_lookup or BarcodeLookup()
     app.state.barcode_index = product_index
+    # A one-shot release qualification using public, non-private terms and
+    # barcodes. Disabled by default; never transmits player data.
+    @app.on_event("startup")
+    async def optional_global_discovery_probe():
+        if os.getenv("GQ_GLOBAL_PRODUCT_DIAGNOSTIC_ON_START", "0") != "1":
+            return
+        async def run_probe():
+            try:
+                sample = await product_index.lookup("3017620422003")
+                matches = await product_index.search("soap")
+                print("GQ_GLOBAL_PRODUCT_DIAGNOSTIC_BARCODE_" +
+                      ("FOUND" if sample.found else "MISSING") +
+                      "_SEARCH_" + str(min(len(matches), 10)), flush=True)
+            except Exception:
+                print("GQ_GLOBAL_PRODUCT_DIAGNOSTIC_NETWORK_OR_PROVIDER_ERROR", flush=True)
+        asyncio.create_task(run_probe())
     barcode_events: deque[float] = deque()
     barcode_cache: dict[str, tuple[float, dict]] = {}
     barcode_lock = asyncio.Lock()
     app.state.barcode_requests = barcode_events
+    search_events: deque[float] = deque()
+    search_cache: dict[str, tuple[float, dict]] = {}
+    search_lock = asyncio.Lock()
+    app.state.search_requests = search_events
 
     @app.on_event('startup')
     async def preflight_public_beta():
@@ -362,6 +383,42 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
                 barcode_cache.clear()
             barcode_cache[gtin] = (time.monotonic() + (3600 if public["found"] else 300), public)
         return public
+
+    @app.post("/api/product-search")
+    async def product_search(body: ProductSearchRequest):
+        """One deliberate worldwide community search; text-only and no API key."""
+        try:
+            query = normalize_query(body.query)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        key = query.casefold()
+        now = time.monotonic()
+        async with search_lock:
+            cached = search_cache.get(key)
+            if cached and cached[0] > now:
+                return cached[1]
+            # Four official hosts queried at most five times/minute each,
+            # below the documented ten-searches/minute/provider/IP ceiling.
+            while search_events and search_events[0] < now - 60:
+                search_events.popleft()
+            if len(search_events) >= 5:
+                raise HTTPException(
+                    429, "Worldwide community search is busy. Try again later or enter the product name manually."
+                )
+            search_events.append(now)
+        suggestions = await product_index.search(query)
+        result = {
+            "results": [item.public() for item in suggestions],
+            "source": "Open Facts",
+            "review_status": "unreviewed",
+            "recommendation_permission": False,
+            "notice": "Community results are unverified. Match the exact bottle before saving; no product result grants chemical-use permission.",
+        }
+        async with search_lock:
+            if len(search_cache) >= 64:
+                search_cache.clear()
+            search_cache[key] = (time.monotonic() + (180 if suggestions else 60), result)
+        return result
 
     @app.post("/api/read-labels")
     async def read_labels(body: ProductRequest, request: Request):
