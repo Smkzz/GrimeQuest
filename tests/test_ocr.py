@@ -10,16 +10,28 @@ from server import ocr
 from conftest import make_image
 
 
+def _tsv(lines, confidence=96):
+    """Tiny deterministic stand-in for Tesseract's actual TSV word output."""
+    rows=["level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"]
+    for i,line in enumerate(lines,1):
+        for j,word in enumerate(line.split(),1):
+            rows.append(f"5\t1\t1\t1\t{i}\t{j}\t{j*80}\t{i*60}\t60\t40\t{confidence}\t{word}")
+    return ("\n".join(rows)+"\n").encode("utf-8")
+
+
 def test_ocr_recognizes_two_labels_without_external_calls_or_files(monkeypatch):
     seen=[]
-    text_outputs=["KIILTO KOTI\nYleispuhdistussuihke", "KÄYTTÖOHJE\nLue ohjeet ja varoitukset"]
+    results=[
+        _tsv(["KIILTO KOTI","Yleispuhdistussuihke"]),
+        _tsv(["KÄYTTÖOHJE","Lue ohjeet ja varoitukset"])
+    ]
     def fake_run(argv, **kw):
-        assert argv==["tesseract","stdin","stdout","-l","fin+eng","--psm","6"]
+        assert argv==["tesseract","stdin","stdout","-l","fin+eng","--psm","11","tsv"]
         assert isinstance(kw["input"],bytes) and kw["input"][:3]==b"\xff\xd8\xff"
         assert "GQ_PROVIDER_KEY" not in kw["env"]
-        assert kw["timeout"]==12 and kw["check"] is False
+        assert kw["timeout"]==6.5 and kw["check"] is False
         seen.append(argv)
-        return SimpleNamespace(returncode=0,stdout=text_outputs[len(seen)-1].encode())
+        return SimpleNamespace(returncode=0,stdout=results.pop(0))
     monkeypatch.setattr(ocr,"available",lambda:True)
     monkeypatch.setattr(ocr.subprocess,"run",fake_run)
     photo=make_image(size=(320,240))
@@ -33,13 +45,40 @@ def test_ocr_recognizes_two_labels_without_external_calls_or_files(monkeypatch):
 
 
 def test_ocr_unreadable_directions_never_claim_complete_label(monkeypatch):
-    outputs=["KIILTO KOTI",""]
+    outputs=[_tsv(["KIILTO KOTI"]),_tsv(["KIILTO KOTI"]),_tsv([]),_tsv([])]
     monkeypatch.setattr(ocr,"available",lambda:True)
-    monkeypatch.setattr(ocr.subprocess,"run",lambda *args,**kw: SimpleNamespace(returncode=0,stdout=outputs.pop(0).encode()))
+    monkeypatch.setattr(ocr.subprocess,"run",lambda *args,**kw: SimpleNamespace(returncode=0,stdout=outputs.pop(0)))
     data=make_image()
     result=ocr.recognize_product(data,data)
     assert result.label_readable is False
-    assert "[No text recognized]" in result.label_text
+    assert "[No reliable text recognized]" in result.label_text
+    assert "OCR QUALITY WARNING" in result.label_text
+
+
+def test_ocr_rejects_screenshot_like_noise_as_a_product_name(monkeypatch):
+    """Regression: '| MTT' and 'LSANYTOL | VS' from the real iPhone screenshot."""
+    outputs=[
+        _tsv(["| MTT","< - M","LSANYTOL | VS"],confidence=90),
+        _tsv(["| MTT","< - M","LSANYTOL | VS"],confidence=90),
+        _tsv(["DIRECTIONS WARNINGS","Read instructions before use"],confidence=94)
+    ]
+    monkeypatch.setattr(ocr,"available",lambda:True)
+    monkeypatch.setattr(ocr.subprocess,"run",lambda *a,**kw:SimpleNamespace(returncode=0,stdout=outputs.pop(0)))
+    img=make_image()
+    observation=ocr.recognize_product(img,img)
+    assert observation.name==ocr.NAME_UNREADABLE
+    assert observation.label_readable is False
+    assert "OCR QUALITY WARNING" in observation.label_text
+
+
+def test_ocr_rejects_low_confidence_two_word_name_even_if_readable_shape(monkeypatch):
+    outputs=[_tsv(["FAKE CLEANER"],confidence=39)]*4
+    monkeypatch.setattr(ocr,"available",lambda:True)
+    monkeypatch.setattr(ocr.subprocess,"run",lambda *a,**kw:SimpleNamespace(returncode=0,stdout=outputs.pop(0)))
+    img=make_image()
+    result=ocr.recognize_product(img,img)
+    assert result.name==ocr.NAME_UNREADABLE
+    assert result.label_readable is False
 
 
 def test_no_external_provider_request_and_no_private_code_needed_for_ocr(monkeypatch):

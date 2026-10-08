@@ -1,35 +1,47 @@
-"""Bounded, local Tesseract text extraction for product labels.
+"""Bounded, privacy-preserving Finnish/English label OCR.
 
-No external vision API, model provider, local photo file or persistent transcript.
-All text is untrusted, may be inaccurate, and never authorizes a cleaner.
+Product labels are visually complex. Sparse-text page segmentation, optional
+contrast rescue, and word-level confidence stop background artwork becoming a
+claimed product name. This does not verify warning completeness or safe use.
 """
+from __future__ import annotations
+
 import base64
+import binascii
+from dataclasses import dataclass
+from io import BytesIO
+import math
 import os
 import shutil
 import subprocess
+import unicodedata
 from functools import lru_cache
+from PIL import Image, ImageOps
 from .models import ProductObservation
+
+
+NAME_UNREADABLE = "Product name unclear — enter manually"
 
 
 class LabelOcrUnavailable(RuntimeError):
     pass
 
 
-
-
 def _worker_env() -> dict[str, str]:
-    """Tesseract subprocess never inherits provider keys or app secrets."""
-    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-           "LANG": "C.UTF-8",
-           "OMP_THREAD_LIMIT": "1",
-           "OMP_NUM_THREADS": "1"}
+    """Never pass the app's provider API key or other secrets to subprocesses."""
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "LANG": "C.UTF-8",
+        "OMP_THREAD_LIMIT": "1",
+        "OMP_NUM_THREADS": "1",
+    }
     if os.environ.get("TESSDATA_PREFIX"):
         env["TESSDATA_PREFIX"] = os.environ["TESSDATA_PREFIX"]
     return env
 
+
 @lru_cache(maxsize=1)
 def available() -> bool:
-    """Check actual OCR binary and Finnish+English packs, not AI credentials."""
     if not shutil.which("tesseract"):
         return False
     try:
@@ -45,53 +57,177 @@ def available() -> bool:
         return False
 
 
-def _text(data_url: str) -> str:
+@dataclass(frozen=True)
+class _Line:
+    text: str
+    confidence: float
+    words: tuple[str, ...]
+    top: int
+
+
+@dataclass(frozen=True)
+class _Reading:
+    lines: tuple[_Line, ...]
+    confidence: float
+    letters: int
+    height: int
+
+    @property
+    def text(self) -> str:
+        return "\n".join(line.text for line in self.lines)[:5500]
+
+    def sufficient(self, directions: bool = False) -> bool:
+        count = sum(len(word) >= 3 for line in self.lines for word in line.words)
+        return (
+            self.confidence >= 69
+            and self.letters >= (19 if directions else 12)
+            and count >= (3 if directions else 2)
+        )
+
+
+def _empty(height: int) -> _Reading:
+    return _Reading((), 0, 0, height)
+
+
+def _parse_tsv(data: bytes, height: int) -> _Reading:
+    """Use real word confidences. OCR text is never treated as instructions."""
+    groups: dict[tuple[str, str, str, str], list[tuple[str, float, int]]] = {}
+    for row in data.decode("utf-8", "replace").splitlines()[1:]:
+        fields = row.split("\t", 11)
+        if len(fields) != 12 or fields[0] != "5":
+            continue
+        try:
+            confidence = float(fields[10])
+            top = int(fields[7])
+        except (ValueError, OverflowError):
+            continue
+        word = unicodedata.normalize("NFKC", fields[11]).strip()[:80]
+        if (
+            not math.isfinite(confidence) or confidence < 40
+            or not any(ch.isalpha() or ch.isdigit() for ch in word)
+        ):
+            continue
+        key = (fields[1], fields[2], fields[3], fields[4])
+        groups.setdefault(key, []).append((word, confidence, top))
+        if sum(len(v) for v in groups.values()) >= 450:
+            break
+
+    lines: list[_Line] = []
+    for group in groups.values():
+        words = tuple(word for word, _, _ in group)
+        text = " ".join(words).strip()[:400]
+        if text:
+            total = sum(max(1, sum(c.isalnum() for c in word)) for word in words)
+            mean = sum(conf * max(1, sum(c.isalnum() for c in word)) for word, conf, _ in group) / total
+            lines.append(_Line(text, mean, words, min(top for _, _, top in group)))
+    lines.sort(key=lambda line: line.top)
+    lines = lines[:70]
+    letters = sum(c.isalpha() for line in lines for c in line.text)
+    weight = sum(min(sum(c.isalpha() for c in line.text), 100) for line in lines)
+    score = (sum(line.confidence * min(sum(c.isalpha() for c in line.text), 100) for line in lines) / weight) if weight else 0
+    return _Reading(tuple(lines), score, letters, height)
+
+
+def _name(reading: _Reading) -> str | None:
+    """Do not put one-line decorative noise such as '| MTT' in the name field."""
+    excluded = {"DIRECTIONS", "WARNINGS", "VAROITUS", "KÄYTTÖOHJE", "INGREDIENTS",
+                "INGREDIENSER", "FRONT", "LABEL", "CAUTION", "ATTENTION", "WARNING"}
+    for line in reading.lines:
+        pieces = ["".join(c for c in word if c.isalpha()) for word in line.words]
+        valid = [w for w in pieces if len(w) >= 3]
+        if (
+            len(valid) < 2 or len(line.text) > 90 or line.confidence < 78
+            or sum(len(word) for word in valid) < 8
+            or any(word.upper() in excluded for word in valid)
+        ):
+            continue
+        # A single recognizable decorative word plus "VS" isn't a product name.
+        candidate = line.text.strip(" |<>-_=—:·")[:240]
+        if sum(c.isalpha() for c in candidate) >= 8:
+            return candidate
+    return None
+
+
+def _enhance(jpeg: bytes) -> bytes:
+    """Locally improve contrast only if the standard pass proves insufficient."""
+    try:
+        with Image.open(BytesIO(jpeg)) as image:
+            if image.format != "JPEG" or image.width * image.height > 3_000_000:
+                raise LabelOcrUnavailable("Label photo dimensions are unsupported.")
+            gray = ImageOps.autocontrast(image.convert("L"), cutoff=1)
+            buf = BytesIO()
+            gray.save(buf, "PNG", optimize=False)
+            return buf.getvalue()
+    except (OSError, ValueError) as exc:
+        raise LabelOcrUnavailable("Label photo could not be processed.") from exc
+
+
+def _run(image: bytes, *, psm: str, height: int) -> _Reading:
+    try:
+        result = subprocess.run(
+            ["tesseract", "stdin", "stdout", "-l", "fin+eng", "--psm", psm, "tsv"],
+            input=image, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=6.5, check=False, env=_worker_env()
+        )
+        if result.returncode != 0 or len(result.stdout) > 250_000:
+            return _empty(height)
+        return _parse_tsv(result.stdout, height)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise LabelOcrUnavailable("Label reading timed out or failed. Retake a clear photo or enter the text manually.") from exc
+
+
+def _read(data_url: str, *, directions: bool = False) -> _Reading:
     if not available():
-        raise LabelOcrUnavailable("Label text reading is temporarily unavailable. Enter the label manually.")
+        raise LabelOcrUnavailable("Label reading is temporarily unavailable. Enter the label manually.")
     prefix, sep, encoded = data_url.partition(",")
     if prefix != "data:image/jpeg;base64" or not sep or len(encoded) > 2_800_000:
         raise LabelOcrUnavailable("The label photo is not in a supported format.")
     try:
         jpeg = base64.b64decode(encoded, validate=True)
-        if not 32 <= len(jpeg) <= 2_000_000:
-            raise LabelOcrUnavailable("The photo exceeds the OCR input limit.")
-        # stdin/stdout means no transient photo or transcript files.
-        process = subprocess.run(
-            ["tesseract", "stdin", "stdout", "-l", "fin+eng", "--psm", "6"],
-            input=jpeg, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            timeout=12, check=False,
-            env=_worker_env(),
-        )
-        if process.returncode != 0 or len(process.stdout) > 80_000:
-            raise LabelOcrUnavailable("Could not read the label. Try brighter light or enter the text manually.")
-        lines = []
-        for raw in process.stdout.decode("utf-8", "replace").splitlines():
-            line = " ".join(raw.replace("\x00", "").split())
-            if line:
-                lines.append(line[:400])
-            if len(lines) >= 80:
-                break
-        return "\n".join(lines)[:5_600]
-    except LabelOcrUnavailable:
-        raise
-    except (OSError, ValueError, subprocess.SubprocessError) as exc:
-        raise LabelOcrUnavailable("Could not read the label. Try a clearer photo or enter it manually.") from exc
+    except (ValueError, binascii.Error) as exc:
+        raise LabelOcrUnavailable("Label photo encoding is invalid.") from exc
+    if not 32 <= len(jpeg) <= 2_000_000:
+        raise LabelOcrUnavailable("The photo exceeds the OCR input limit.")
+    try:
+        with Image.open(BytesIO(jpeg)) as img:
+            if img.format != "JPEG" or img.width * img.height > 3_000_000:
+                raise LabelOcrUnavailable("Label photo dimensions are unsupported.")
+            height = img.height
+    except OSError as exc:
+        raise LabelOcrUnavailable("Label photo is invalid.") from exc
+
+    # Sparse text works better on bottles with graphics, curved labels and
+    # differently sized lettering than a single uniform-text-block assumption.
+    primary = _run(jpeg, psm="11", height=height)
+    if primary.sufficient(directions) and (directions or _name(primary)):
+        return primary
+    # Retry a contrast-enhanced view when quality/name is poor. This is bounded
+    # to at most two 6.5s subprocesses per label, not a model API retry.
+    backup = _run(_enhance(jpeg), psm="6" if directions else "11", height=height)
+    if _name(backup) and not _name(primary) and not directions and backup.confidence >= 72:
+        return backup
+    if backup.sufficient(directions) and not primary.sufficient(directions):
+        return backup
+    return backup if (backup.letters >= primary.letters and backup.confidence > primary.confidence + 7) else primary
 
 
 def recognize_product(front_image: str, back_image: str) -> ProductObservation:
-    """OCR only. Never interpret warnings, safety or chemical compatibility."""
-    front = _text(front_image)
-    back = _text(back_image)
-    front_lines = [line for line in front.splitlines() if len(line.strip()) >= 3]
-    name = (front_lines[0][:240] if front_lines else "Product name unreadable — enter manually")
-    # Report both partial reads rather than claiming all warnings are legible.
-    readable = (sum(c.isalpha() for c in front) >= 6
-                and sum(c.isalpha() for c in back) >= 12)
-    sections = (
-        "FRONT LABEL — AUTOMATIC OCR (UNVERIFIED)\n" + (front or "[No text recognized]") +
-        "\n\nDIRECTIONS / WARNINGS — AUTOMATIC OCR (UNVERIFIED)\n" + (back or "[No text recognized]")
+    """Returns unverified editable text; cannot mint chemical-use permissions."""
+    front = _read(front_image)
+    back = _read(back_image, directions=True)
+    candidate = _name(front)
+    readable = bool(candidate and front.sufficient() and back.sufficient(directions=True))
+    text = (
+        "FRONT LABEL — AUTOMATIC OCR (UNVERIFIED)\n"
+        + (front.text or "[No reliable text recognized]")
+        + "\n\nDIRECTIONS / WARNINGS — AUTOMATIC OCR (UNVERIFIED)\n"
+        + (back.text or "[No reliable text recognized]")
     )
+    if not readable:
+        text += "\n\n[OCR QUALITY WARNING: one or both photos were not read reliably. Retake close-up photos or enter missing text manually. Never assume warnings are complete.]"
     return ProductObservation(
-        name=name, label_readable=readable, label_text=sections[:6000],
-        warnings_observed=[]  # Never fabricate interpretations of a warning.
+        name=(candidate or NAME_UNREADABLE)[:240],
+        label_readable=readable,
+        label_text=text[:6000],
+        warnings_observed=[],  # Do not infer warnings from OCR.
     )

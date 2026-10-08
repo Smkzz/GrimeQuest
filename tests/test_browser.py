@@ -228,6 +228,9 @@ def test_label_scan_is_wired_and_never_auto_authorized(page,client,vision,before
     page.locator('[name="product-ai-consent"]').check();click(page,'analyze-product')
     expect(page.locator('#product-name')).to_have_value('Unreviewed bottle')
     click(page,'save-product')
+    expect(page.locator('#toast')).to_contain_text('confirm before saving')
+    page.locator('[name="label-review-confirm"]').check()
+    click(page,'save-product')
     assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
     assert vision.calls==['product']
 
@@ -389,7 +392,51 @@ def test_automatic_label_ocr_needs_consent_and_never_calls_paid_model(page,setti
         assert called==[(True,True)]
         assert vision.calls==[]
         click(page,'save-product')
+        expect(page.locator('#toast')).to_contain_text('confirm before saving')
+        page.locator('[name="label-review-confirm"]').check()
+        click(page,'save-product')
         assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
         assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
+        assert not errors
+
+def test_ocr_screenshot_garbage_name_never_silently_becomes_saved_product(page,vision,before,after,monkeypatch):
+    """Unreadable '| MTT' front label must result in a blank editable name."""
+    import importlib
+    from fastapi.testclient import TestClient
+    from server.models import ProductObservation
+    from server.config import Settings
+    appmod=importlib.import_module('server.app')
+    monkeypatch.setattr(appmod,'ocr_available',lambda:True)
+    invoked=[]
+    def fake_ocr(front,back):
+        invoked.append(True)
+        return ProductObservation(name='Product name unclear — enter manually',
+          label_readable=False, label_text='FRONT LABEL — OCR UNCERTAIN\n| MTT\nLSANYTOL | VS',
+          warnings_observed=[])
+    monkeypatch.setattr(appmod,'recognize_product',fake_ocr)
+    with TestClient(appmod.create_app(Settings())) as public:
+        errors=mount(page,public)
+        click(page,'inventory');click(page,'scan-product')
+        for field,data in [('product-front',before),('product-back',after)]:
+            page.locator('#'+field).set_input_files({
+                'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])
+            })
+            page.wait_for_timeout(130)
+        page.locator('[name="product-consent"]').check()
+        click(page,'read-label-ocr')
+        expect(page.locator('#product-name')).to_have_value('')
+        expect(page.locator('main')).to_contain_text('Low-confidence label scan')
+        expect(page.locator('#product-note')).to_contain_text('LSANYTOL')
+        click(page,'save-product')
+        expect(page.locator('#toast')).to_contain_text('Enter the exact product name')
+        page.locator('#product-name').fill('Corrected name from actual bottle')
+        click(page,'save-product')
+        expect(page.locator('#toast')).to_contain_text('confirm before saving')
+        page.locator('[name="label-review-confirm"]').check()
+        click(page,'save-product')
+        assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Corrected name from actual bottle'
+        assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
+        assert vision.calls==[]
+        assert len(invoked)==1
         assert not errors
 

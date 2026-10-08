@@ -292,4 +292,12 @@ test('guided camera quest is a separate player flow and cannot impersonate AI',(
  assert.equal(G.stats(stored,'live').xp,0);
  assert.ok(G.safeStore(JSON.parse(JSON.stringify(stored))));
 });
+test('OCR garbage from low-quality phone scan never auto-populates product name',()=>{
+ assert.equal(G.ocrNameForReview('| MTT'),'');
+ assert.equal(G.ocrNameForReview('LSANYTOL | VS'),'');
+ assert.equal(G.ocrNameForReview('Product name unclear — enter manually'),'');
+ assert.equal(G.ocrNameForReview('KIILTO KOTI'),'KIILTO KOTI');
+ assert.equal(G.ocrNameForReview('Unreviewed bottle'),'Unreviewed bottle');
+ assert.equal(G.ocrNameForReview('method'),'');
+});
 
