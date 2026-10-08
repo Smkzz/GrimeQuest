@@ -474,7 +474,7 @@ def test_cloud_vision_upstream_failure_keeps_photos_and_opens_manual_edit(page,v
             page.wait_for_timeout(130)
         page.locator('[name="product-consent"]').check()
         click(page,'read-label-ocr')
-        expect(page.locator('#label-read-status')).to_contain_text('too long')
+        expect(page.locator('#label-read-status')).to_contain_text('could not process')
         expect(page.locator('[data-action="focus-manual-product"]')).to_be_visible()
         expect(page.locator('img[alt="Product Front label"]')).to_be_visible()
         expect(page.locator('img[alt="Product Directions & warnings"]')).to_be_visible()

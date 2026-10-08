@@ -222,8 +222,29 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
     @app.on_event('startup')
     async def preflight_public_beta():
         if beta.governed:
-            # Read-only metadata checks only. Startup never sends photos or makes inference calls.
+            # OpenRouter metadata preflight; no model inference.
             asyncio.create_task(beta.refresh())
+        if cloud_labels_enabled and os.getenv("GQ_VISION_DIAGNOSTIC_ON_START", "0") == "1":
+            # Operator-only temporary qualification, never on by default.
+            # Synthetic local image, two Cloud Vision feature units per run.
+            async def check_vision():
+                try:
+                    code = await cloud_labels.synthetic_diagnostic()
+                except Exception:
+                    code = "PROBE_FAILURE"
+                # Strict fixed vocabulary: this MUST NOT log keys, data,
+                # raw Google errors, decoded OCR text or arbitrary strings.
+                permitted = ("PASS_HTTP_200", "CONFIG_MISSING", "NETWORK_TIMEOUT",
+                             "NETWORK_OR_PARSE", "PROBE_FAILURE")
+                if code not in permitted and not (
+                    code.startswith("HTTP_") and len(code) <= 75 and all(
+                        c.isascii() and (c.isupper() or c.isdigit() or c == "_")
+                        for c in code
+                    )
+                ):
+                    code = "PROBE_FAILURE"
+                print("GQ_CLOUD_VISION_DIAGNOSTIC_" + code, flush=True)
+            asyncio.create_task(check_vision())
     budget = Budget(settings.max_calls_hour, settings.max_calls_day)
     # Only bounded receipts/results are cached, never images or product label text.
     results: dict[str, tuple[float, dict]] = {}
@@ -261,9 +282,16 @@ def create_app(settings: Settings | None = None, provider=None, tickets: Tickets
 
     @app.exception_handler(CloudVisionUnavailable)
     async def ocr_error(request: Request, exc):
-        # Sanitized upstream exceptions; never return keys, photo bytes or
-        # Google's raw response to the client.
-        return JSONResponse({"error": {"code": "OCR", "message": str(exc)}}, status_code=503)
+        # Stable diagnostic codes only. No Google raw response, API key, OCR
+        # transcript, project identifier or user's image is ever logged.
+        code = exc.code
+        if not (isinstance(code, str) and 1 <= len(code) <= 75 and
+                all(c.isascii() and (c.isupper() or c.isdigit() or c == "_") for c in code)):
+            code = "UNKNOWN"
+        print("GQ_CLOUD_VISION_OCR_FAILURE_" + code, flush=True)
+        return JSONResponse(
+            {"error": {"code": "OCR", "message": str(exc)}}, status_code=503
+        )
 
     @app.exception_handler(ProviderFailure)
     async def provider_error(request: Request, exc):

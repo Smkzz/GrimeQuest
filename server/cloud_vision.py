@@ -6,6 +6,9 @@ Cloud OCR never grants chemical/surface compatibility or hygiene claims.
 """
 from __future__ import annotations
 
+import base64
+from io import BytesIO
+import json
 import math
 import re
 import unicodedata
@@ -26,7 +29,52 @@ _STOP_WORDS = frozenset({
 
 
 class CloudVisionUnavailable(RuntimeError):
-    """Sanitized; must never contain API credentials or upstream responses."""
+    """Sanitized; never contains credentials, upstream text or photos."""
+
+    def __init__(self, message: str, code: str = "UNKNOWN") -> None:
+        super().__init__(message)
+        # Controlled enum only; do not concatenate untrusted provider strings.
+        self.code = code
+
+
+_KNOWN_PROVIDER_REASONS = frozenset({
+    "API_KEY_INVALID", "API_KEY_SERVICE_BLOCKED", "API_KEY_HTTP_REFERRER_BLOCKED",
+    "API_KEY_IP_ADDRESS_BLOCKED", "API_KEY_ANDROID_APP_BLOCKED",
+    "API_KEY_IOS_APP_BLOCKED", "SERVICE_DISABLED", "BILLING_DISABLED",
+    "CONSUMER_INVALID", "PERMISSION_DENIED", "RESOURCE_PROJECT_DENIED",
+    "PROJECT_DELETED", "QUOTA_EXCEEDED", "RATE_LIMIT_EXCEEDED",
+    "LOCATION_RESTRICTION_VIOLATED", "ACCESS_TOKEN_SCOPE_INSUFFICIENT",
+    "API_KEY_NOT_AUTHORIZED", "SERVICE_NOT_FOUND",
+})
+
+
+def _provider_code(status: int, body: bytes) -> str:
+    """Produce only safe fixed HTTP/reason tokens, never Google's error text."""
+    reason = ""
+    try:
+        root = json.loads(body[:12_000])
+        error = root.get("error") if isinstance(root, dict) else None
+        if isinstance(error, dict):
+            details = error.get("details", [])
+            if isinstance(details, list):
+                for entry in details[:8]:
+                    if isinstance(entry, dict) and isinstance(entry.get("reason"), str) and entry["reason"] in _KNOWN_PROVIDER_REASONS:
+                        reason = entry["reason"]
+                        break
+            if not reason and isinstance(error.get("status"), str) and error["status"] in _KNOWN_PROVIDER_REASONS:
+                reason = error["status"]
+    except (ValueError, TypeError):
+        pass
+    status_code = status if status in (400, 401, 403, 404, 408, 409, 422, 429, 500, 502, 503, 504) else 0
+    return f"HTTP_{status_code}" + (f"_{reason}" if reason else "")
+
+
+def _provider_message(status: int) -> str:
+    if status in (400, 401, 403, 404):
+        return "Google Vision rejected this server's API configuration. GrimeQuest's operator must fix it. Your photos remain on this device; you can enter the label manually."
+    if status == 429:
+        return "Google Vision's request quota is exhausted. Your photos remain available for manual label entry."
+    return "Google Vision returned a server error. Your photos remain available for manual label entry."
 
 
 def _clean_text(raw: object, limit: int = 2600) -> str:
@@ -162,13 +210,23 @@ class CloudVisionReader:
                     json=request
                 ) as response:
                     if response.status_code != 200:
-                        raise CloudVisionUnavailable("Google label recognition is unavailable. Enter text manually.")
+                        # Only bounded upstream bytes, parsed to a reviewed
+                        # code vocabulary. Never surface Google raw messages.
+                        evidence = bytearray()
+                        async for part in response.aiter_bytes():
+                            evidence.extend(part[:max(0, 12_000-len(evidence))])
+                            if len(evidence) >= 12_000:
+                                break
+                        raise CloudVisionUnavailable(
+                            _provider_message(response.status_code),
+                            _provider_code(response.status_code, bytes(evidence)),
+                        )
                     received = bytearray()
                     async for part in response.aiter_bytes():
                         received.extend(part)
                         if len(received) > 1_500_000:
                             raise CloudVisionUnavailable("The recognition response was too large.")
-            data = __import__("json").loads(received)
+            data = json.loads(received)
             entries = data.get("responses") if isinstance(data, dict) else None
             if not isinstance(entries, list) or len(entries) != 2 or any(
                 not isinstance(x, dict) or x.get("error") for x in entries
@@ -197,7 +255,34 @@ class CloudVisionReader:
             )
         except CloudVisionUnavailable:
             raise
+        except httpx.TimeoutException as exc:
+            raise CloudVisionUnavailable(
+                "Google Vision did not respond in time. You can enter the label manually.",
+                "NETWORK_TIMEOUT",
+            ) from exc
         except (httpx.HTTPError, ValueError, TypeError, KeyError, OverflowError) as exc:
             raise CloudVisionUnavailable(
-                "Automatic label recognition is temporarily unavailable. Enter text manually."
+                "Google Vision connection failed. You can enter the label manually.",
+                "NETWORK_OR_PARSE",
             ) from exc
+
+    async def synthetic_diagnostic(self) -> str:
+        """One opt-in live batch with two synthetic JPEGs, not customer photos.
+
+        Costs at most two Vision image-feature units per diagnostic invocation.
+        Must only be triggered by the operator for a bounded verification run.
+        """
+        if not self.ready:
+            return "CONFIG_MISSING"
+        from PIL import Image, ImageDraw
+        img = Image.new("RGB", (480, 180), "white")
+        ImageDraw.Draw(img).text((20, 40), "KIILTO KOTI TEST LABEL", fill="black")
+        out = BytesIO()
+        img.save(out, format="JPEG", quality=82)
+        data = "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode("ascii")
+        try:
+            await self.read(data, data)
+            return "PASS_HTTP_200"
+        except CloudVisionUnavailable as exc:
+            return exc.code
+

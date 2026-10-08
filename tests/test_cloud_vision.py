@@ -177,3 +177,68 @@ def test_provider_transport_failure_has_generic_error():
     with pytest.raises(CloudVisionUnavailable) as exc:
         asyncio.run(reader.read(image(),image()))
     assert "secret" not in str(exc.value)
+
+
+def test_google_rejected_key_is_immediate_auth_error_not_a_fake_timeout():
+    from server.cloud_vision import _provider_code
+    secret = "VERY_PRIVATE_GOOGLE_ACCOUNT_MUST_NOT_SHOW"
+    google_error = {"error":{
+        "code":403,
+        "status":"PERMISSION_DENIED",
+        "message":secret,
+        "details":[{"reason":"API_KEY_HTTP_REFERRER_BLOCKED",
+                    "metadata":{"consumer":"projects/PRIVATE_PROJECT"}}]
+    }}
+    request_calls = []
+    def forbidden(request):
+        request_calls.append(request)
+        return httpx.Response(403,json=google_error)
+    reader=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(forbidden))
+    with pytest.raises(CloudVisionUnavailable) as raised:
+        asyncio.run(reader.read(image(),image()))
+    assert raised.value.code=="HTTP_403_API_KEY_HTTP_REFERRER_BLOCKED"
+    assert "server's API configuration" in str(raised.value)
+    assert secret not in str(raised.value)
+    assert KEY not in str(raised.value)
+    assert len(request_calls)==1
+    assert _provider_code(403,json.dumps(google_error).encode())=="HTTP_403_API_KEY_HTTP_REFERRER_BLOCKED"
+
+
+def test_no_untrusted_provider_error_detail_can_be_logged():
+    from server.cloud_vision import _provider_code
+    text = {"error":{"status":"PERMISSION_DENIED",
+                     "details":[{"reason":{"unexpected":"malicious object"}}],
+                     "message":"SECRET PHOTO TEXT"}}
+    assert _provider_code(403,json.dumps(text).encode())=="HTTP_403_PERMISSION_DENIED"
+    assert _provider_code(403,b"not-json")=="HTTP_403"
+
+
+def test_transient_google_failures_have_bounded_status_codes():
+    for status in (400,401,403,404,429,500,503):
+        reader=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(
+            lambda req:httpx.Response(status,json={"error":{"message":"PRIVATE KEY"}})))
+        with pytest.raises(CloudVisionUnavailable) as raised:
+            asyncio.run(reader.read(image(),image()))
+        assert raised.value.code==f"HTTP_{status}"
+        assert "PRIVATE KEY" not in str(raised.value)
+
+
+def test_one_shot_synthetic_proof_uses_real_batch_path_with_no_customer_photo():
+    captures=[]
+    reader=CloudVisionReader(KEY,PROJECT,transport=transport(response(),captures))
+    assert asyncio.run(reader.synthetic_diagnostic())=="PASS_HTTP_200"
+    assert len(captures)==1
+    data=json.loads(captures[0].content)
+    assert len(data["requests"])==2
+    assert all(b"KIILTO" not in base64.b64decode(task["image"]["content"]) for task in data["requests"])
+    assert KEY not in str(captures[0].url)
+
+
+def test_synthetic_diagnostic_returns_sanitized_failed_status():
+    reader=CloudVisionReader(KEY,PROJECT,transport=httpx.MockTransport(
+        lambda req:httpx.Response(403,json={"error":{
+            "details":[{"reason":"API_KEY_SERVICE_BLOCKED"}],
+            "message":"private Google secret"
+        }})))
+    assert asyncio.run(reader.synthetic_diagnostic())=="HTTP_403_API_KEY_SERVICE_BLOCKED"
+
