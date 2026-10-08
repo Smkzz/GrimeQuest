@@ -251,7 +251,7 @@ def test_disabled_label_reader_explains_release_gate_and_manual_entry(page,befor
     errors=mount(page)
     click(page,'inventory')
     click(page,'scan-product')
-    expect(page.locator('#label-read-status')).to_contain_text('Automatic label reading')
+    expect(page.locator('#label-read-status')).to_contain_text('Google Cloud Vision')
     for field,data in [('product-front',before),('product-back',after)]:
         page.locator('#'+field).set_input_files({'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])})
         page.wait_for_timeout(130)
@@ -358,38 +358,43 @@ def test_ai_target_photo_can_be_reused_in_private_guided_quest(page,client,befor
     assert page.evaluate('GQ.readStore().history.length')==0
     assert not errors
 
-def test_automatic_label_ocr_needs_consent_and_never_calls_paid_model(page,settings,vision,before,after,monkeypatch):
-    """The production OCR button operates with no access code and no paid model."""
-    import importlib
+def test_cloud_label_reader_requires_google_specific_consent_and_no_openrouter(page,vision,before,after):
+    """A server-held Vision connection needs one distinct user approval."""
     from fastapi.testclient import TestClient
-    from server.models import ProductObservation
-    appmod=importlib.import_module('server.app')
-    called=[]
-    monkeypatch.setattr(appmod,'ocr_available',lambda:True)
-    def fake_ocr(front,back):
-        called.append((front.startswith('data:image/jpeg;base64,'),back.startswith('data:image/jpeg;base64,')))
-        return ProductObservation(name='Kiilto Koti',label_readable=True,
-          label_text='FRONT: KIILTO KOTI\nDIRECTIONS: Lue käyttöohje',warnings_observed=[])
-    monkeypatch.setattr(appmod,'recognize_product',fake_ocr)
     from server.config import Settings
-    with TestClient(appmod.create_app(Settings())) as public:
+    from server.models import ProductObservation
+    from server.app import create_app
+
+    class MockGoogle:
+        ready=True
+        calls=[]
+        async def read(self,front,back):
+            self.calls.append((front.startswith('data:image/jpeg;base64,'),
+                               back.startswith('data:image/jpeg;base64,')))
+            return ProductObservation(name="Kiilto Koti",label_readable=True,
+                label_text="FRONT: KIILTO KOTI\nDIRECTIONS: Lue käyttöohje",warnings_observed=[])
+
+    reader=MockGoogle()
+    with TestClient(create_app(Settings(google_vision_enabled=True),label_reader=reader)) as public:
         errors=mount(page,public)
         click(page,'inventory');click(page,'scan-product')
-        expect(page.locator('#label-read-status')).to_contain_text('text recognition is available')
+        expect(page.locator('#label-read-status')).to_contain_text('Google Cloud Vision is available')
         for field,data in [('product-front',before),('product-back',after)]:
             page.locator('#'+field).set_input_files({
-                'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])
+                'name':'label.jpg','mimeType':'image/jpeg',
+                'buffer':base64.b64decode(data.split(',')[1]),
             })
             page.wait_for_timeout(130)
         expect(page.locator('#label-read-status')).to_contain_text('2 of 2')
+        expect(page.locator('main')).to_contain_text('I consent to GrimeQuest sending')
         click(page,'read-label-ocr')
         expect(page.locator('#toast')).to_contain_text('consent box')
-        assert not called
+        assert not reader.calls
         page.locator('[name="product-consent"]').check()
         click(page,'read-label-ocr')
         expect(page.locator('#product-name')).to_have_value('Kiilto Koti')
         expect(page.locator('#product-note')).to_contain_text('Lue käyttöohje')
-        assert called==[(True,True)]
+        assert reader.calls==[(True,True)]
         assert vision.calls==[]
         click(page,'save-product')
         expect(page.locator('#toast')).to_contain_text('confirm before saving')
@@ -399,59 +404,66 @@ def test_automatic_label_ocr_needs_consent_and_never_calls_paid_model(page,setti
         assert 'data:image' not in page.evaluate("localStorage.getItem('grimequest.v1')")
         assert not errors
 
-def test_ocr_screenshot_garbage_name_never_silently_becomes_saved_product(page,vision,before,after,monkeypatch):
-    """Unreadable '| MTT' front label must result in a blank editable name."""
-    import importlib
+
+def test_google_vision_noisy_label_name_never_silently_saved(page,vision,before,after):
+    """Regression: | MTT must never be mistaken for a product name."""
     from fastapi.testclient import TestClient
-    from server.models import ProductObservation
+    from server.app import create_app
     from server.config import Settings
-    appmod=importlib.import_module('server.app')
-    monkeypatch.setattr(appmod,'ocr_available',lambda:True)
-    invoked=[]
-    def fake_ocr(front,back):
-        invoked.append(True)
-        return ProductObservation(name='Product name unclear — enter manually',
-          label_readable=False, label_text='FRONT LABEL — OCR UNCERTAIN\n| MTT\nLSANYTOL | VS',
-          warnings_observed=[])
-    monkeypatch.setattr(appmod,'recognize_product',fake_ocr)
-    with TestClient(appmod.create_app(Settings())) as public:
+    from server.models import ProductObservation
+
+    class BadGoogle:
+        ready=True
+        calls=0
+        async def read(self,front,back):
+            self.calls+=1
+            return ProductObservation(name='Product name unclear — enter manually',
+                label_readable=False,
+                label_text='FRONT LABEL — GOOGLE CLOUD VISION\n| MTT\nLSANYTOL | VS',
+                warnings_observed=[])
+    reader=BadGoogle()
+    with TestClient(create_app(Settings(google_vision_enabled=True),label_reader=reader)) as public:
         errors=mount(page,public)
         click(page,'inventory');click(page,'scan-product')
         for field,data in [('product-front',before),('product-back',after)]:
             page.locator('#'+field).set_input_files({
-                'name':'label.jpg','mimeType':'image/jpeg','buffer':base64.b64decode(data.split(',')[1])
+                'name':'label.jpg','mimeType':'image/jpeg',
+                'buffer':base64.b64decode(data.split(',')[1]),
             })
             page.wait_for_timeout(130)
         page.locator('[name="product-consent"]').check()
         click(page,'read-label-ocr')
         expect(page.locator('#product-name')).to_have_value('')
         expect(page.locator('main')).to_contain_text('Low-confidence label scan')
-        expect(page.locator('#product-note')).to_contain_text('LSANYTOL')
         click(page,'save-product')
         expect(page.locator('#toast')).to_contain_text('Enter the exact product name')
-        page.locator('#product-name').fill('Corrected name from actual bottle')
+        page.locator('#product-name').fill('Corrected from actual bottle')
         click(page,'save-product')
         expect(page.locator('#toast')).to_contain_text('confirm before saving')
         page.locator('[name="label-review-confirm"]').check()
         click(page,'save-product')
-        assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Corrected name from actual bottle'
+        assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Corrected from actual bottle'
         assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
+        assert reader.calls==1
         assert vision.calls==[]
-        assert len(invoked)==1
         assert not errors
 
-def test_ocr_provider_timeout_keeps_both_photos_and_opens_manual_edit(page,vision,before,after,monkeypatch):
-    """The 503 that blocked the real iPhone must not block product entry."""
-    import importlib
+
+def test_cloud_vision_upstream_failure_keeps_photos_and_opens_manual_edit(page,vision,before,after):
+    """Provider errors must never create a blocked gameplay path."""
     from fastapi.testclient import TestClient
+    from server.app import create_app
     from server.config import Settings
-    from server.ocr import LabelOcrUnavailable
-    appmod=importlib.import_module('server.app')
-    monkeypatch.setattr(appmod,'ocr_available',lambda:True)
-    def unavailable(front,back):
-        raise LabelOcrUnavailable("Label reading timed out or failed")
-    monkeypatch.setattr(appmod,'recognize_product',unavailable)
-    with TestClient(appmod.create_app(Settings())) as public:
+    from server.cloud_vision import CloudVisionUnavailable
+
+    class UnavailableGoogle:
+        ready=True
+        calls=0
+        async def read(self,front,back):
+            self.calls+=1
+            raise CloudVisionUnavailable("Google label recognition is unavailable.")
+    reader=UnavailableGoogle()
+    with TestClient(create_app(Settings(google_vision_enabled=True),label_reader=reader)) as public:
         errors=mount(page,public)
         click(page,'inventory');click(page,'scan-product')
         for field,data in [('product-front',before),('product-back',after)]:
@@ -472,6 +484,5 @@ def test_ocr_provider_timeout_keeps_both_photos_and_opens_manual_edit(page,visio
         click(page,'save-product')
         assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Name checked from bottle'
         assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
-        assert vision.calls==[]
+        assert reader.calls==1 and vision.calls==[]
         assert not errors
-
