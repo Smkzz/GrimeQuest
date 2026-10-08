@@ -1,21 +1,21 @@
 # Demo script — real task required
 
-**The included preview is a practice walkthrough, not a completed hackathon submission.** Never splice a simulated victory into footage and describe it as live verification. The submitted demonstration needs actual permitted cleaning, a configured and tested model, and honest outcome labels.
+**The goal is completing a real, safe household task, not demonstrating AI or pretending a simulated outcome is physical proof.** The default guided camera quest is available without account, provider setup or photo upload. No automatic model verification is claimed.
 
 ## Suggested 60–75 second real-use video
 
-**0–8 seconds:** Show the dirty supported target and the actual owned bottle. “This is not a checklist. The cleaning task is the game.” Do not stage a hazardous stain or use a product on an unverified surface.
+**0–8 seconds:** Show a real small chore and the actual surface. “The cleaning task is the game.” Choose a material you know from its care information; do not use a damaged, powered, hot or otherwise hazardous target.
 
-**8–20 seconds:** Capture the target. Show the model's tentative identification, the material confirmation and the exact-product inventory card. Show one unsupported choice staying unavailable; no chemical gets applied for a wrong-answer demonstration.
+**8–20 seconds:** Open GrimeQuest's guided camera quest and capture the before photo. Confirm a known surface (glass, tile, stainless steel, stone, wood, cool unpowered hob or another explicitly named material), visible soil and safe conditions. Explain that this is user-confirmed, not AI classification.
 
-**20–35 seconds:** Show the conditional match and care checks. Follow the real product/object instructions. Film actual cleaning; explicitly label any time-lapse. Do not compress required dwell or handling times into a misleading claim.
+**20–35 seconds:** Select your own independently suitable cleaning method or your own saved Arsenal product. Demonstrate that the barcode lookup is for identity only, not a chemical-use permission. Complete five product/tool/surface care checks. For stone, wood, specialty coatings or mineral deposits, the actual material and product directions are essential. Film the real action without shortening required handling time misleadingly.
 
-**35–52 seconds:** Let the target dry and take the after photo at the original framing/lighting. Keep the real analysis visible. A partial or unverifiable outcome is a valid honest demonstration; it should not be hidden or replaced with a canned result.
+**35–52 seconds:** After following the real instructions, let the target become suitably dry. Capture a comparable after photo without uploading it. The player self-reports clear, partial or unverifiable; do not invent or exaggerate a result.
 
-**52–65 seconds:** Show the actual returned comparison and mode-specific journal. Explain that visible improvement is not disinfection and that unknown materials are blocked.
+**52–65 seconds:** Show the **SELF-REPORTED** result, guided XP and journal. Explain that visible change is not a hygiene/disinfection measurement. Show the unknown-material stop, which stays separate from the unlocked known materials.
 
-**Closing line:** “Use what you already own. Learn the match. Finish the real chore.”
+**Closing:** “Small chores. Real wins. Your home, your method, your progress.”
 
 ## Practice walkthrough
 
-Open `preview.html`, play the grease example, confirm the illustrated material, choose the kitchen reference product, tick the clearly labeled example checks, then run the **explicitly simulated** comparison. Repeat with a partial result and the mystery material to inspect abstention. This is useful for reviewing the game/interface while live validation is pending, not proof that a physical task occurred.
+Open the illustrated practice tutorial to show the separate SIMULATED result pipeline; do not splice it into footage of real cleaning as if it were independently verified. The mystery-material exercise remains a safety stop, while real guided camera quests accept any known material with independently verified care.
