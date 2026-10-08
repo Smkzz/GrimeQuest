@@ -51,3 +51,12 @@ Record results in a private test sheet, not the public GitHub repository. Includ
 5. Test an invalid Google key, provider timeout, rate/quota exhaustion, image upload failure and provider errors. Photos and manual drafts must remain editable; no automatic retry or switch to paid OpenRouter inference.
 6. Compare recognized results against actual bottles and record measured name and warning accuracy. Mock-only protocol verification is not evidence of real OCR accuracy.
 
+
+## Barcode-first product entry (replaces label OCR)
+
+1. On actual iPhone Safari Home Screen PWA, choose **Arsenal → Scan barcode**. Confirm the camera opens only on tapping, the locally bundled ZXing reader detects EAN-13, and the video tracks are stopped on success, cancellation, navigation, backgrounding or app switch. Photos and camera frames are never sent to the backend.
+2. Scan a clean printed code from a household product. Confirm check digit, then press **Find product**; only code digits may reach the public Open Products Facts endpoint through the GrimeQuest backend. Check response name/brand/size against the physical bottle, and require explicit confirmation of a community suggestion before saving.
+3. A valid barcode absent from the community index, an offline phone, or a 429/503 lookup outage must still allow manual product name entry and save as unreviewed without a photo or third-party data request.
+4. Verify typing a valid EAN/UPC/GTIN works even when camera access is denied or no library loads. Wrong check digits are rejected. Manually entered product records with no barcode and existing inventory records must remain readable and exportable.
+5. Verify Finnish cleaner GTIN coverage against real bottles; record hit rate and do not assume Open Products Facts has every SKU. A found name never grants chemical/surface compatibility. Keep manufacturer label and surface-care instructions authoritative.
+6. Confirm no product-label OCR controls, Google Vision photo consent or provider key configuration are shown to players; the operator-disabled Google OCR service is not called in the barcode flow.
