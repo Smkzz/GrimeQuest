@@ -8,6 +8,12 @@ The UI offers no mixing mechanic, speed reward, stronger-chemical reward or pena
 
 The protocol follows the general principles of reading product directions, respecting surface instructions and not mixing products; see [CDC household cleaning guidance](https://www.cdc.gov/hygiene/about/when-and-how-to-clean-and-disinfect-your-home.html). For an actual exposure or emergency, stop interacting with this prototype and contact appropriate local poison/emergency services.
 
+## Guided camera quests for any known surface
+
+The private, self-reported **guided camera quest** accepts any confirmed known material: glass, glazed ceramic, stainless steel, natural stone, wood, a cool unpowered glass-ceramic hob, or **another identified material named by the player**. The player may select visible grease, fingerprints, light grime or mineral deposits, but must independently verify a suitable procedure and read the exact material and product/tool directions. If a previously saved Arsenal product is selected here, it is still an **unreviewed player choice**, not a recommendation or approval by GrimeQuest. Guided outcomes award only self-reported XP, never AI-reviewed/chemically approved status.
+
+If the material or deposit is unknown, the custom material is not identified, or a heat/electrical/damage/unknown-chemical/biological hazard is present, **do not start physical cleaning**. The app asks the user to identify the target or change the quest. Do not use this mode to infer that any cleaner is universally safe on stone, wood, coatings or cookware. The separate server-backed, reviewed-product catalog remains deliberately narrow; user choices in guided mode cannot change those rules.
+
 ## What a conditional match means
 
 A match requires an enabled, unexpired entry for the exact product variant, a supported confirmed surface and soil, no reported hazard, and all five explicit owner confirmations: exact bottle, label allows the target, target-care instructions allow it, no other cleaner is active, and the target is cool/safe.
