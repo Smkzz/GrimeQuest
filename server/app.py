@@ -133,25 +133,28 @@ class BetaPreflight:
             if time.monotonic() < self.valid_until:
                 return self.verified
             self.verified = False
+            stage = 'CONFIG'
             try:
                 if (urlsplit(self.settings.provider_base).hostname != 'openrouter.ai'
                         or self.settings.provider_model != 'google/gemini-2.5-flash-lite'
                         or not self.settings.provider_key):
-                    raise ProviderFailure('Public preview requires the qualified fixed ZDR model and an operator-held key.')
-                spend, endpoints = await asyncio.gather(
-                    verify_openrouter_beta_spend_cap(self.settings.provider_key),
-                    verify_openrouter_zdr_model(self.settings.provider_key, self.settings.provider_model),
-                )
+                    raise ProviderFailure('Public preview requires the fixed ZDR model and an operator-held key.')
+                stage = 'SPEND_CAP'
+                spend = await verify_openrouter_beta_spend_cap(self.settings.provider_key)
+                stage = 'ZDR_ROUTE'
+                endpoints = await verify_openrouter_zdr_model(self.settings.provider_key, self.settings.provider_model)
+                stage = 'FINAL'
                 if not spend['verified'] or not endpoints['verified']:
                     raise ProviderFailure('Provider preflight is incomplete.')
                 self.verified = True
                 self.valid_until = time.monotonic() + 300
                 print('GQ_PUBLIC_BETA_PREFLIGHT_PASS', flush=True)
             except Exception:
-                # Never log keys, private account metadata, photos or raw provider errors.
+                # Only the static stage is reported. No token, key metadata,
+                # request, provider body, image, or exception text is logged.
                 self.verified = False
                 self.valid_until = time.monotonic() + 45
-                print('GQ_PUBLIC_BETA_PREFLIGHT_BLOCKED', flush=True)
+                print('GQ_PUBLIC_BETA_PREFLIGHT_BLOCKED_' + stage, flush=True)
             return self.verified
 
     def cached_ready(self) -> bool:
