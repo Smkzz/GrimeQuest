@@ -259,33 +259,84 @@ test('app update check never reloads mid-quest and offers an explicit refresh',a
  nodes['app-update-now'].events.click();assert.deepEqual(navigations,['/update.html']);
 });
 
-test('stale shell recovery deletes only GrimeQuest caches, preserves saved data, and bypasses old worker URL filter',async()=>{
- const nodes={'refresh-now':{disabled:false,events:{},addEventListener(k,fn){this.events[k]=fn;}},'refresh-status':{textContent:''}};
- const removed=[],deleted=[],navigations=[],locals=new Map([['grimequest.v1','saved inventory'],['notes','personal']]);
- const ctx={console,URL,navigator:{onLine:true,serviceWorker:{getRegistration:async path=>{
-  assert.equal(path,'/');return {scope:'https://app.example/',unregister:async()=>{removed.push('root');return true;}};}},},
- location:{origin:'https://app.example',replace:u=>navigations.push(u)},
- window:{caches:true,location:{replace:u=>navigations.push(u)}},
- caches:{keys:async()=>['another-app','grimequest-old','grimequest-previous'],delete:async name=>{deleted.push(name);return true;}},
- localStorage:{getItem:k=>locals.get(k),setItem:()=>assert.fail('recovery must not change localStorage'),removeItem:()=>assert.fail('recovery must not erase user records')},
- Date:{now:()=>1234},document:{getElementById:id=>nodes[id]}};
+function simulatePwaRecovery({online=true,server503=false,cacheReady=true}={}){
+ const revision='grimequest-0123456789abcdef';
+ const calls={fetch:0,register:0,update:0,delete:0,navigate:[],sleep:0};
+ const button={disabled:false,events:{},addEventListener(name,fn){this.events[name]=fn;}};
+ const status={textContent:''};
+ const nodes={'refresh-now':button,'refresh-status':status};
+ const reg={active:{state:'activated'},installing:null,waiting:null,
+  update:async()=>{calls.update++;}};
+ const mockCaches={
+  keys:async()=>cacheReady?['grimequest-old',revision]:['grimequest-old'],
+  open:async name=>{
+   assert.equal(name,revision);
+   return{match:async path=>{
+    assert.ok(['/','/app.js','/styles.css','/update-client.js'].includes(path));
+    return{ok:true};
+   }};
+  },
+  delete:async()=>{calls.delete++;assert.fail('Recovery must never erase old shell');}
+ };
+ const ctx={
+  console,URL,Date:{now:()=>1234},AbortSignal:{timeout:ms=>{assert.equal(ms,5000);return {};}},
+  setTimeout:callback=>{calls.sleep++;callback();},
+  navigator:{onLine:online,serviceWorker:{
+   getRegistration:async scope=>{assert.equal(scope,'/');calls.register++;return reg;},
+   register:async()=>assert.fail('A registered worker already exists')
+  }},
+  location:{origin:'https://app.example'},
+  window:{caches:mockCaches,location:{replace:path=>calls.navigate.push(path)}},
+  caches:mockCaches,
+  fetch:async path=>{
+   calls.fetch++;assert.ok(path.startsWith('/sw.js?refresh_check='));
+   if(server503)return{ok:false,status:503};
+   return{ok:true,text:async()=>"const CACHE = '"+revision+"';"};
+  },
+  document:{getElementById:id=>nodes[id]}
+ };
  vm.runInNewContext(fs.readFileSync('web/update.js','utf8'),ctx);
- await nodes['refresh-now'].events.click();
- assert.deepEqual(removed,['root']);assert.deepEqual(deleted.sort(),['grimequest-old','grimequest-previous']);
- assert.deepEqual(navigations,['/?app_refresh=1234']);
- assert.equal(locals.get('grimequest.v1'),'saved inventory');
- assert.equal(nodes['refresh-now'].disabled,true);
+ return{button,status,calls,reg};
+}
+
+test('safe refresh uses complete new offline shell without losing the old cache',async()=>{
+ const {button,status,calls}=simulatePwaRecovery();
+ await button.events.click();
+ assert.deepEqual(calls.navigate,['/']);
+ assert.equal(calls.delete,0);assert.equal(calls.update,1);
+ assert.equal(calls.fetch,1);
+ assert.equal(button.disabled,true);
+ assert.match(status.textContent,/Updated files ready/);
 });
 
-test('offline recovery does not unregister or delete anything',async()=>{
- const nodes={'refresh-now':{disabled:false,events:{},addEventListener(k,fn){this.events[k]=fn;}},'refresh-status':{textContent:''}};
- let touched=0;
- const ctx={console,navigator:{onLine:false,serviceWorker:{getRegistration:async()=>{touched++;}}},location:{origin:'https://app.example'},window:{},document:{getElementById:id=>nodes[id]}};
- vm.runInNewContext(fs.readFileSync('web/update.js','utf8'),ctx);
- await nodes['refresh-now'].events.click();
- assert.equal(touched,0);assert.match(nodes['refresh-status'].textContent,/Connect to the internet/);
- assert.equal(nodes['refresh-now'].disabled,false);
+test('a temporarily 503-ing server never causes destructive PWA reset',async()=>{
+ const {button,status,calls}=simulatePwaRecovery({server503:true});
+ await button.events.click();
+ assert.equal(calls.fetch,3,'gentle bounded retries');
+ assert.equal(calls.update,0,'do not touch registration if network is down');
+ assert.equal(calls.delete,0);assert.deepEqual(calls.navigate,[]);
+ assert.equal(button.disabled,false);
+ assert.match(status.textContent,/server is temporarily unavailable/i);
 });
+
+test('incomplete new shell leaves previous worker and cache intact',async()=>{
+ const {button,status,calls}=simulatePwaRecovery({cacheReady:false});
+ await button.events.click();
+ assert.equal(calls.update,1);assert.equal(calls.delete,0);
+ assert.deepEqual(calls.navigate,[]);
+ assert.equal(button.disabled,false);
+ assert.match(status.textContent,/previous offline version is preserved/);
+});
+
+test('offline safe refresh does not modify registration or caches',async()=>{
+ const {button,status,calls}=simulatePwaRecovery({online:false});
+ await button.events.click();
+ assert.equal(calls.fetch,0);assert.equal(calls.update,0);
+ assert.equal(calls.delete,0);assert.deepEqual(calls.navigate,[]);
+ assert.equal(button.disabled,false);
+ assert.match(status.textContent,/Connect to the internet/);
+});
+
 test('AI product label read gate reports precise reasons and protects practice mode',()=>{
  const g=G.labelReadGate;
  assert.equal(g(null,false,false,false,true,true).code,'checking');
