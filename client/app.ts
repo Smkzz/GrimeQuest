@@ -13,6 +13,7 @@ namespace GQ {
   let uploadGeneration=0;
   let productFront='';
   let productBack='';
+  let ocrFailedForThesePhotos=false;
   let observation: {name:string;label_text:string;label_readable:boolean}|null=null;
   let root: HTMLElement;
   const e=escapeHTML;
@@ -137,9 +138,9 @@ namespace GQ {
   }
   function productScanView():string {
     const gate=labelGate();
-    const ocrReady=health?.label_ocr_ready===true;
+    const ocrReady=health?.label_ocr_ready===true && !ocrFailedForThesePhotos;
     const displayName=ocrNameForReview(observation?.name);
-    return `${back('inventory','Arsenal')}${heading('READ THE BOTTLE. DON’T GUESS.','Scan your product.','Photograph printed text close-up, with the bottle still and the label filling the frame. Avoid glare and shadows. You must review the result.')}<div class="split"><section class="panel"><div class="label-captures">${[['front','Front label',productFront],['back','Directions & warnings',productBack]].map(([id,label,src])=>`<label class="label-capture"><span>${label}</span>${src?picture(src,'Product '+label):icon('camera')}<span class="btn secondary">Choose / photograph</span><input id="product-${id}" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label>`).join('')}</div><div class="label-ai-status" id="label-read-status" role="status" aria-live="polite"><h2>Automatic label reading</h2><p>${ocrReady?'Finnish and English text recognition is available on the GrimeQuest server. It does not use paid AI. Review and correct the text, especially warnings.':'Automatic text recognition is unavailable right now. You can enter the product information manually.'}</p><p class="label-count">${Number(!!productFront)+Number(!!productBack)} of 2 photos selected</p></div>${ocrReady?check('product-consent','I approve sending both photos to GrimeQuest for temporary text extraction, not to an external AI provider.'):''}${ocrReady?button('Read text from both labels','read-label-ocr','primary wide','aria-describedby="label-read-status"'):button('Enter product details manually','focus-manual-product','primary wide')}${ocrReady?button('Or enter details manually','focus-manual-product','secondary wide'):''}${gate.code==='code'?`<details class="private-test-controls"><summary>Advanced private AI test (operator only)</summary><div class="label-private-code"><label for="label-private-code">Private tester access code</label><input type="password" id="label-private-code" maxlength="160" autocomplete="off" placeholder="Operator-provided code">${button('Save access code','save-label-code','secondary')}</div></details>`:''}${gate.code==='mode'?button('Enable Live AI for private testing','enable-label-live','secondary'):''}${gate.enabled?`${check('product-ai-consent','I separately approve sending both photos to the external AI provider.')}${button('Try experimental AI Beta','analyze-product','secondary wide')}`:''}<p class="hint">For best results, frame the printed letters rather than the entire bottle. Retake either photo using its Choose / photograph control if the text is unclear. Never rely on OCR for warnings.</p></section><section class="panel"><h2>${observation?'Check and correct the scanned text.':'Or record it yourself.'}</h2><p>${observation?'This is an unverified draft, not a confirmed product name or safety check. Compare everything with the original bottle, including every warning.':'Manual notes stay on this device and cannot authorize a cleaner.'}</p>${observation && (!observation.label_readable||!displayName)?`<div class="notice warning" role="status"><b>Low-confidence label scan.</b> The OCR could not reliably read one or both photos. It may miss or scramble warnings. Retake close-up photos with even lighting or type the details yourself.</div>`:''}<div class="field"><label for="product-name">Product name${observation?' (confirm from the bottle)':''}</label><input id="product-name" maxlength="240" value="${e(displayName)}" placeholder="Type the exact product name on the bottle"></div><div class="field"><label for="product-note">Label text / note (optional, unreviewed)</label><textarea id="product-note" maxlength="6000" rows="5" placeholder="Do not include personal information">${e(observation?.label_text||'')}</textarea></div>${observation?check('label-review-confirm','I compared the name, directions, and warnings with the actual bottle and corrected this draft where necessary.'):''}${button('Save as unreviewed product','save-product','secondary wide')}<p class="micro">To use a reviewed entry, return to Arsenal and manually select the exact catalog variant. Scanning never expands compatibility rules.</p></section></div>`;
+    return `${back('inventory','Arsenal')}${heading('READ THE BOTTLE. DON’T GUESS.','Scan your product.','Photograph printed text close-up, with the bottle still and the label filling the frame. Avoid glare and shadows. You must review the result.')}<div class="split"><section class="panel"><div class="label-captures">${[['front','Front label',productFront],['back','Directions & warnings',productBack]].map(([id,label,src])=>`<label class="label-capture"><span>${label}</span>${src?picture(src,'Product '+label):icon('camera')}<span class="btn secondary">Choose / photograph</span><input id="product-${id}" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" capture="environment"></label>`).join('')}</div><div class="label-ai-status" id="label-read-status" role="status" aria-live="polite"><h2>Automatic label reading</h2><p>${ocrFailedForThesePhotos?'The automatic scan took too long or the reader was busy. Your selected photos are still here. Type the name and label information below. You do not need to scan again.':ocrReady?'Finnish and English text recognition is available on the GrimeQuest server. It does not use paid AI. Review and correct the text, especially warnings.':'Automatic text recognition is unavailable right now. You can enter the product information manually.'}</p><p class="label-count">${Number(!!productFront)+Number(!!productBack)} of 2 photos selected</p></div>${ocrReady?check('product-consent','I approve sending both photos to GrimeQuest for temporary text extraction, not to an external AI provider.'):''}${ocrReady?button('Read text from both labels','read-label-ocr','primary wide','aria-describedby="label-read-status"'):button('Enter product details manually','focus-manual-product','primary wide')}${ocrReady?button('Or enter details manually','focus-manual-product','secondary wide'):''}${gate.code==='code'?`<details class="private-test-controls"><summary>Advanced private AI test (operator only)</summary><div class="label-private-code"><label for="label-private-code">Private tester access code</label><input type="password" id="label-private-code" maxlength="160" autocomplete="off" placeholder="Operator-provided code">${button('Save access code','save-label-code','secondary')}</div></details>`:''}${gate.code==='mode'?button('Enable Live AI for private testing','enable-label-live','secondary'):''}${gate.enabled?`${check('product-ai-consent','I separately approve sending both photos to the external AI provider.')}${button('Try experimental AI Beta','analyze-product','secondary wide')}`:''}<p class="hint">For best results, frame the printed letters rather than the entire bottle. Retake either photo using its Choose / photograph control if the text is unclear. Never rely on OCR for warnings.</p></section><section class="panel"><h2>${observation?'Check and correct the scanned text.':'Or record it yourself.'}</h2><p>${observation?'This is an unverified draft, not a confirmed product name or safety check. Compare everything with the original bottle, including every warning.':'Manual notes stay on this device and cannot authorize a cleaner.'}</p>${observation && (!observation.label_readable||!displayName)?`<div class="notice warning" role="status"><b>Low-confidence label scan.</b> The OCR could not reliably read one or both photos. It may miss or scramble warnings. Retake close-up photos with even lighting or type the details yourself.</div>`:''}<div class="field"><label for="product-name">Product name${observation?' (confirm from the bottle)':''}</label><input id="product-name" maxlength="240" value="${e(displayName)}" placeholder="Type the exact product name on the bottle"></div><div class="field"><label for="product-note">Label text / note (optional, unreviewed)</label><textarea id="product-note" maxlength="6000" rows="5" placeholder="Do not include personal information">${e(observation?.label_text||'')}</textarea></div>${observation?check('label-review-confirm','I compared the name, directions, and warnings with the actual bottle and corrected this draft where necessary.'):''}${button('Save as unreviewed product','save-product','secondary wide')}<p class="micro">To use a reviewed entry, return to Arsenal and manually select the exact catalog variant. Scanning never expands compatibility rules.</p></section></div>`;
   }
   function render(focus=true):void {
     camera?.stop();
@@ -158,11 +159,11 @@ namespace GQ {
   function checked(name:string):boolean {return !!root.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.checked;}
   function val(id:string):string {return root.querySelector<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>(`#${id}`)?.value.trim()||'';}
   function persist():void {saveStore(store);}
-  async function api<T>(path:string,payload:unknown):Promise<T> {
+  async function api<T>(path:string,payload:unknown,timeoutMs=35000):Promise<T> {
     if(location.protocol==='file:') throw new Error('This standalone preview has no backend. Use the source package to run live mode.');
     const headers:Record<string,string>={'Content-Type':'application/json'};
     if(health?.access_mode!=='public_rate_limited') headers['X-GQ-Access']=getAccessCode();
-    const response=await fetch(`/api/${path}`,{method:'POST',headers,body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(35000)});
+    const response=await fetch(`/api/${path}`,{method:'POST',headers,body:JSON.stringify(payload),cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(timeoutMs)});
     let body:unknown;
     try {body=await response.json();} catch {throw new Error('Server returned an invalid response. No result was awarded.');}
     if(!response.ok) {
@@ -328,7 +329,7 @@ namespace GQ {
           persist();render(false);toast('Added to your arsenal. This does not certify the product or its use.');break;
         }
         case 'remove-product':store={...store,inventory:store.inventory.filter(i=>i.id!==id)};persist();render(false);break;
-        case 'scan-product':case 'manual-product':productFront='';productBack='';observation=null;go('product-scan');break;
+        case 'scan-product':case 'manual-product':productFront='';productBack='';ocrFailedForThesePhotos=false;observation=null;go('product-scan');break;
         case 'focus-manual-product':{
           const field=root.querySelector<HTMLInputElement>('#product-name');
           field?.scrollIntoView({behavior:'smooth',block:'center'});field?.focus({preventScroll:true});break;
@@ -356,9 +357,25 @@ namespace GQ {
           if(!checked('product-consent'))throw new Error('Check the consent box before uploading both photos to GrimeQuest for text recognition.');
           const draftName=val('product-name'),draftNote=val('product-note');
           await work(async()=>{
-            const r=await api<{observation:{name:string;label_text:string;label_readable:boolean};extraction:string}>('read-labels',
-              {front_image:productFront,back_image:productBack,consent:true});
+            let r:{observation:{name:string;label_text:string;label_readable:boolean};extraction:string};
+            try{
+              r=await api<typeof r>('read-labels',
+                {front_image:productFront,back_image:productBack,consent:true},16000);
+            }catch{
+              // Nothing recognized; do not fabricate a transcription or block
+              // the player with another slow retry. Keep their selected photos
+              // and drafted fields so they can complete the product form now.
+              ocrFailedForThesePhotos=true;
+              observation=null;
+              refreshProductView();
+              const field=root.querySelector<HTMLInputElement>('#product-name');
+              field?.scrollIntoView({behavior:'smooth',block:'center'});
+              field?.focus({preventScroll:true});
+              toast('Automatic text reading was too slow or busy. Photos remain selected. Enter the label details manually; no rescan is required.',true);
+              return;
+            }
             const o=r.observation;
+            ocrFailedForThesePhotos=false;
             if(!o||typeof o.name!=='string'||!o.name||o.name.length>240||
                typeof o.label_text!=='string'||o.label_text.length>6000||typeof o.label_readable!=='boolean'||
                r.extraction!=='server_local_tesseract')throw new Error('Invalid OCR response. No product was approved.');
@@ -395,8 +412,8 @@ namespace GQ {
       const img=await normalizePhoto(file);
       if(generation!==uploadGeneration || !input.isConnected) return;
       if(input.id==='photo-file') captureImage=img;
-      else if(input.id==='product-front') productFront=img;
-      else if(input.id==='product-back') productBack=img;
+      else if(input.id==='product-front'){productFront=img;ocrFailedForThesePhotos=false;}
+      else if(input.id==='product-back'){productBack=img;ocrFailedForThesePhotos=false;}
       if(screen==='product-scan')refreshProductView();
       else render(false);
     } catch(err){toast(err instanceof Error?err.message:'Could not open that photo.',true);}
