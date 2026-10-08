@@ -44,6 +44,11 @@ def test_desktop_shows_self_hosted_usable_qr_with_desktop_escape(origin):
         errors = []
         page.on('pageerror', lambda err: errors.append(str(err)))
         open_or_skip(page, origin + '/')
+        # A judge can play immediately; installation handoff is opt-in.
+        expect(page.locator('#install-gate')).to_be_hidden()
+        expect(page.locator('#app h1')).to_contain_text('A little mess.')
+        assert not page.locator('#app').evaluate('(el) => el.inert')
+        page.locator('[data-action="show-install"]').click()
         expect(page.locator('#install-gate')).to_be_visible()
         expect(page.locator('#install-qr canvas')).to_be_visible()
         assert page.locator('#app').evaluate('(el) => el.inert')
