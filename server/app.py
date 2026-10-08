@@ -149,12 +149,16 @@ class BetaPreflight:
                 self.verified = True
                 self.valid_until = time.monotonic() + 300
                 print('GQ_PUBLIC_BETA_PREFLIGHT_PASS', flush=True)
-            except Exception:
-                # Only the static stage is reported. No token, key metadata,
-                # request, provider body, image, or exception text is logged.
+            except Exception as exc:
+                # Only codes from this reviewed closed vocabulary may reach logs.
+                # Never log untrusted exception text, balances, keys or photos.
+                known = {'KEY_METADATA_UNAVAILABLE','KEY_METADATA_SCHEMA','SPEND_CAP_MISSING',
+                         'SPEND_CAP_RESETTING','BYOK_NOT_CAPPED','WRONG_KEY_ROLE',
+                         'SPEND_CAP_INVALID','SPEND_CAP_EXHAUSTED','KEY_METADATA_NETWORK_ERROR'}
+                reason = str(exc) if isinstance(exc, ProviderFailure) and str(exc) in known else 'UNSPECIFIED'
                 self.verified = False
                 self.valid_until = time.monotonic() + 45
-                print('GQ_PUBLIC_BETA_PREFLIGHT_BLOCKED_' + stage, flush=True)
+                print('GQ_PUBLIC_BETA_PREFLIGHT_BLOCKED_' + stage + '_' + reason, flush=True)
             return self.verified
 
     def cached_ready(self) -> bool:

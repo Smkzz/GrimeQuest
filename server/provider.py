@@ -111,15 +111,33 @@ async def verify_openrouter_beta_spend_cap(key: str, transport=None) -> dict:
         async with httpx.AsyncClient(timeout=10, follow_redirects=False, trust_env=False, transport=transport) as client:
             response = await client.get('https://openrouter.ai/api/v1/key', headers={'Authorization': 'Bearer ' + key})
             if response.status_code != 200 or len(response.content) > 20_000:
-                raise ProviderFailure('Could not verify the existing provider spending ceiling.')
-            verified = validate_openrouter_key_limit(response.json().get('data'), maximum_usd=10.0)
+                raise ProviderFailure('KEY_METADATA_UNAVAILABLE')
+            data = response.json().get('data')
+            if not isinstance(data, dict):
+                raise ProviderFailure('KEY_METADATA_SCHEMA')
+            # The public GET /key response may omit is_management_key. Explicit
+            # management-key=true is still refused; an absent field cannot
+            # bypass the mandatory non-resetting spend/BYOK ceiling.
+            data = {**data, 'is_management_key': data.get('is_management_key', False)}
+            if data.get('limit') is None:
+                raise ProviderFailure('SPEND_CAP_MISSING')
+            if data.get('limit_reset', 'not_reported') is not None:
+                raise ProviderFailure('SPEND_CAP_RESETTING')
+            if data.get('include_byok_in_limit') is not True:
+                raise ProviderFailure('BYOK_NOT_CAPPED')
+            if data.get('is_management_key') is True:
+                raise ProviderFailure('WRONG_KEY_ROLE')
+            try:
+                verified = validate_openrouter_key_limit(data, maximum_usd=10.0)
+            except ProviderFailure:
+                raise ProviderFailure('SPEND_CAP_INVALID') from None
             if verified['remaining_usd'] < 0.10:
-                raise ProviderFailure('The provider spending limit is nearly exhausted.')
+                raise ProviderFailure('SPEND_CAP_EXHAUSTED')
             return verified
     except ProviderFailure:
         raise
     except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as exc:
-        raise ProviderFailure('Provider spending preflight unavailable.') from exc
+        raise ProviderFailure('KEY_METADATA_NETWORK_ERROR') from exc
 
 class VisionProvider:
     def __init__(self, base_url: str, model: str, key: str = "", transport=None, timeout: float = 25):
