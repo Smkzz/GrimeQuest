@@ -26,10 +26,11 @@ def test_ocr_recognizes_two_labels_without_external_calls_or_files(monkeypatch):
         _tsv(["KÄYTTÖOHJE","Lue ohjeet ja varoitukset"])
     ]
     def fake_run(argv, **kw):
-        assert argv==["tesseract","stdin","stdout","-l","fin+eng","--psm","11","tsv"]
-        assert isinstance(kw["input"],bytes) and kw["input"][:3]==b"\xff\xd8\xff"
+        expected_psm="11" if not seen else "6"
+        assert argv==["tesseract","stdin","stdout","-l","fin+eng","--psm",expected_psm,"tsv"]
+        assert isinstance(kw["input"],bytes) and kw["input"][:4]==b"\x89PNG"
         assert "GQ_PROVIDER_KEY" not in kw["env"]
-        assert kw["timeout"]==6.5 and kw["check"] is False
+        assert kw["timeout"]==5.0 and kw["check"] is False
         seen.append(argv)
         return SimpleNamespace(returncode=0,stdout=results.pop(0))
     monkeypatch.setattr(ocr,"available",lambda:True)
@@ -45,7 +46,7 @@ def test_ocr_recognizes_two_labels_without_external_calls_or_files(monkeypatch):
 
 
 def test_ocr_unreadable_directions_never_claim_complete_label(monkeypatch):
-    outputs=[_tsv(["KIILTO KOTI"]),_tsv(["KIILTO KOTI"]),_tsv([]),_tsv([])]
+    outputs=[_tsv(["KIILTO KOTI"]),_tsv([])]
     monkeypatch.setattr(ocr,"available",lambda:True)
     monkeypatch.setattr(ocr.subprocess,"run",lambda *args,**kw: SimpleNamespace(returncode=0,stdout=outputs.pop(0)))
     data=make_image()
@@ -59,7 +60,6 @@ def test_ocr_rejects_screenshot_like_noise_as_a_product_name(monkeypatch):
     """Regression: '| MTT' and 'LSANYTOL | VS' from the real iPhone screenshot."""
     outputs=[
         _tsv(["| MTT","< - M","LSANYTOL | VS"],confidence=90),
-        _tsv(["| MTT","< - M","LSANYTOL | VS"],confidence=90),
         _tsv(["DIRECTIONS WARNINGS","Read instructions before use"],confidence=94)
     ]
     monkeypatch.setattr(ocr,"available",lambda:True)
@@ -72,7 +72,7 @@ def test_ocr_rejects_screenshot_like_noise_as_a_product_name(monkeypatch):
 
 
 def test_ocr_rejects_low_confidence_two_word_name_even_if_readable_shape(monkeypatch):
-    outputs=[_tsv(["FAKE CLEANER"],confidence=39)]*4
+    outputs=[_tsv(["FAKE CLEANER"],confidence=39)]*2
     monkeypatch.setattr(ocr,"available",lambda:True)
     monkeypatch.setattr(ocr.subprocess,"run",lambda *a,**kw:SimpleNamespace(returncode=0,stdout=outputs.pop(0)))
     img=make_image()
@@ -145,3 +145,55 @@ def test_ocr_unavailable_fails_without_images_or_provider_call(monkeypatch):
             headers={"origin":"http://testserver"})
         assert response.status_code==503
         assert "data:image" not in response.text
+
+
+def test_both_tesseract_timeouts_return_incomplete_draft_not_503(monkeypatch):
+    """Bad real label must never create 13.8s+ 503/retry cascade."""
+    import subprocess
+    calls=[]
+    monkeypatch.setattr(ocr,"available",lambda:True)
+    def timeout_process(argv, **kw):
+        calls.append((argv,kw["timeout"]))
+        raise subprocess.TimeoutExpired(argv,kw["timeout"])
+    monkeypatch.setattr(ocr.subprocess,"run",timeout_process)
+    photo=make_image(size=(1600,1200))
+    result=ocr.recognize_product(photo,photo)
+    assert len(calls)==2
+    assert calls[0][0][-2:]==["11","tsv"] and calls[1][0][-2:]==["6","tsv"]
+    assert all(timeout == 5 for _,timeout in calls)
+    assert result.name==ocr.NAME_UNREADABLE
+    assert result.label_readable is False
+    assert "OCR QUALITY WARNING" in result.label_text
+    assert "No reliable text recognized" in result.label_text
+
+    m=importlib.import_module("server.app")
+    monkeypatch.setattr(m,"ocr_available",lambda:True)
+    with TestClient(m.create_app(Settings())) as client:
+        payload={"front_image":photo,"back_image":photo,"consent":True}
+        response=client.post("/api/read-labels",json=payload,headers={"origin":"http://testserver"})
+        assert response.status_code==200, response.text[:200]
+        body=response.json()
+        assert body["observation"]["label_readable"] is False
+        assert body["review_status"]=="unreviewed"
+        assert body["provider_calls"]==0
+    assert len(calls)==4, "Each request must invoke the engine at most twice"
+
+
+def test_one_label_times_out_other_label_survives_as_unreviewed(monkeypatch):
+    import subprocess
+    calls=[]
+    monkeypatch.setattr(ocr,"available",lambda:True)
+    def partial(argv,**kw):
+        calls.append(argv)
+        if len(calls)==2:
+            raise subprocess.TimeoutExpired(argv,kw["timeout"])
+        return SimpleNamespace(returncode=0,stdout=_tsv(["KIILTO KOTI","Yleispuhdistussuihke"]))
+    monkeypatch.setattr(ocr.subprocess,"run",partial)
+    photo=make_image(size=(1600,1000))
+    obs=ocr.recognize_product(photo,photo)
+    assert len(calls)==2
+    assert obs.name=="KIILTO KOTI"
+    assert obs.label_readable is False
+    assert "KÄYTTÖOHJE" not in obs.label_text
+    assert "OCR QUALITY WARNING" in obs.label_text
+

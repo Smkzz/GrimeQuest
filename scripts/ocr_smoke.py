@@ -88,3 +88,33 @@ with TestClient(create_app(Settings())) as client:
     assert "data:image/" not in response.text
     print("GQ_LOCAL_OCR_API_SMOKE_PASS")
 
+# Fail-soft regression: on a CPU-starved host, BOTH engine invocations can
+# exceed their per-photo deadline. Never propagate as an API 503; return 200
+# with an explicitly unreadable, manual-editable result. No retries/provider.
+import subprocess
+from unittest.mock import patch
+from server import ocr as _ocr
+
+deadline_calls=[]
+def _engine_timeout(argv, **kwargs):
+    deadline_calls.append((argv, kwargs["timeout"]))
+    raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+
+with patch.object(_ocr.subprocess, "run", side_effect=_engine_timeout):
+    unfinished = recognize_product(front, back)
+    assert unfinished.label_readable is False
+    assert unfinished.name.startswith("Product name unclear")
+    assert all(limit == 5.0 for _, limit in deadline_calls)
+    assert len(deadline_calls) == 2, "One engine attempt per label, never four"
+    with TestClient(create_app(Settings())) as client:
+        response = client.post(
+            "/api/read-labels",
+            json={"front_image":front,"back_image":back,"consent":True},
+            headers={"origin":"http://testserver"}
+        )
+        assert response.status_code == 200, response.text[:400]
+        assert response.json()["observation"]["label_readable"] is False
+        assert response.json()["recommendation_permission"] is False
+    assert len(deadline_calls) == 4
+    print("GQ_LOCAL_OCR_TIMEOUT_FALLBACK_PASS")
+

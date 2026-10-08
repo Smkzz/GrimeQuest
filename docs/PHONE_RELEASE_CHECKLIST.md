@@ -49,3 +49,10 @@ Record results in a private test sheet, not the public GitHub repository. Includ
 3. Saving an OCR transcription must require the user to confirm the text, including warnings, against the bottle. Without review, no product entry should be saved. Neither a successful OCR call nor that review may expand cleaning-product compatibility rules.
 4. Verify both photos remain on the device until explicit OCR upload consent; server OCR does not send images to an external model or write picture/transcript files. When the service is busy or offline, manual entry stays available.
 5. Measure word/name transcription accuracy and the rate of incorrect *apparently successful* scans on a small consented set of actual labels. Synthetic OCR smoke tests alone do not qualify real bottle accuracy.
+
+## Timeout and resource validation
+
+- Test both front and back with highly patterned/curved labels on the production-sized 0.5-vCPU instance. Each image receives exactly one 5-second recognition attempt; the total server processing must remain short enough for the client-side 16-second request deadline.
+- Force a subprocess timeout on both images. The HTTP response must be **200 with `label_readable=false`**, not HTTP 503, and no product is auto-approved. No additional OCR pass or paid provider request may occur.
+- Force HTTP 503, 429 and a network interruption. The phone must retain both selected photos and drafted text, show an active manual-entry path without any server configuration, and allow saving an unreviewed product without rescanning.
+- Real phone tests must separately assess actual recognition accuracy. These timeout fixes guarantee an escape path, **not** correct OCR for every package.

@@ -440,3 +440,38 @@ def test_ocr_screenshot_garbage_name_never_silently_becomes_saved_product(page,v
         assert len(invoked)==1
         assert not errors
 
+def test_ocr_provider_timeout_keeps_both_photos_and_opens_manual_edit(page,vision,before,after,monkeypatch):
+    """The 503 that blocked the real iPhone must not block product entry."""
+    import importlib
+    from fastapi.testclient import TestClient
+    from server.config import Settings
+    from server.ocr import LabelOcrUnavailable
+    appmod=importlib.import_module('server.app')
+    monkeypatch.setattr(appmod,'ocr_available',lambda:True)
+    def unavailable(front,back):
+        raise LabelOcrUnavailable("Label reading timed out or failed")
+    monkeypatch.setattr(appmod,'recognize_product',unavailable)
+    with TestClient(appmod.create_app(Settings())) as public:
+        errors=mount(page,public)
+        click(page,'inventory');click(page,'scan-product')
+        for field,data in [('product-front',before),('product-back',after)]:
+            page.locator('#'+field).set_input_files({
+                'name':'label.jpg','mimeType':'image/jpeg',
+                'buffer':base64.b64decode(data.split(',')[1]),
+            })
+            page.wait_for_timeout(130)
+        page.locator('[name="product-consent"]').check()
+        click(page,'read-label-ocr')
+        expect(page.locator('#label-read-status')).to_contain_text('too long')
+        expect(page.locator('[data-action="focus-manual-product"]')).to_be_visible()
+        expect(page.locator('img[alt="Product Front label"]')).to_be_visible()
+        expect(page.locator('img[alt="Product Directions & warnings"]')).to_be_visible()
+        expect(page.locator('#product-name')).to_be_focused()
+        page.locator('#product-name').fill('Name checked from bottle')
+        page.locator('#product-note').fill('Manual directions checked by owner')
+        click(page,'save-product')
+        assert page.evaluate('GQ.readStore().inventory.at(-1).name')=='Name checked from bottle'
+        assert page.evaluate('GQ.readStore().inventory.at(-1).catalogId') is None
+        assert vision.calls==[]
+        assert not errors
+
