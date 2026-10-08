@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-08 — Surface-wide guided quests
+
+- Unblocked the **self-reported camera-quest flow** for steel, natural stone, wood, cool unpowered glass-ceramic hobs, limescale and any other known material the player names.
+- Preserved required material/care checks and unknown/hazard stops; no scanned, manually entered or catalog product automatically gains additional chemical-use permission.
+- Allowed players to choose an existing Arsenal item as their **own unverified method** in guided mode; improved material and soil labels and safety wording.
+- Expanded Node state-machine and browser regression tests, without changing the model-reviewed catalog's conservative eligibility decisions.
+
+
 ## Native iPhone HEIC photo support — 2026-10-08
 
 - Added iOS Safari 17+ native HEIC/HEIF photo selection and browser JPEG normalization; no WASM dependency or image-upload bypass.
