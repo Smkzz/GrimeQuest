@@ -27,11 +27,19 @@ namespace GQ {
     if(!['exact_product','label_allows_target','surface_care_allows','no_other_product','cool_and_safe'].every(k=>a[k as keyof Attestations]===true)) return no('uncertain','CONFIRMATIONS_REQUIRED','Confirm the exact bottle, current label, surface care, absence of other cleaners and a cool, safe target.');
     return {status:'eligible',code:'LABEL_MATCH',reason:"Conditional label match within this prototype's narrow scope. Follow the current package and surface-care instructions.",product_id:productId,source:p.source,steps:p.steps};
   }
-  export type QuestEvent = {type:'confirm';surface:Surface;soil:Soil} | {type:'equip'; productId:string} | {type:'start'} | {type:'result';result:Result;after:string} | {type:'retry'};
+  export const GUIDED_METHOD_ID='guided-user-method';
+  export function guidedTargetSupported(surface:Surface,soil:Soil,hazards:string[]):boolean {
+    return (surface==='uncoated_glass'||surface==='glazed_ceramic') && ['grease','fingerprints','light_grime'].includes(soil) && hazards.length===1 && hazards[0]==='none';
+  }
+  export type QuestEvent = {type:'confirm';surface:Surface;soil:Soil} | {type:'equip'; productId:string} | {type:'equip-guided'} | {type:'start'} | {type:'result';result:Result;after:string} | {type:'retry'};
   export function transition(q: Quest, event: QuestEvent): Quest {
     if(event.type==='confirm' && q.phase==='identified') {
       if(!q.analysis.visible_soil || q.analysis.image_quality!=='usable') throw new Error('A usable before photo and visible target are required.');
       return {...q,phase:'confirmed',surface:event.surface,soil:event.soil};
+    }
+    if(event.type==='equip-guided' && q.mode==='guided' && (q.phase==='confirmed'||q.phase==='equipped')) {
+      if(!guidedTargetSupported(q.surface,q.soil,q.analysis.hazards)) throw new Error('This target is outside the guided camera-quest scope. Stop rather than guessing about materials or hazards.');
+      return {...q,phase:'equipped',productId:GUIDED_METHOD_ID};
     }
     if(event.type==='equip' && (q.phase==='confirmed'||q.phase==='equipped')) {
       const m=matchProduct(q.surface,q.soil,event.productId,allConfirmed(),q.analysis.hazards);
@@ -41,8 +49,9 @@ namespace GQ {
     if(event.type==='start' && q.phase==='equipped' && q.productId) return {...q,phase:'cleaning'};
     if(event.type==='result' && q.phase==='cleaning') {
       if(event.result.encounter_id!==q.id) throw new Error('Result does not belong to this quest.');
-      if(q.mode==='live' && event.result.provenance==='practice_fixture') throw new Error('Practice results cannot complete live quests.');
-      if(q.mode==='practice' && event.result.provenance!=='practice_fixture') throw new Error('Live evidence cannot be used in practice mode.');
+      if(q.mode==='live' && !['model_observation','deterministic_guard'].includes(event.result.provenance)) throw new Error('Live quests require an actual server observation or deterministic guard.');
+      if(q.mode==='guided' && event.result.provenance!=='self_attested') throw new Error('Guided camera quests require an explicitly self-reported result.');
+      if(q.mode==='practice' && event.result.provenance!=='practice_fixture') throw new Error('Only simulated outcomes can be used in practice mode.');
       if(event.result.status==='clear' && q.mode==='live' && !event.result.receipt) throw new Error('Missing completion receipt.');
       return {...q,phase:'result',result:event.result,after:event.after};
     }
@@ -54,8 +63,9 @@ namespace GQ {
     if(quest.phase!=='result'||!quest.result) throw new Error('No result to record.');
     const r=quest.result;
     if(r.encounter_id!==quest.id) throw new Error('Mismatched result.');
-    if(quest.mode==='live' && r.provenance==='practice_fixture') throw new Error('Practice cannot award live XP.');
-    if(quest.mode==='practice' && r.provenance!=='practice_fixture') throw new Error('Live evidence cannot award practice XP.');
+    if(quest.mode==='live' && !['model_observation','deterministic_guard'].includes(r.provenance)) throw new Error('Self-reported or practice outcomes cannot award live XP.');
+    if(quest.mode==='guided' && r.provenance!=='self_attested') throw new Error('Guided outcomes must be marked self-reported.');
+    if(quest.mode==='practice' && r.provenance!=='practice_fixture') throw new Error('Only simulated outcomes can award practice XP.');
     if(quest.mode==='live' && r.status==='clear' && !r.receipt) throw new Error('Receipt required.');
     const existing=store.history.find(h=>h.id===quest.id && h.mode===quest.mode);
     if(existing?.status==='clear') return store;
@@ -79,7 +89,7 @@ namespace GQ {
     const s=raw as Record<string,unknown>;
     if(s.version!==1 || !Array.isArray(s.history)||!Array.isArray(s.inventory)||s.history.length>200||s.inventory.length>40) return null;
     const str=(v:unknown,max:number)=>typeof v==='string' && v.length<=max;
-    if(!s.history.every((h:HistoryItem)=>h && str(h.id,100)&&str(h.name,240)&&str(h.room,100)&&['practice','live'].includes(h.mode)&&['clear','partial','unverifiable'].includes(h.status)&&h.xp===(h.status==='clear'?300:0)&&str(h.date,40)&&Number.isFinite(Date.parse(h.date))&&(!h.receipt||str(h.receipt,14000))&&(h.mode!=='live'||h.status!=='clear'||typeof h.receipt==='string'&&h.receipt.length>20))) return null;
+    if(!s.history.every((h:HistoryItem)=>h && str(h.id,100)&&str(h.name,240)&&str(h.room,100)&&['practice','live','guided'].includes(h.mode)&&['clear','partial','unverifiable'].includes(h.status)&&h.xp===(h.status==='clear'?300:0)&&str(h.date,40)&&Number.isFinite(Date.parse(h.date))&&(!h.receipt||str(h.receipt,14000))&&(h.mode!=='live'||h.status!=='clear'||typeof h.receipt==='string'&&h.receipt.length>20))) return null;
     const keys=s.history.map((h:HistoryItem)=>h.mode+':'+h.id);
     if(new Set(keys).size!==keys.length) return null;
     if(!s.inventory.every((i:InventoryItem)=>i&&str(i.id,100)&&str(i.name,240)&&(i.catalogId===null||str(i.catalogId,100))&&str(i.note,6000)&&str(i.addedAt,40))) return null;
@@ -98,6 +108,6 @@ namespace GQ {
   export function validateResult(raw: unknown): raw is Result {
     if(!raw||typeof raw!=='object') return false;
     const r=raw as Result;
-    return typeof r.encounter_id==='string' && r.encounter_id.length<=100 && ['clear','partial','unverifiable'].includes(r.status) && typeof r.reason==='string' && r.reason.length<1500 && ['practice_fixture','model_observation','deterministic_guard'].includes(r.provenance) && typeof r.xp==='number' && r.xp===(r.status==='clear'?300:0) && (!r.receipt||typeof r.receipt==='string'&&r.receipt.length<=14000);
+    return typeof r.encounter_id==='string' && r.encounter_id.length<=100 && ['clear','partial','unverifiable'].includes(r.status) && typeof r.reason==='string' && r.reason.length<1500 && ['practice_fixture','model_observation','deterministic_guard','self_attested'].includes(r.provenance) && typeof r.xp==='number' && r.xp===(r.status==='clear'?300:0) && (!r.receipt||typeof r.receipt==='string'&&r.receipt.length<=14000);
   }
 }

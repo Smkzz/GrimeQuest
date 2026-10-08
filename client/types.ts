@@ -1,5 +1,5 @@
 namespace GQ {
-  export type Mode = 'practice' | 'live';
+  export type Mode = 'practice' | 'live' | 'guided';
   export type Surface = 'uncoated_glass' | 'glazed_ceramic' | 'stainless_steel' | 'glass_ceramic_hob' | 'natural_stone' | 'wood' | 'unknown';
   export type Soil = 'grease' | 'fingerprints' | 'light_grime' | 'limescale' | 'unknown';
   export type Phase = 'identified' | 'confirmed' | 'equipped' | 'cleaning' | 'result';
@@ -30,7 +30,7 @@ namespace GQ {
   }
   export interface Result {
     encounter_id: string; status: ResultStatus; xp: number; reason: string;
-    provenance: 'practice_fixture' | 'model_observation' | 'deterministic_guard'; receipt?: string;
+    provenance: 'practice_fixture' | 'model_observation' | 'deterministic_guard' | 'self_attested'; receipt?: string;
   }
   export interface InventoryItem {id: string; name: string; catalogId: string | null; note: string; addedAt: string}
   export interface HistoryItem {

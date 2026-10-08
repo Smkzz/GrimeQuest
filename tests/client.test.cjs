@@ -253,3 +253,24 @@ test('AI product label read gate reports precise reasons and protects practice m
  assert.equal(g(true,false,true,true,true,true).code,'ready');
  assert.equal(g(true,true,false,true,true,true).enabled,true);
 });
+
+test('guided camera quests require user-confirmed scope and preserve self-report provenance',()=>{
+ const q0={...quest('guided'),analysis:{...analysis},surface:'glazed_ceramic',soil:'grease'};
+ const q1=G.transition(q0,{type:'confirm',surface:'glazed_ceramic',soil:'grease'});
+ const q2=G.transition(q1,{type:'equip-guided'});
+ assert.equal(q2.productId,G.GUIDED_METHOD_ID);
+ const cleaningQuest=G.transition(q2,{type:'start'});
+ assert.throws(()=>G.transition(cleaningQuest,{type:'result',result:result('clear','live'),after:'another'}));
+ const selfReport={encounter_id:cleaningQuest.id,status:'clear',xp:300,reason:'User reported visible change; not AI-verified.',provenance:'self_attested'};
+ assert.equal(G.validateResult(selfReport),true);
+ const complete=G.transition(cleaningQuest,{type:'result',result:selfReport,after:'another'});
+ const saved=G.recordResult(G.emptyStore(),complete);
+ assert.equal(G.stats(saved,'guided').xp,300);
+ assert.equal(G.stats(saved,'live').xp,0);
+ assert.equal(G.stats(saved,'practice').xp,0);
+ assert.equal(G.safeStore(JSON.parse(JSON.stringify(saved))).history[0].mode,'guided');
+ const unsupported=G.transition({...q0,analysis:{...q0.analysis, surface:'unknown'}},{type:'confirm',surface:'unknown',soil:'grease'});
+ assert.throws(()=>G.transition(unsupported,{type:'equip-guided'}),/outside/);
+ assert.equal(G.guidedTargetSupported('natural_stone','grease',['none']),false);
+ assert.equal(G.guidedTargetSupported('glazed_ceramic','grease',['heat']),false);
+});
