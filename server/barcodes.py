@@ -28,7 +28,8 @@ def valid_gtin(raw: object) -> bool:
 def _clean(value: object, limit: int) -> str:
     if not isinstance(value, str):
         return ""
-    return " ".join(c for c in value if c.isprintable()).strip()[:limit]
+    printable = "".join(ch if ch.isprintable() else " " for ch in value)
+    return " ".join(printable.split())[:limit]
 
 
 @dataclass(frozen=True)
