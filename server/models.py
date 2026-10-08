@@ -2,7 +2,7 @@
 from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator, BeforeValidator
 
-Surface = Literal["uncoated_glass", "glazed_ceramic", "stainless_steel", "glass_ceramic_hob", "natural_stone", "wood", "unknown"]
+Surface = Literal["uncoated_glass", "glazed_ceramic", "stainless_steel", "glass_ceramic_hob", "natural_stone", "wood", "other", "unknown"]
 Soil = Literal["grease", "fingerprints", "light_grime", "limescale", "unknown"]
 Hazard = Literal["heat", "electrical", "mould", "body_fluid", "unknown_chemical", "damage", "none"]
 ShortText = Annotated[str, Field(min_length=1, max_length=240)]

@@ -77,7 +77,7 @@ def test_client_server_policy_parity(attestations):
     for args,result in zip(cases,observed,strict=True):
         surface,soil,p,a,hazards,day=args
         assert result==match_product(surface,soil,p,Attestations(**a),hazards,date.fromisoformat(day)),args
-    assert len(cases)==1680
+    assert len(cases)==1920
 
 
 def test_finland_consumer_entries_are_exact_and_narrow():

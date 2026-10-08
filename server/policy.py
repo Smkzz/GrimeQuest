@@ -16,8 +16,8 @@ def match_product(surface: str, soil: str, product_id: str, attestations: Attest
         return {"status": status, "code": code, "reason": reason, "product_id": product_id}
     if any(h != "none" for h in hazards):
         return no("blocked", "HAZARD", "A possible hazard was identified. This job is outside the prototype's scope.")
-    if surface in {"unknown", "natural_stone", "wood", "glass_ceramic_hob", "stainless_steel"}:
-        return no("uncertain", "SURFACE_UNSUPPORTED", "This surface is not supported. Do not choose a cleaner based on this app.")
+    if surface in {"unknown", "other"}:
+        return no("uncertain", "SURFACE_UNSUPPORTED", "The reviewed product catalog cannot verify this material. An independent guided method is not a product recommendation.")
     if soil in {"unknown", "limescale"}:
         return no("uncertain", "SOIL_UNSUPPORTED", "This soil needs a procedure that is not in the reviewed catalog.")
     product = PRODUCTS.get(product_id)

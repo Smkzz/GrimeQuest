@@ -1,10 +1,10 @@
 namespace GQ {
   export const surfaceNames: Record<Surface, string> = {
-    uncoated_glass: 'Ordinary uncoated glass', glazed_ceramic: 'Sound glazed ceramic', stainless_steel: 'Stainless steel (unsupported)',
-    glass_ceramic_hob: 'Glass-ceramic hob (unsupported)', natural_stone: 'Natural stone (unsupported)', wood: 'Wood (unsupported)', unknown: "I'm not sure"
+    uncoated_glass: 'Ordinary uncoated glass', glazed_ceramic: 'Sound glazed ceramic', stainless_steel: 'Stainless steel',
+    glass_ceramic_hob: 'Glass-ceramic hob (cool, switched off)', natural_stone: 'Natural stone', wood: 'Wood', other: 'Another known material', unknown: "I'm not sure what it is"
   };
   export const soilNames: Record<Soil, string> = {
-    grease: 'Light grease / food spill', fingerprints: 'Fingerprints', light_grime: 'Light visible grime', limescale: 'Limescale (unsupported)', unknown: "I'm not sure"
+    grease: 'Light grease / food spill', fingerprints: 'Fingerprints', light_grime: 'Light visible grime', limescale: 'Limescale / mineral deposits', unknown: "I'm not sure"
   };
   export const scenarios: Scenario[] = [
     {id:'kitchen', name:'The grease gremlin', room:'Kitchen', subtitle:'A little splashback rescue.', surface:'glazed_ceramic', soil:'grease', color:'peach', before:'assets/kitchen-before.svg', after:'assets/kitchen-after.svg', partial:'assets/kitchen-partial.svg'},
@@ -17,7 +17,7 @@ namespace GQ {
   export function matchProduct(surface: Surface, soil: Soil, productId: string, a: Attestations, hazards: string[], today = new Date().toISOString().slice(0,10)): Match {
     const no = (status: Match['status'], code: string, reason: string): Match => ({status,code,reason,product_id:productId});
     if(hazards.some(h=>h!=='none')) return no('blocked','HAZARD',"A possible hazard was identified. This job is outside the prototype's scope.");
-    if(['unknown','natural_stone','wood','glass_ceramic_hob','stainless_steel'].includes(surface)) return no('uncertain','SURFACE_UNSUPPORTED','This surface is not supported. Do not choose a cleaner based on this app.');
+    if(['unknown','other'].includes(surface)) return no('uncertain','SURFACE_UNSUPPORTED','The reviewed product catalog cannot verify this material. An independent guided method is not a product recommendation.');
     if(['unknown','limescale'].includes(soil)) return no('uncertain','SOIL_UNSUPPORTED','This soil needs a procedure that is not in the reviewed catalog.');
     const p = products.find(p=>p.id===productId);
     if(!p?.enabled) return no('uncertain','PRODUCT_UNREVIEWED','No reviewed entry for this exact product. A scanned label alone does not establish suitability.');
@@ -28,8 +28,17 @@ namespace GQ {
     return {status:'eligible',code:'LABEL_MATCH',reason:"Conditional label match within this prototype's narrow scope. Follow the current package and surface-care instructions.",product_id:productId,source:p.source,steps:p.steps};
   }
   export const GUIDED_METHOD_ID='guided-user-method';
-  export function guidedTargetSupported(surface:Surface,soil:Soil,hazards:string[]):boolean {
-    return (surface==='uncoated_glass'||surface==='glazed_ceramic') && ['grease','fingerprints','light_grime'].includes(soil) && hazards.length===1 && hazards[0]==='none';
+  export function validOtherMaterial(value:unknown):value is string {
+    return typeof value==='string' && value.trim().length>=3 && value.trim().length<=80 &&
+      /\p{L}/u.test(value) && !/[\p{C}]/u.test(value);
+  }
+  // Guided play records the player's own method, not chemical-product approval.
+  // "Unknown" and observed hazards stay stopped until the target is identified.
+  export function guidedTargetSupported(surface:Surface,soil:Soil,hazards:string[],surfaceDetail?:string):boolean {
+    return Object.prototype.hasOwnProperty.call(surfaceNames,surface) && surface!=='unknown' &&
+      (surface!=='other'||validOtherMaterial(surfaceDetail)) &&
+      Object.prototype.hasOwnProperty.call(soilNames,soil) && soil!=='unknown' &&
+      hazards.length===1 && hazards[0]==='none';
   }
   export type QuestEvent = {type:'confirm';surface:Surface;soil:Soil} | {type:'equip'; productId:string} | {type:'equip-guided'} | {type:'start'} | {type:'result';result:Result;after:string} | {type:'retry'};
   export function transition(q: Quest, event: QuestEvent): Quest {
@@ -38,7 +47,7 @@ namespace GQ {
       return {...q,phase:'confirmed',surface:event.surface,soil:event.soil};
     }
     if(event.type==='equip-guided' && q.mode==='guided' && (q.phase==='confirmed'||q.phase==='equipped')) {
-      if(!guidedTargetSupported(q.surface,q.soil,q.analysis.hazards)) throw new Error('This target is outside the guided camera-quest scope. Stop rather than guessing about materials or hazards.');
+      if(!guidedTargetSupported(q.surface,q.soil,q.analysis.hazards,q.surfaceDetail)) throw new Error('Identify the material and visible problem, and stop for any hazard before using your own care-checked method.');
       return {...q,phase:'equipped',productId:GUIDED_METHOD_ID};
     }
     if(event.type==='equip' && (q.phase==='confirmed'||q.phase==='equipped')) {

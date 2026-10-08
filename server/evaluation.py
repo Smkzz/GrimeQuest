@@ -19,7 +19,7 @@ from .policy import PRODUCTS, adjudicate
 # not a cartesian product of separately supported surfaces and soil types.
 # In particular, grease on glass must not count as a supported target when
 # the catalog only approves grease on glazed ceramic.
-POLICY_UNSUPPORTED_SURFACES = {"unknown", "natural_stone", "wood", "glass_ceramic_hob", "stainless_steel"}
+POLICY_UNSUPPORTED_SURFACES = {"unknown", "other"}
 POLICY_UNSUPPORTED_SOILS = {"unknown", "limescale"}
 REVIEWED_TARGET_PAIRS = frozenset(
     (surface, soil)

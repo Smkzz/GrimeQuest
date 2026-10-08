@@ -1,6 +1,6 @@
 namespace GQ {
   export type Mode = 'practice' | 'live' | 'guided';
-  export type Surface = 'uncoated_glass' | 'glazed_ceramic' | 'stainless_steel' | 'glass_ceramic_hob' | 'natural_stone' | 'wood' | 'unknown';
+  export type Surface = 'uncoated_glass' | 'glazed_ceramic' | 'stainless_steel' | 'glass_ceramic_hob' | 'natural_stone' | 'wood' | 'other' | 'unknown';
   export type Soil = 'grease' | 'fingerprints' | 'light_grime' | 'limescale' | 'unknown';
   export type Phase = 'identified' | 'confirmed' | 'equipped' | 'cleaning' | 'result';
   export type ResultStatus = 'clear' | 'partial' | 'unverifiable';
@@ -26,7 +26,7 @@ namespace GQ {
     id: string; mode: Mode; phase: Phase; name: string; room: string; before: string;
     after?: string; analysis: Analysis; surface: Surface; soil: Soil;
     productId?: string; targetTicket?: string; encounterTicket?: string;
-    scenario?: string; result?: Result;
+    scenario?: string; result?: Result; surfaceDetail?: string; guidedProductName?: string;
   }
   export interface Result {
     encounter_id: string; status: ResultStatus; xp: number; reason: string;

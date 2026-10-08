@@ -113,3 +113,6 @@
   .product-search-result{min-height:72px;padding:14px 12px}
   .product-search-result-name{font-size:15px}
 }
+
+/* Keep the custom-material field out of the tab order until Other is chosen. */
+.other-material-field[hidden]{display:none!important}

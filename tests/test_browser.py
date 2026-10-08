@@ -342,6 +342,96 @@ def test_zero_setup_guided_camera_full_game_without_ai_or_server_config(page,cli
     assert not errors
 
 
+@pytest.mark.parametrize('surface,soil', [
+    ('stainless_steel', 'light_grime'),
+    ('glass_ceramic_hob', 'grease'),
+    ('natural_stone', 'limescale'),
+    ('wood', 'fingerprints'),
+])
+def test_previously_restricted_surface_completes_guided_camera_quest(page,client,vision,before,after,surface,soil):
+    errors=mount(page,client)
+    click(page,'guided-first')
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('#surface').select_option(surface)
+    page.locator('#soil').select_option(soil)
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('[data-action="choose-guided-method"]')).to_be_visible()
+    click(page,'choose-guided-method')
+    click(page,'prepare')
+    care_checks(page)
+    click(page,'start-cleaning')
+    click(page,'capture-after')
+    upload(page,'#photo-file',after)
+    page.locator('[name="guided-same-target"]').check()
+    page.locator('[name="guided-dry"]').check()
+    page.locator('#guided-outcome').select_option('clear')
+    click(page,'guided-compare')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert page.evaluate("GQ.stats(GQ.readStore(),'live').xp")==0
+    assert vision.calls==[]
+    assert not errors
+
+
+def test_other_known_material_requires_description_and_can_complete_guided(page,client,vision,before,after):
+    errors=mount(page,client)
+    click(page,'guided-first')
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('#surface').select_option('other')
+    expect(page.locator('#other-surface-detail')).to_be_visible()
+    page.locator('#soil').select_option('light_grime')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('#toast')).to_contain_text('Enter the actual material name')
+    page.locator('#other-surface-detail').fill('Painted wall')
+    click(page,'confirm-target')
+    expect(page.locator('main')).to_contain_text('Painted wall')
+    click(page,'choose-guided-method')
+    click(page,'prepare')
+    care_checks(page)
+    click(page,'start-cleaning')
+    click(page,'capture-after')
+    upload(page,'#photo-file',after)
+    page.locator('[name="guided-same-target"]').check()
+    page.locator('[name="guided-dry"]').check()
+    page.locator('#guided-outcome').select_option('clear')
+    click(page,'guided-compare')
+    assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==300
+    assert not errors
+
+
+def test_saved_arsenal_product_can_be_user_selected_without_becoming_app_approved(page,client,before):
+    errors=mount(page,client)
+    click(page,'inventory')
+    click(page,'manual-product')
+    page.locator('#product-name').fill('My personally checked cleaner')
+    click(page,'save-product')
+    click(page,'home')
+    click(page,'guided-first')
+    upload(page,'#photo-file',before)
+    page.locator('[name="guided-before-confirm"]').check()
+    click(page,'guided-identify')
+    page.locator('#surface').select_option('wood')
+    page.locator('#soil').select_option('light_grime')
+    page.locator('[name="surface-confirm"]').check()
+    page.locator('[name="guided-safe-scene"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('button.product-card.unknown')).to_have_count(1)
+    page.locator('button.product-card.unknown').click()
+    expect(page.locator('main')).to_contain_text('My personally checked cleaner')
+    expect(page.locator('main')).to_contain_text('not a GrimeQuest chemical recommendation')
+    click(page,'prepare')
+    expect(page.locator('main')).to_contain_text('GrimeQuest has not approved')
+    assert page.evaluate("GQ.readStore().history.length")==0
+    assert not errors
+
+
 def test_guided_quest_refuses_unsupported_material_and_duplicate_clear(page,client,vision,before,after):
     mount(page,client)
     click(page,'guided-first')
@@ -368,6 +458,30 @@ def test_guided_quest_refuses_unsupported_material_and_duplicate_clear(page,clie
     expect(page.locator('#toast')).to_contain_text('identical')
     assert page.evaluate("GQ.stats(GQ.readStore(),'guided').xp")==0
     assert vision.calls==[]
+
+def test_live_non_catalog_material_can_continue_privately_without_model_approval(page,client,vision,before):
+    errors=setup_live(page,client)
+    upload(page,'#photo-file',before)
+    page.locator('[name="photo-consent"]').check()
+    click(page,'analyze-photo')
+    page.wait_for_selector('#surface')
+    page.locator('#surface').select_option('natural_stone')
+    page.locator('#soil').select_option('limescale')
+    page.locator('[name="surface-confirm"]').check()
+    click(page,'confirm-target')
+    expect(page.locator('main')).to_contain_text('No reviewed product match')
+    expect(page.locator('[data-action="switch-to-guided"]')).to_be_visible()
+    click(page,'switch-to-guided')
+    expect(page.locator('.mode-banner')).to_contain_text('Self-reported')
+    expect(page.locator('[data-action="choose-guided-method"]')).to_be_visible()
+    click(page,'choose-guided-method')
+    click(page,'prepare')
+    care_checks(page)
+    click(page,'start-cleaning')
+    assert page.evaluate("GQ.readStore().active") is not None
+    assert vision.calls==['analyze']
+    assert not errors
+
 
 def test_ai_target_photo_can_be_reused_in_private_guided_quest(page,client,before):
     errors=setup_live(page,client)
