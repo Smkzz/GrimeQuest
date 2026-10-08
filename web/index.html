@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#173d32">
-  <meta name="description" content="Point at the dirt, clean it, snap again and earn XP. A simple camera-first cleaning game.">
+  <meta name="description" content="Your mess becomes a little monster. Snap, clean, defeat it and collect your crew. A private, self-reported camera game.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,7 +12,8 @@
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="stylesheet" href="styles.css">
-  <title>GrimeQuest · Small chores. Real wins.</title>
+  <link rel="stylesheet" href="game.css">
+  <title>GrimeQuest · Your mess. Their problem.</title>
   <script defer src="vendor/qr-creator.js"></script>
   <script defer src="install.js"></script>
   <script defer src="update-client.js"></script>
@@ -21,7 +22,7 @@
 <body>
   <div id="app"></div>
   <aside id="app-update-banner" class="app-update-banner" role="status" aria-live="polite" hidden>
-    <div><strong>Fresh version ready</strong><p>Finish the current cleaning step before refreshing. Saved arsenal and journal entries stay on this phone.</p></div>
+    <div><strong>Fresh version ready</strong><p>Finish your quest before refreshing. Your saved wins and collection stay on this phone.</p></div>
     <div class="app-update-actions"><button type="button" id="app-update-now">Update GrimeQuest</button><button type="button" id="app-update-later">Later</button></div>
   </aside>
 
@@ -30,7 +31,7 @@
       <div class="install-copy">
         <div class="install-identity"><span class="install-mark" aria-hidden="true">✦</span><span>grimequest<span class="install-dot">.</span></span></div>
         <span class="install-eyebrow">YOUR NEXT QUEST IS IN YOUR POCKET</span>
-        <h2 id="install-heading">Less scrolling.<br><em>More sparkling.</em></h2>
+        <h2 id="install-heading">Less scrolling.<br><em>More little wins.</em></h2>
         <p>GrimeQuest is made for your phone. Scan the QR code with your camera to open the game, then add it to your Home Screen.</p>
         <ol class="install-list">
           <li><span>01</span>Open your phone's camera and point it at the code.</li>
@@ -38,18 +39,18 @@
           <li><span>03</span>Follow the install instructions for your phone.</li>
         </ol>
         <button id="install-desktop" class="btn secondary" type="button">Continue in desktop browser →</button>
-        <p class="install-caption">No App Store download. Play real camera quests without an account. AI Beta is optional.</p>
+        <p class="install-caption">No App Store download. No account. Your cleaning photos stay on your device.</p>
       </div>
       <div class="install-qr-column">
         <div class="install-qr-label"><span aria-hidden="true">✧</span> SCAN TO START</div>
         <div id="install-qr" class="install-qr" role="img" aria-label="QR code linking to GrimeQuest on your phone"><span>QR code loading…</span></div>
-        <p class="install-qr-title">Point. Tap. Play.</p>
+        <p class="install-qr-title">Point. Clean. Win.</p>
         <a id="install-link" href="/" class="install-address">Open GrimeQuest on your phone</a>
         <button id="install-copy" type="button" class="install-copy-link">Copy link instead</button>
         <span id="install-copy-status" role="status" aria-live="polite" class="install-status"></span>
       </div>
     </div>
-    <p class="install-legal"><a href="/privacy.html">Privacy</a> · <a href="/safety.html">Safety</a> · Offline practice available after installation</p>
+    <p class="install-legal"><a href="/privacy.html">Privacy</a> · <a href="/safety.html">Safety</a> · Play offline after installation</p>
   </section>
   <aside id="install-tip" class="install-tip" aria-label="Install GrimeQuest" hidden>
     <button id="install-dismiss" class="install-dismiss" type="button" aria-label="Dismiss install suggestion">×</button>
@@ -57,6 +58,6 @@
     <button id="install-cta" class="btn primary" type="button">How to install</button>
     <div id="install-steps" class="install-steps" hidden></div>
   </aside>
-  <noscript><main><h1>GrimeQuest needs JavaScript</h1><p>This PWA uses JavaScript for local inventory and camera controls. It performs no chemical recommendation without it.</p></main></noscript>
+  <noscript><main><h1>GrimeQuest needs JavaScript</h1><p>This game uses JavaScript for local camera controls and progress. No account or AI service is needed.</p></main></noscript>
 </body>
 </html>
