@@ -30,3 +30,29 @@ assert "KÄYTTÖOHJE" in obs.label_text, "Finnish directions not recognized"
 assert "VAROITUS" in obs.label_text, "Warnings not recognized"
 assert obs.warnings_observed == [], "OCR must not interpret or recommend chemical use"
 print("GQ_LOCAL_OCR_SMOKE_PASS")
+
+# Exercise the actual HTTP route and request boundary with paid AI unconfigured.
+from fastapi.testclient import TestClient
+from server.app import create_app
+from server.config import Settings
+
+with TestClient(create_app(Settings())) as client:
+    health = client.get("/api/health").json()
+    assert health["label_ocr_ready"] is True
+    assert health["live_ready"] is False
+    body = {"front_image": front, "back_image": back, "consent": True}
+    assert client.post("/api/read-labels", json=body,
+                       headers={"origin": "https://untrusted.example"}).status_code == 403
+    assert client.post("/api/read-labels", json={**body, "consent": False},
+                       headers={"origin": "http://testserver"}).status_code == 422
+    response = client.post("/api/read-labels", json=body,
+                           headers={"origin": "http://testserver"})
+    assert response.status_code == 200, response.text[:1000]
+    payload = response.json()
+    assert payload["review_status"] == "unreviewed"
+    assert payload["recommendation_permission"] is False
+    assert payload["provider_calls"] == 0
+    assert "KIILTO KOTI" in payload["observation"]["name"]
+    assert "data:image/" not in response.text
+    print("GQ_LOCAL_OCR_API_SMOKE_PASS")
+
