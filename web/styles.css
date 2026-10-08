@@ -198,3 +198,5 @@
 .quick-footer a{color:#315c42}
 @media(max-width:400px){.quick-header nav button{font-size:12px;padding:10px 8px}.quick-app{padding:10px 13px 20px}.quick-hero{padding-top:10px}.quick-mascot{width:101px;height:101px;font-size:58px}.quick-comparison .quick-image{height:130px}}
 @media(prefers-reduced-motion:reduce){.quick-btn,.quick-file{transition:none}}
+
+.quick-install-link{border:0;background:none;padding:4px;color:#315c42;text-decoration:underline;text-underline-offset:3px;font-size:11px;font-weight:700}
