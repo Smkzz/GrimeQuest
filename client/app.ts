@@ -130,6 +130,7 @@ namespace GQ {
     if(screen!=='product-scan')return;
     const draftName=val('product-name'),draftNote=val('product-note');
     const userChecked=checked('barcode-review');
+    const draftSearch=val('product-search') || productSearchTerm;
     barcodeCameraActive=false;
     barcodeScanner?.stop();
     render(false);
@@ -137,6 +138,8 @@ namespace GQ {
     const note=root.querySelector<HTMLTextAreaElement>('#product-note');
     if(name&&draftName)name.value=draftName;
     if(note&&draftNote)note.value=draftNote;
+    const term=root.querySelector<HTMLInputElement>('#product-search');
+    if(term)term.value=draftSearch;
     const confirm=root.querySelector<HTMLInputElement>('input[name="barcode-review"]');
     if(confirm)confirm.checked=userChecked;
   }
@@ -171,8 +174,23 @@ namespace GQ {
 
   function productScanView():string {
     const suggestion=barcodeCandidate?.found?barcodeCandidate:null;
+    const searchPanel=productSearchStatus==='results' && productSearchResults.length
+      ? `<div class='product-search-results' role='status' aria-live='polite'>
+          <p><b>Found ${productSearchResults.length} possible products.</b> These are unverified community suggestions across countries and categories.</p>
+          ${productSearchResults.map((item,i)=>`<button type='button' class='product-search-result' data-action='select-search-result' data-id='${i}'>
+            <span class='product-search-result-name'>${e(item.name)}</span>
+            <small>${e(item.brand)}${item.quantity?' · '+e(item.quantity):''} · ${e(item.source)}</small>
+            <span class='product-search-result-action'>Review this exact item →</span>
+          </button>`).join('')}
+          <p class='micro'>Select a suggestion to see the source; then check the exact bottle before saving.</p>
+        </div>`
+      :productSearchStatus==='empty'
+        ? "<div class='notice soft' role='status'>No matching entries in these community databases. You can still type the name on your bottle and save it.</div>"
+        :productSearchStatus==='unavailable'
+          ? "<div class='notice soft' role='status'>Global product search is temporarily unavailable. Manual product entry works without any database.</div>"
+          : "";
     const status=barcodeStatus==='found'&&suggestion
-      ? `<div class='notice soft' role='status'><b>Community listing found</b><p>${e(suggestion.name)} ${suggestion.brand?'· '+e(suggestion.brand):''} ${suggestion.quantity?'· '+e(suggestion.quantity):''}</p><p>Unverified. Confirm the exact name and variant on your actual bottle. Never infer cleaner safety from barcode data.</p><a href='${e(suggestion.source_url)}' target='_blank' rel='noopener noreferrer'>Open Products Facts source ↗</a></div>`
+      ? `<div class='notice soft' role='status'><b>Community listing found</b><p>${e(suggestion.name)} ${suggestion.brand?'· '+e(suggestion.brand):''} ${suggestion.quantity?'· '+e(suggestion.quantity):''}</p><p>Unverified. Confirm the exact name and variant on your actual bottle. Never infer cleaner safety from barcode data.</p><a href='${e(suggestion.source_url)}' target='_blank' rel='noopener noreferrer'>${e(suggestion.source)} source ↗</a></div>`
       :barcodeStatus==='missing'
         ? "<div class='notice soft' role='status'>No community record found for this barcode. Type the product name below. You can still save it and complete camera quests.</div>"
         :barcodeStatus==='unavailable'
@@ -180,10 +198,20 @@ namespace GQ {
           :barcodeStatus==='detected'
             ? "<div class='notice soft' role='status'>Barcode detected locally. Choose Find product to check the community database.</div>"
             : "";
-    return `${back('inventory','Arsenal')}${heading('PRODUCT ID · NO LABEL OCR','Find your bottle.','Scan the printed barcode or enter its digits. GrimeQuest will suggest a product name only when it finds an existing listing. You confirm the details.')}
+    return `${back('inventory','Arsenal')}${heading('WORLDWIDE PRODUCT DISCOVERY · NO PHOTO OCR','Find your bottle.','Search by brand or name anywhere in the world, scan an EAN/UPC barcode, or enter your own product name. Verify the exact packaging before saving.')}
       <div class='split'>
         <section class='panel barcode-panel'>
-          <h2>1. Identify by barcode</h2>
+          <h2>1. Search worldwide</h2>
+          <p>Enter the brand, product name or part of either. Search across general products, beauty, food and pet-food community databases. No country selection or paid account required.</p>
+          <div class='field'>
+            <label for='product-search'>Brand or product name (any language)</label>
+            <input id='product-search' type='search' maxlength='72' autocomplete='off' value='${e(productSearchTerm)}' placeholder='e.g. Lysol, Cif, Kiilto, Frosch'>
+          </div>
+          ${button('Search products worldwide','search-product-name','primary wide')}
+          <p class='micro'>Search is sent only when you press the button. The product or brand text is shared with the Open Facts community search services; no photos are uploaded. Searches are rate-limited to protect their free APIs.</p>
+          ${searchPanel}
+          <div class='barcode-search-divider'></div>
+          <h2>2. Or identify by barcode</h2>
           <p>Point at the black bars and numbers on your bottle. Barcode scanning runs <b>on this phone</b>; no photos or video go to a server.</p>
           <div class='barcode-scanner-actions'>
             ${button(icon('camera')+' Scan barcode','start-barcode-camera','primary')}
@@ -199,12 +227,12 @@ namespace GQ {
             <input id='product-code' type='text' inputmode='numeric' autocomplete='off' maxlength='14' pattern='[0-9]*' value='${e(barcodeValue)}' placeholder='Numbers printed under the barcode'>
           </div>
           ${button('Find product by barcode','lookup-barcode','secondary wide')}
-          <p class='micro'>Finding a product sends <b>only the barcode digits</b> to Open Products Facts, a community database. No photo, label text or account details are sent. No paid AI calls.</p>
+          <p class='micro'>Searching by barcode sends <b>only the GTIN digits</b> to the worldwide Open Facts community indexes. No photos, labels, video or personal account details are sent.</p>
           ${status}
           <p class='micro'>Missing or outdated barcode listings are normal. If lookup fails, enter the name directly; no database connection is necessary to play.</p>
         </section>
         <section class='panel barcode-entry-panel'>
-          <h2>2. Confirm or enter the product</h2>
+          <h2>3. Confirm or enter the product</h2>
           <p>Read the bottle yourself. A barcode identifies a product candidate, not its ingredients, directions or compatibility with your surface.</p>
           <div class='field'>
             <label for='product-name'>Exact product name</label>
@@ -217,7 +245,7 @@ namespace GQ {
           ${suggestion?check('barcode-review','I checked this suggested name and exact product variant against the bottle.'):''}
           ${button('Save product to my arsenal','save-product','primary wide')}
           <p class='micro'>Saved only on this device. Unreviewed products do not unlock chemical/surface safety recommendations. You can complete guided quests with your own instruction-checked method.</p>
-          <p class='micro'>Community data: <a href='https://world.openproductsfacts.org/' target='_blank' rel='noopener noreferrer'>Open Products Facts</a> (<a href='https://opendatacommons.org/licenses/odbl/' target='_blank' rel='noopener noreferrer'>ODbL</a>).</p>
+          <p class='micro'>Community data: <a href='https://world.openproductsfacts.org/' target='_blank' rel='noopener noreferrer'>Open Facts family</a> · <a href='https://opendatacommons.org/licenses/odbl/' target='_blank' rel='noopener noreferrer'>ODbL license</a>. This is not a complete global catalog.</p>
         </section>
       </div>`;
   }
