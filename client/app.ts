@@ -318,29 +318,50 @@ namespace GQ {
     if(!validGTIN(code))throw new Error('Barcode digits are incomplete or the check digit is wrong. Enter the digits printed below the bars.');
     barcodeValue=code;
     await work(async()=>{
-      type ProductLookup={barcode:string;found:boolean;name:string;brand:string;quantity:string;source:string;source_url:string;review_status:string;recommendation_permission:boolean};
-      let result:ProductLookup;
+      let result:ProductCandidate;
       try {
-        result=await api<ProductLookup>('product-lookup',{barcode:code},8500);
-      }catch{
+        result=await api<ProductCandidate>('product-lookup',{barcode:code},11000);
+      }catch {
         barcodeStatus='unavailable';barcodeCandidate=null;
         refreshProductView();
-        toast('Online product lookup is unavailable. Type the product name directly; nothing needs to be configured.',true);
+        toast('Online product lookup is unavailable. Enter the product name directly; no setup is needed.',true);
         return;
       }
-      if(result.barcode!==code||typeof result.found!=='boolean'||
-         result.review_status!=='unreviewed'||result.recommendation_permission!==false ||
-         typeof result.name!=='string'||result.name.length>240||
-         typeof result.brand!=='string'||result.brand.length>100||
-         typeof result.quantity!=='string'||result.quantity.length>80||
-         result.source!=='Open Products Facts'||
-         result.source_url!=='https://world.openproductsfacts.org/product/'+code)
-        throw new Error('Community database response could not be validated. Enter the product name directly.');
+      if(!validProductCandidate(result)||result.barcode!==code)
+        throw new Error('The global product result could not be verified. Enter the name manually.');
       barcodeCandidate=result.found?result:null;
       barcodeStatus=result.found?'found':'missing';
       refreshProductView();
-      toast(result.found?'Community product name suggested. Confirm the exact bottle before saving.':
-        'Barcode not in the community index. You can still enter the product name and play.');
+      toast(result.found?'Global community product suggestion found. Confirm the exact bottle before saving.':
+        'Barcode not found in the global community databases. Type the name and continue.');
+    });
+  }
+
+  async function findProductsByName(raw:string):Promise<void> {
+    const query=raw.trim();
+    if(query.length<2||query.length>72 || !/[^\W_]/u.test(query))
+      throw new Error('Enter at least two letters or numbers of the product name or brand.');
+    productSearchTerm=query;
+    await work(async()=>{
+      let response:ProductSearchResponse;
+      try {
+        response=await api<ProductSearchResponse>('product-search',{query},12500);
+      }catch {
+        productSearchResults=[];productSearchStatus='unavailable';
+        refreshProductView();
+        toast('Global product search is unavailable. Enter the exact name from your bottle instead.',true);
+        return;
+      }
+      if(!response||response.source!=='Open Facts'||response.review_status!=='unreviewed'||
+         response.recommendation_permission!==false||!Array.isArray(response.results)||
+         response.results.length>10||!response.results.every(item=>validProductCandidate(item)&&item.found))
+        throw new Error('The community search returned invalid product information. Enter the name manually.');
+      productSearchResults=response.results;
+      productSearchStatus=response.results.length?'results':'empty';
+      refreshProductView();
+      toast(response.results.length
+        ?'Worldwide matches found. Tap the matching variant, then confirm against your bottle.'
+        :'No public match yet. You can still type the name and save the product.');
     });
   }
 
@@ -471,6 +492,7 @@ namespace GQ {
         case 'scan-product':case 'manual-product':{
           barcodeScanner?.stop();barcodeCameraActive=false;
           barcodeValue='';barcodeCandidate=null;barcodeStatus='idle';
+          productSearchTerm='';productSearchResults=[];productSearchStatus='idle';
           productFront='';productBack='';observation=null;ocrFailedForThesePhotos=false;
           go('product-scan');
           if(name==='manual-product'){
@@ -479,6 +501,24 @@ namespace GQ {
           break;
         }
         case 'lookup-barcode':await findBarcodeProduct(val('product-code'));break;
+        case 'search-product-name':await findProductsByName(val('product-search'));break;
+        case 'select-search-result':{
+          const index=Number(id);
+          if(!Number.isInteger(index)||index<0||index>=productSearchResults.length)
+            throw new Error('That community result is no longer available.');
+          const candidate=productSearchResults[index];
+          if(!candidate||!validProductCandidate(candidate)||!candidate.found)
+            throw new Error('The community result is invalid. Enter the product manually.');
+          barcodeCandidate=candidate;barcodeStatus='found';barcodeValue=candidate.barcode;
+          refreshProductView();
+          const field=root.querySelector<HTMLInputElement>('#product-name');
+          if(field)field.value=candidate.name;
+          const reviewed=root.querySelector<HTMLInputElement>('input[name="barcode-review"]');
+          if(reviewed)reviewed.checked=false;
+          field?.focus({preventScroll:true});
+          toast('Suggested '+candidate.source+' name selected. Confirm the exact product and variant on the bottle before saving.');
+          break;
+        }
         case 'start-barcode-camera':{
           const video=root.querySelector<HTMLVideoElement>('#barcode-video');
           const panel=root.querySelector<HTMLElement>('#barcode-camera-area');
@@ -625,6 +665,9 @@ namespace GQ {
       if(target.id==='product-code'){
         barcodeValue=target.value.trim();
         barcodeCandidate=null;barcodeStatus='idle';
+      }
+      if(target.id==='product-search'){
+        productSearchTerm=target.value;
       }
     });
     window.addEventListener('pagehide',()=>{camera.stop();barcodeScanner?.stop();barcodeCameraActive=false;});
