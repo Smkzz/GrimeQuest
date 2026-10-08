@@ -64,6 +64,9 @@ COPY scripts/cloud_vision_smoke.py ./cloud_vision_smoke.py
 # Exact REST request/response contract with mocked transport: no credential,
 # network request or charge occurs during image qualification.
 RUN python cloud_vision_smoke.py && rm cloud_vision_smoke.py
+COPY scripts/barcode_smoke.py ./barcode_smoke.py
+# Exact no-network barcode/provider-boundary smoke; no paid AI or player data.
+RUN python barcode_smoke.py && rm barcode_smoke.py
 COPY run.py ./
 
 USER 10001:10001
