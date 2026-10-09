@@ -43,6 +43,10 @@ RUN npm pack @zxing/library@0.21.3 --pack-destination /tmp --silent \
     && test -s web/vendor/zxing-0.21.3.min.js \
     && node --check web/vendor/zxing-0.21.3.min.js
 COPY eval ./eval
+# The release-archive documentation tests must inspect the exact public
+# README and GitHub release guide; these are not copied to production runtime.
+COPY README.md ./README.md
+COPY docs/RELEASING.md ./docs/RELEASING.md
 COPY run.py ./
 
 RUN python scripts/build.py \
