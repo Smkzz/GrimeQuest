@@ -21,7 +21,7 @@
       still fails closed and I updated its evidence/parity tests.
 - [ ] If I changed generated client files, I rebuilt and verified
       byte-identical output.
-- [ ] For releases, I used [the release guide](../../docs/RELEASING.md)
+- [ ] For releases, I used [the release guide](../docs/RELEASING.md)
       and did not mistake a docs-only update for an independently qualified
       production image.
 
