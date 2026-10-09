@@ -13,11 +13,16 @@ body:
   - type: dropdown
     id: mode
     attributes:
-      label: Mode
+      label: Area
       options:
-        - Practice mode
-        - Live mode
+        - Real photo cleaning quest
+        - Illustrated demo (no XP)
+        - Monster collection / My wins
+        - Camera / photo picker / HEIC
+        - Install / offline / PWA update
+        - Accessibility
         - Build / tests / deployment
+        - Historical API / developer tools
         - Other
     validations:
       required: true
@@ -25,7 +30,7 @@ body:
     id: version
     attributes:
       label: Version / commit
-      description: App version or short Git commit if known.
+      description: App version or short Git commit if known. The app may be installed and cached; note Safari tab vs Home Screen.
       placeholder: v0.1.0 / abc12345
   - type: textarea
     id: steps
