@@ -1,5 +1,54 @@
 # Changelog
 
+All notable changes to the **public monster-game release** are recorded first.
+Older entries are preserved as historical development notes; they document
+prototype barcode/AI/cleaning-policy experiments that are **not** visible in
+the current self-reported player experience.
+
+## [0.1.0] — 2026-10-09 — Public monster-game release candidate
+
+### Added
+
+- A no-account, camera-first **Find → Clean → Defeat** game where a safe real
+  cleaning chore defeats a fictional grime creature and awards 300
+  **self-reported** XP after before/after photos.
+- Six original collectible SVG monsters (Smudgie, Dusty, Crumb Goblin,
+  Splodge, Grubble and Lord Grime), local collection, level progression,
+  and a reduced-motion-aware defeat celebration.
+- An explicitly illustrated **zero-XP demo** that cannot modify the journal,
+  collection, or saved player progress.
+- A keyboard-operable before/after photo comparison slider, optional visual
+  alignment guide, text-only sharing and resumable in-session quests.
+- Dedicated public-release documentation, responsible disclosure guidance,
+  accessibility/support documents, a safer Git-index-only release packager
+  and release-archive integrity tests.
+
+### Preserved and protected
+
+- Local-only photos for the public game; no account, runtime AI requests,
+  compulsory product/cleaner selection, cloud photo library or analytics.
+- Fixed, idempotent, provenance-marked XP; duplicate scoring and identical
+  before/after image content are rejected. Old progress remains compatible.
+- Existing guarded legacy server/product endpoints remain outside the
+  shipped casual UI; they are not chemical-safety advice.
+- The public game's independent Railway clean-room baseline:
+  **534 Python/API/Chromium/PWA + 61 Node = 595 passed** on the
+  monster candidate, Python combined coverage 90.43%.
+  These are software tests, not physical iPhone/hygiene certification.
+
+### Known limitations
+
+- An actual iPhone Home Screen/HEIC and live household cleaning trial must
+  be accepted independently; not every hardware/browser variant was tested.
+- The game cannot verify cleaning, identity, hygiene or chemical suitability.
+- XP and creature collection are local to the device and can be edited/lost.
+- The repository has no published GitHub Release/tag at the time this
+  candidate documentation was written. Publishing one is a separate
+  maintainer action described in [RELEASING](docs/RELEASING.md).
+
+---
+
+
 ## 2026-10-08 — Surface-wide guided quests
 
 - Unblocked the **self-reported camera-quest flow** for steel, natural stone, wood, cool unpowered glass-ceramic hobs, limescale and any other known material the player names.

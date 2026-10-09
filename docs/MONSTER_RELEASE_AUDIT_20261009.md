@@ -8,7 +8,7 @@ The release adds six original SVG characters with names and taunts; a separate i
 
 ## Qualified functional candidate
 
-- Repository: `Smkz-Entertainment/GrimeQuest`
+- Repository: `Smkzz/GrimeQuest` (canonical public slug; previous organization path redirects)
 - Functional source: `456251a387f8369b03afc22a4308303b20c0a625`
 - Branch: `launch/grime-monsters-20261009`
 - Separate Railway qualification deployment: `338ff5b2-ffba-49af-9171-de66e5752d99`
@@ -53,7 +53,7 @@ Desktop and 390/320-pixel screenshots of the shipped game components were render
 
 It does not guarantee a hackathon win, objective 10/10 usability, native iPhone/HEIC/PWA behavior, a real cleaning outcome, hygiene, chemical suitability, a security penetration test or legal compliance. Runtime gameplay does not perform AI analysis. Completed history is local, user-editable and limited to 200 entries; it is not an anti-cheat system or permanent cloud account.
 
-Before submitting, physically test one safe before → clean → after → XP → collection journey on the actual iPhone, inspect the comparison slider and reduced-motion behavior, and try the illustrated demo without earning points. The operator also needs to review privacy-contact details and public-source contents, publish the currently private repository deliberately, complete the model declaration, and actually submit the entry.
+Before submitting, physically test one safe before → clean → after → XP → collection journey on the actual iPhone, inspect the comparison slider and reduced-motion behavior, and try the illustrated demo without earning points. The repository has since been made public and moved to the canonical Smkzz/GrimeQuest slug. The operator still needs to review privacy-contact details, complete the model declaration, verify the coding-window provenance, and actually submit the entry.
 
 ## Release acceptance
 

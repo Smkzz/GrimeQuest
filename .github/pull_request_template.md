@@ -1,19 +1,35 @@
 ## What changed
 
-<!-- Keep this focused. -->
+<!-- Describe the exact, user-observable change. -->
 
 ## Why
 
-<!-- User problem / safety / reliability reason. -->
+<!-- User problem, defect, safety, privacy or release reason. -->
 
 ## Verification
 
-- [ ] I ran the relevant local tests.
-- [ ] I did not add secrets, private household photos, product-label photos, or generated evidence to Git.
-- [ ] If I changed catalog eligibility, I updated manufacturer evidence, explicit exclusions, catalog version, and policy parity tests.
-- [ ] If I changed vision/provider behavior, unsafe/uncertain cases still fail closed.
-- [ ] If I changed generated PWA inputs, I rebuilt and verified generated output.
+- [ ] I ran the relevant local/isolated tests and describe real results.
+- [ ] I did not add API keys, credentials, real private household photos,
+      product-label photos, or private/generated evidence to Git.
+- [ ] I checked the deployed/standalone PWA only when relevant and qualified.
+- [ ] I confirmed accessibility, narrow/mobile layout and reduced motion for
+      user-facing visual changes.
+- [ ] If I changed XP/collection logic, the demo still earns **zero XP**,
+      real outcomes are **self-reported**, and duplicate rewards are blocked.
+- [ ] If I changed sharing, no private photos or personal details are sent.
+- [ ] If I changed optional legacy API/catalog authority, uncertainty
+      still fails closed and I updated its evidence/parity tests.
+- [ ] If I changed generated client files, I rebuilt and verified
+      byte-identical output.
+- [ ] For releases, I used [the release guide](../docs/RELEASING.md)
+      and did not mistake a docs-only update for an independently qualified
+      production image.
 
-## Safety / privacy impact
+## Privacy / safety impact
 
-<!-- State "none" or explain. -->
+<!-- State none, or detail the change and mitigating tests. -->
+
+## Remaining uncertainty
+
+<!-- Name any browser, device, security, cost, accessibility or real-world
+tests that were not run. Do not claim objective 10/10. -->

@@ -1,3 +1,10 @@
+> **Current game (October 9):** Original monster SVG art, local images,
+> self-reported progress and text-only sharing use no runtime AI service.
+> The ZXing scanner, cloud vision and product-discovery references below
+> describe guarded historical components still present in the source or
+> production build; they are not visible in the current casual game.
+> Their license notices are preserved for compliance.
+
 # Third-party notices
 
 Original application code and fixture illustrations use the MIT license in LICENSE. Product names identify real catalog variants; no affiliation or endorsement is implied. Product reference descriptions are narrow paraphrases with links to manufacturer guidance. Do not assume trademark rights or a right to redistribute full product labels.

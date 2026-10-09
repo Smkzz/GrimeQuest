@@ -1,3 +1,41 @@
+# Security policy for the public GrimeQuest repository
+
+**Supported source:** the current public main branch and the v0.1.x release
+candidate. The player-facing monster game uses **on-device photos and local
+self-reported XP**. It makes no runtime AI calls, has no accounts and does
+not select or authorize cleaning chemicals. The server still contains
+separately guarded historical API/catalog code. Treat that code as a
+potential attack surface, not as a supported consumer feature.
+
+## Report a vulnerability privately
+
+**Never publish an exploit, credential, real household image or private
+customer information in a GitHub issue or pull request.**
+
+Use the repository's **Security → Report a vulnerability** workflow
+when private vulnerability reporting is enabled:
+
+https://github.com/Smkzz/GrimeQuest/security/advisories/new
+
+If the button is unavailable, create a **nonsensitive request for a private
+security contact channel** in Issues; do not include the vulnerability
+details. Maintainers must explicitly configure private vulnerability
+reporting/contact in GitHub Settings. This file does not claim that the
+setting is already enabled or provide an invented email address.
+
+Please describe affected versions, reproduction steps with synthetic
+data, and possible impact once a private channel exists. Do not test
+other people's accounts or systems without authorization. An
+acknowledgement or fix ETA is not guaranteed for this solo prototype.
+
+---
+
+## Historical server/API security design
+
+The sections below document retained legacy code and its gates. They do
+**not** imply that public monster gameplay requires provider credentials,
+remote photo analysis, or a reviewed product catalogue.
+
 # Security model
 
 ## Intended deployment
@@ -28,6 +66,8 @@ Resource accounting is in process memory and per-IP limits may aggregate users b
 
 Runtime dependencies were refreshed and pinned, project metadata was synchronized, Docker base images are digest-pinned, the container build runs `pip check`, and Railway completed a clean network install/build/start of that dependency set. The browser runtime has zero npm production dependencies. A full OSV querybatch audit checked 32 exact pinned entries across the Python runtime, Python test toolchain and TypeScript. It first caught a pytest 9.0.2 advisory; after upgrading to pytest 9.1.1 the same audit returned 0 known vulnerabilities / 0 errors. A reproducible Trivy 0.74.0 HIGH/CRITICAL rootfs scan of the **equivalent remediated runtime** now passes after unused pip/tooling removal; the production Dockerfile was separately built and health-checked in a canary. A direct scan of the final registry image and an independent penetration test have **not** been completed. Resolve those gates before treating the prototype as a generally available cleaning-advice service.
 
-## Reporting
+## Historical reporting note
 
-Do not send personal photos, product keys or full private labels in public issues. Once a repository owner publishes the project, that owner should configure a private vulnerability-reporting channel and policy. This source package does not invent a contact address.
+This section's former private-repository guidance is superseded by the public
+security reporting policy at the top of this file. Keep security disclosures
+out of public issue bodies.

@@ -28,3 +28,8 @@ jobs:
       - run: python -m pytest --cov=server --cov-fail-under=90
       - run: python scripts/verify_build.py
       - run: git diff --exit-code -- client/catalog.ts web preview.html
+      - name: Verify safe source release archive and checksum
+        run: |
+          python scripts/package_release.py
+          cd ..
+          sha256sum --check GrimeQuest-v*.sha256

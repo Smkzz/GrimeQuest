@@ -12,17 +12,17 @@ Your mess. Their problem. GrimeQuest turns a real cleaning chore into a tiny mon
 
 ## Model declaration draft
 
-ChatGPT-assisted build. Final monster-game implementation, design review and regression tests: GPT-6 Astra Pro. Runtime gameplay uses no AI model; results are explicitly self-reported.
+ChatGPT-assisted design, implementation and testing. List the exact ChatGPT/Codex models actually used from your session records, including earlier build iterations. Runtime gameplay uses no AI model; results are self-reported.
 
-Before submitting, the owner should add any additional models used during earlier development sessions. Do not imply that the runtime verifies cleaning or that the final-pass model was the only model used during the entire build week.
+Do not guess model names from marketing labels or describe one final-pass model as the only model used during the build. Record the actual models employed, and review the pre-kickoff code provenance note in HACKATHON_PROVENANCE.md before claiming window compliance.
 
 ## Links
 
 - Play: https://grimequest-web-production.up.railway.app/
-- Source: https://github.com/Smkz-Entertainment/GrimeQuest
+- Source: https://github.com/Smkzz/GrimeQuest
 - Official rules checked October 9: https://hackyard.tech/faq
 
-The source URL is not publicly usable until the owner deliberately makes the repository public. No publication or hackathon submission is performed by this document.
+The canonical source repository is public at the Smkzz/GrimeQuest URL. GitHub release publishing and Hackyard submission are separate actions; this document does neither.
 
 ## Official submission requirements
 

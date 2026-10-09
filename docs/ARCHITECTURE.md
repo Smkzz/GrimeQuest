@@ -1,3 +1,13 @@
+> **Historical architecture note:** The workflow below describes the earlier
+> optional AI/product-matching prototype retained as guarded source code.
+> As of October 9, the **public player experience** starts in
+> **client/casual.ts** and uses the on-device before photo → clean → after
+> photo → self-reported XP/monster-collection loop. It makes no runtime AI
+> request and never selects a material, product or chemical method. See
+> [README](../README.md) and [current release audit](MONSTER_RELEASE_AUDIT_20261009.md).
+> Treat the following API design and limits as background on dormant source,
+> not the live player journey.
+
 # Architecture
 
 ## Deliberate small-system choices
