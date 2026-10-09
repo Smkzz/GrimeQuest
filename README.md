@@ -59,6 +59,7 @@ The public UI is in `client/casual.ts`, the deterministic collection and origina
 ### Open-source health and releases
 
 - [Releasing on GitHub](docs/RELEASING.md) — exact-source qualification, fail-closed SHA-256 source packaging and manual GitHub Release instructions.
+- [Public GitHub release audit](docs/GITHUB_PUBLIC_RELEASE_AUDIT_20261009.md) — 601-test qualification, fixes made, and remaining owner-only settings.
 - [Changelog](CHANGELOG.md) — current **v0.1.0** release notes and historical prototype iterations.
 - [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Support](SUPPORT.md) · [Accessibility](ACCESSIBILITY.md) · [Security policy](SECURITY.md).
 - [Hackathon provenance](docs/HACKATHON_PROVENANCE.md) — construction timeline and source-window caveat. A public repository and working app are not a completed Hackyard submission.
