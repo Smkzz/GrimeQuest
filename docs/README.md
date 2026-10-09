@@ -9,6 +9,8 @@ The public player experience does **not** ask for a cleaner, material or AI key.
 - [Public README](../README.md) — what the app does, how to play and build.
 - [Releasing on GitHub](RELEASING.md) — safe Git-tracked source archive,
   checksums, tag/release procedure and security/CI caveats.
+- [Public-release audit](GITHUB_PUBLIC_RELEASE_AUDIT_20261009.md) —
+  source scan, quality evidence, corrected metadata and owner-only gaps.
 - [Monster-release audit](MONSTER_RELEASE_AUDIT_20261009.md) —
   separately qualified functional build and limitations.
 - [Physical iPhone checklist](CASUAL_PHONE_ACCEPTANCE_20261008.md) —
