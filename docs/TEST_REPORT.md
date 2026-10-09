@@ -1,3 +1,10 @@
+> **Historical qualification report:** The test figures below belong to the
+> early AI/product-matching prototype (October 7–8), not the final monster
+> game. The current public game's separately qualified functional baseline
+> is **534 Python/API/Playwright/PWA + 61 Node = 595 tests passed**.
+> See [October 9 release audit](MONSTER_RELEASE_AUDIT_20261009.md).
+> Neither baseline proves physical iPhone behavior or actual cleaning.
+
 # GrimeQuest v0.1.0 — release-candidate qualification report
 
 **Date:** 2026-10-07  
