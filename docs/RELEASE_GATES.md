@@ -1,3 +1,11 @@
+> **Historical AI/provider release gates:** These rules cover the optional
+> legacy vision and reviewed-product flows. The public GrimeQuest monster
+> game does **not** ask players to select cleaners/surfaces or configure
+> provider credentials. Its up-to-date source/test qualification is in
+> [the monster release audit](MONSTER_RELEASE_AUDIT_20261009.md).
+> The independent physical iPhone check and hackathon submission remain
+> human acceptance tasks.
+
 # Release gates
 
 ## Zero-setup camera quests — functional fallback
