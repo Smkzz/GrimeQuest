@@ -45,7 +45,8 @@ RUN npm pack @zxing/library@0.21.3 --pack-destination /tmp --silent \
 COPY eval ./eval
 # The release-archive documentation tests must inspect the exact public
 # README and GitHub release guide; these are not copied to production runtime.
-COPY README.md ./README.md
+COPY README.md LICENSE SECURITY.md CONTRIBUTING.md CHANGELOG.md THIRD_PARTY_NOTICES.md ./
+COPY .github/workflows/ci.yml ./.github/workflows/ci.yml
 COPY docs/RELEASING.md ./docs/RELEASING.md
 COPY run.py ./
 
