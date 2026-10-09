@@ -107,6 +107,6 @@ def test_package_refuses_symlink_and_version_mismatch(checked_out, tmp_path):
 def test_readme_local_links_and_required_release_files_exist():
     readme = (pkg.ROOT / "README.md").read_text()
     assert "docs/RELEASING.md" in readme
-    assert (pkg.ROOT / "docs" / "RELEASING.md").is_file()
-    assert (pkg.ROOT / "LICENSE").is_file()
+    for name in sorted(pkg.MANDATORY):
+        assert (pkg.ROOT / name).is_file(), f"Missing public release file: {name}"
     assert (pkg.ROOT / ".github" / "workflows" / "ci.yml").is_file()
