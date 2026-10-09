@@ -56,6 +56,15 @@ Open `http://localhost:8080`. Production is deployed over HTTPS on Railway. GitH
 
 The public UI is in `client/casual.ts`, the deterministic collection and original art in `client/creatures.ts`, and the responsive skin in `web/game.css`. `tests/test_monster_game.py` covers demo isolation, six-creature progression, sharing privacy, accessible before/after comparison, alignment, reduced motion and quest recovery.
 
+### Open-source health and releases
+
+- [Releasing on GitHub](docs/RELEASING.md) — exact-source qualification, fail-closed SHA-256 source packaging and manual GitHub Release instructions.
+- [Changelog](CHANGELOG.md) — current **v0.1.0** release notes and historical prototype iterations.
+- [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Support](SUPPORT.md) · [Accessibility](ACCESSIBILITY.md) · [Security policy](SECURITY.md).
+- [Hackathon provenance](docs/HACKATHON_PROVENANCE.md) — construction timeline and source-window caveat. A public repository and working app are not a completed Hackyard submission.
+
+Repository: [Smkzz/GrimeQuest](https://github.com/Smkzz/GrimeQuest) (canonical public address). GitHub Releases are manually published and should target the exact qualified/deployed source commit.
+
 ### Launch material
 
 - [Submission copy and real-task video script](docs/MONSTER_SUBMISSION_20261009.md)
