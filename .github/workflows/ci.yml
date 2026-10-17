@@ -29,6 +29,18 @@ jobs:
       - run: python -m pip install -r requirements-dev.lock
       - run: npm ci --ignore-scripts
       - run: python -m playwright install --with-deps chromium
+      - name: Prepare pinned ZXing browser assets
+        run: |
+          zxing_tmp="$(mktemp -d)"
+          trap 'rm -rf "$zxing_tmp"' EXIT
+          npm pack @zxing/library@0.21.3 --ignore-scripts --registry=https://registry.npmjs.org --pack-destination "$zxing_tmp" --silent
+          mkdir -p web/vendor
+          tar -xzf "$zxing_tmp/zxing-library-0.21.3.tgz" -C "$zxing_tmp" package/umd/index.min.js package/LICENSE
+          cp "$zxing_tmp/package/umd/index.min.js" web/vendor/zxing-0.21.3.min.js
+          cp "$zxing_tmp/package/LICENSE" web/vendor/zxing.LICENSE.txt
+          test -s web/vendor/zxing-0.21.3.min.js
+          test -s web/vendor/zxing.LICENSE.txt
+          node --check web/vendor/zxing-0.21.3.min.js
       - run: python scripts/build.py
       - run: npm run typecheck && npm test
       - run: python -m pytest --cov=server --cov-fail-under=90
