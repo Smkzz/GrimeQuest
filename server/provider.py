@@ -18,6 +18,24 @@ T = TypeVar("T", bound=BaseModel)
 class ProviderFailure(RuntimeError):
     pass
 
+
+async def _bounded_metadata(client: httpx.AsyncClient, url: str, key: str,
+                            maximum_bytes: int, failure_message: str):
+    """Read-only metadata has the same byte/time boundary as inference output."""
+    deadline = client.timeout.read if client.timeout.read is not None else 10.0
+    async with asyncio.timeout(deadline), client.stream(
+        "GET", url, headers={"Authorization": "Bearer " + key}
+    ) as response:
+        if response.status_code != 200:
+            raise ProviderFailure(failure_message)
+        body = bytearray()
+        async for chunk in response.aiter_bytes():
+            if len(body) + len(chunk) > maximum_bytes:
+                raise ProviderFailure(failure_message)
+            body.extend(chunk)
+    return json.loads(body)
+
+
 def validate_openrouter_key_limit(data: object, maximum_usd: float = 0.50) -> dict:
     """Require a real provider-enforced, non-resetting USD ceiling before paid tests.
 
@@ -28,10 +46,16 @@ def validate_openrouter_key_limit(data: object, maximum_usd: float = 0.50) -> di
         raise ProviderFailure("A provider-side key spending limit could not be verified.")
     limit = data.get("limit")
     remaining = data.get("limit_remaining")
-    if (type(limit) not in (int, float) or type(remaining) not in (int, float)
-            or not math.isfinite(limit) or not math.isfinite(remaining)
-            or not 0 < limit <= maximum_usd
-            or not 0 <= remaining <= limit
+    try:
+        amounts_valid = (
+            type(limit) in (int, float) and type(remaining) in (int, float)
+            and math.isfinite(limit) and math.isfinite(remaining)
+            and 0 < limit <= maximum_usd and 0 <= remaining <= limit
+        )
+    except OverflowError:
+        # JSON integers can exceed the float range used by math.isfinite.
+        amounts_valid = False
+    if (not amounts_valid
             or data.get("limit_reset", "not_reported") is not None
             or data.get("is_management_key") is not False
             or data.get("include_byok_in_limit") is not True):
@@ -48,15 +72,14 @@ async def verify_openrouter_key_limit(key: str, maximum_usd: float = 0.50,
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=False,
                                      trust_env=False, transport=transport) as client:
-            response = await client.get("https://openrouter.ai/api/v1/key",
-                                        headers={"Authorization": "Bearer " + key})
-            if response.status_code != 200 or len(response.content) > 20_000:
-                raise ProviderFailure("OpenRouter did not confirm the key spending cap.")
-            payload = response.json()
+            payload = await _bounded_metadata(
+                client, "https://openrouter.ai/api/v1/key", key, 20_000,
+                "OpenRouter did not confirm the key spending cap.",
+            )
             return validate_openrouter_key_limit(payload.get("data"), maximum_usd)
     except ProviderFailure:
         raise
-    except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
+    except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError, RecursionError) as exc:
         raise ProviderFailure("OpenRouter spending-cap verification failed. No inference was made.") from exc
 
 
@@ -72,11 +95,11 @@ async def verify_openrouter_zdr_model(key: str, model: str, transport=None) -> d
     try:
         async with httpx.AsyncClient(timeout=15, follow_redirects=False,
                                      trust_env=False, transport=transport) as client:
-            response = await client.get("https://openrouter.ai/api/v1/endpoints/zdr",
-                                        headers={"Authorization": "Bearer " + key})
-            if response.status_code != 200 or len(response.content) > 12_000_000:
-                raise ProviderFailure("OpenRouter ZDR endpoint availability could not be verified.")
-            data = response.json().get("data")
+            payload = await _bounded_metadata(
+                client, "https://openrouter.ai/api/v1/endpoints/zdr", key, 12_000_000,
+                "OpenRouter ZDR endpoint availability could not be verified.",
+            )
+            data = payload.get("data")
             if not isinstance(data, list):
                 raise ProviderFailure("OpenRouter did not return a verified ZDR endpoint list.")
             eligible = []
@@ -94,7 +117,7 @@ async def verify_openrouter_zdr_model(key: str, model: str, transport=None) -> d
             return {"verified": True, "model": model, "zdr_endpoint_count": len(eligible)}
     except ProviderFailure:
         raise
-    except (httpx.HTTPError, ValueError, TypeError, AttributeError) as exc:
+    except (TimeoutError, httpx.HTTPError, ValueError, TypeError, AttributeError, RecursionError) as exc:
         raise ProviderFailure("OpenRouter ZDR preflight failed. No inference was made.") from exc
 
 
@@ -109,10 +132,11 @@ async def verify_openrouter_beta_spend_cap(key: str, transport=None) -> dict:
         raise ProviderFailure('A server-side vision key is required.')
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=False, trust_env=False, transport=transport) as client:
-            response = await client.get('https://openrouter.ai/api/v1/key', headers={'Authorization': 'Bearer ' + key})
-            if response.status_code != 200 or len(response.content) > 20_000:
-                raise ProviderFailure('KEY_METADATA_UNAVAILABLE')
-            data = response.json().get('data')
+            payload = await _bounded_metadata(
+                client, 'https://openrouter.ai/api/v1/key', key, 20_000,
+                'KEY_METADATA_UNAVAILABLE',
+            )
+            data = payload.get('data')
             if not isinstance(data, dict):
                 raise ProviderFailure('KEY_METADATA_SCHEMA')
             # The public GET /key response may omit is_management_key. Explicit
@@ -136,7 +160,7 @@ async def verify_openrouter_beta_spend_cap(key: str, transport=None) -> dict:
             return verified
     except ProviderFailure:
         raise
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as exc:
+    except (TimeoutError, httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError, RecursionError) as exc:
         raise ProviderFailure('KEY_METADATA_NETWORK_ERROR') from exc
 
 class VisionProvider:
@@ -194,15 +218,19 @@ class VisionProvider:
                                 raise ProviderFailure("Vision response exceeded its size limit.")
             envelope = json.loads(chunks)
             choice = envelope["choices"][0]
+            if not isinstance(choice, dict):
+                raise ProviderFailure("Vision returned an invalid response envelope.")
             if choice.get("finish_reason") not in ("stop", None):
                 raise ProviderFailure("Vision response was incomplete.")
             message = choice["message"]
+            if not isinstance(message, dict):
+                raise ProviderFailure("Vision returned an invalid response envelope.")
             if message.get("refusal") or not isinstance(message.get("content"), str):
                 raise ProviderFailure("Vision could not establish a result.")
             return schema.model_validate_json(message["content"])
         except ProviderFailure:
             raise
-        except (TimeoutError, httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, ValidationError) as exc:
+        except (TimeoutError, httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, RecursionError, ValidationError) as exc:
             # Never expose raw provider response, secret, image or prompt in client errors.
             raise ProviderFailure("Vision could not produce a valid result. No recommendation or XP was issued.") from exc
 

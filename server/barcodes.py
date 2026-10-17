@@ -141,7 +141,10 @@ async def _bounded_json(client: httpx.AsyncClient, path: str,
     # URL always points at a constant Open Facts host. Never read unlimited
     # upstream JSON into Railway's 500 MB process and never follow redirects.
     try:
-        async with client.stream("GET", path, params=params, headers={
+        # Bound elapsed time as well as bytes and per-read inactivity. A slow
+        # upstream must not keep a catalog request alive by trickling chunks.
+        deadline = client.timeout.read if client.timeout.read is not None else 4.0
+        async with asyncio.timeout(deadline), client.stream("GET", path, params=params, headers={
             "User-Agent": USER_AGENT, "Accept": "application/json"
         }) as response:
             if response.status_code != 200:
@@ -153,7 +156,7 @@ async def _bounded_json(client: httpx.AsyncClient, path: str,
                 data.extend(chunk)
         payload = __import__("json").loads(data)
         return payload if isinstance(payload, dict) else None
-    except (httpx.HTTPError, ValueError, TypeError, OverflowError):
+    except (TimeoutError, httpx.HTTPError, ValueError, TypeError, OverflowError, RecursionError):
         return None
 
 

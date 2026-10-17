@@ -52,7 +52,7 @@ docker build -t grimequest .
 docker run --rm -p 8080:8080 -e PORT=8080 grimequest
 ```
 
-Open `http://localhost:8080`. Production is deployed over HTTPS on Railway. GitHub Actions are manual-only; automated qualification does not require paid AI inference.
+Open `http://localhost:8080`. Production is deployed over HTTPS on Railway. GitHub Actions run local qualification on public-repository pull requests and pushes to `main`, with manual runs also available. Automatic runs are disabled for private copies; qualification does not require paid AI inference.
 
 The public UI is in `client/casual.ts`, the deterministic collection and original art in `client/creatures.ts`, and the responsive skin in `web/game.css`. `tests/test_monster_game.py` covers demo isolation, six-creature progression, sharing privacy, accessible before/after comparison, alignment, reduced motion and quest recovery.
 

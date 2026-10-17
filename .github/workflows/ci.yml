@@ -1,6 +1,11 @@
 name: GrimeQuest local-contract qualification
-# Manual only: do not trigger external CI spending merely by publishing this source.
-on: workflow_dispatch
+# Standard hosted runners are free for public repositories. Private copies
+# remain manual-only; this qualification never calls a paid model provider.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -8,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
+    if: github.event.repository.private == false || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

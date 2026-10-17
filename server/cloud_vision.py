@@ -6,6 +6,7 @@ Cloud OCR never grants chemical/surface compatibility or hygiene claims.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 from io import BytesIO
 import json
@@ -84,7 +85,7 @@ def _provider_code(status: int, body: bytes) -> str:
 
 def _provider_message(status: int) -> str:
     if status in (400, 401, 403, 404):
-        return "Google Vision rejected this server's API configuration. GrimeQuest's operator must fix it. Your photos remain on this device; you can enter the label manually."
+        return "Google Vision rejected this server's API configuration. GrimeQuest's operator must fix it. You can enter the label manually."
     if status == 429:
         return "Google Vision's request quota is exhausted. Your photos remain available for manual label entry."
     return "Google Vision returned a server error. Your photos remain available for manual label entry."
@@ -210,7 +211,9 @@ class CloudVisionReader:
             ]
         }
         try:
-            async with httpx.AsyncClient(
+            # An HTTPX read timeout bounds each inactivity gap, not the whole
+            # upload/response. Keep slow trickles from monopolizing the OCR slot.
+            async with asyncio.timeout(self._timeout), httpx.AsyncClient(
                 timeout=httpx.Timeout(self._timeout),
                 follow_redirects=False,
                 trust_env=False,
@@ -272,7 +275,7 @@ class CloudVisionReader:
             )
         except CloudVisionUnavailable:
             raise
-        except httpx.TimeoutException as exc:
+        except (TimeoutError, httpx.TimeoutException) as exc:
             raise CloudVisionUnavailable(
                 "Google Vision did not respond in time. You can enter the label manually.",
                 "NETWORK_TIMEOUT",
